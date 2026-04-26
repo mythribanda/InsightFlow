@@ -374,17 +374,28 @@ export function profileDataset(rows: Record<string, unknown>[], headers: string[
   };
 }
 
-export function generateInsights(p: DatasetProfile): { text: string; confidence: number; tag: string }[] {
-  const ins: { text: string; confidence: number; tag: string }[] = [];
+export function generateInsights(p: DatasetProfile): { text: string; why: string; confidence: number; tag: string }[] {
+  const ins: { text: string; why: string; confidence: number; tag: string }[] = [];
   const worstMissing = [...p.columns].sort((a, b) => b.missingPct - a.missingPct)[0];
-  if (worstMissing && worstMissing.missingPct > 0) ins.push({ text: `Column **${worstMissing.name}** has the most missing data (${worstMissing.missingPct.toFixed(1)}%).`, confidence: 0.99, tag: "Quality" });
-  if (p.duplicateRows > 0) ins.push({ text: `Dataset contains **${p.duplicateRows}** duplicate rows (${((p.duplicateRows / p.rowCount) * 100).toFixed(1)}%).`, confidence: 0.98, tag: "Integrity" });
+  if (worstMissing && worstMissing.missingPct > 0) ins.push({
+    text: `Column **${worstMissing.name}** has the most missing data (${worstMissing.missingPct.toFixed(1)}%).`,
+    why: `Models trained on it will be biased toward the rows that did report a value — impute or drop before analysis.`,
+    confidence: 0.99, tag: "Quality",
+  });
+  if (p.duplicateRows > 0) ins.push({
+    text: `Dataset contains **${p.duplicateRows}** duplicate rows (${((p.duplicateRows / p.rowCount) * 100).toFixed(1)}%).`,
+    why: `Duplicates inflate counts, skew averages, and silently double-weight some entities in any aggregation.`,
+    confidence: 0.98, tag: "Integrity",
+  });
   for (const c of p.columns.filter((c) => c.type === "numeric").slice(0, 3)) {
     if (c.mean !== undefined && c.median !== undefined && c.std !== undefined) {
+      const skewed = Math.abs(c.mean - c.median) > c.std * 0.5;
       ins.push({
         text: `**${c.name}** averages **${c.mean.toFixed(2)}** (median ${c.median.toFixed(2)}, σ ${c.std.toFixed(2)}).`,
-        confidence: 0.9,
-        tag: "Distribution",
+        why: skewed
+          ? `Mean and median diverge — the average is being pulled by extremes; report the median for typical behaviour.`
+          : `Mean and median agree — the average is a faithful summary of a typical row.`,
+        confidence: 0.9, tag: "Distribution",
       });
     }
   }
@@ -392,7 +403,13 @@ export function generateInsights(p: DatasetProfile): { text: string; confidence:
     if (c.topValues && c.topValues[0]) {
       const dom = c.topValues[0];
       const share = (dom.count / Math.max(c.count - c.missing, 1)) * 100;
-      ins.push({ text: `In **${c.name}**, "${dom.value}" dominates at ${share.toFixed(1)}%.`, confidence: 0.85, tag: "Composition" });
+      ins.push({
+        text: `In **${c.name}**, "${dom.value}" dominates at ${share.toFixed(1)}%.`,
+        why: share > 80
+          ? `Any segment-level analysis will essentially mirror this single value — minority groups will be invisible without stratified sampling.`
+          : `One value carries most of the weight — consider grouping the long tail before charting.`,
+        confidence: 0.85, tag: "Composition",
+      });
     }
   }
   if (p.numericMatrix) {
@@ -402,12 +419,20 @@ export function generateInsights(p: DatasetProfile): { text: string; confidence:
       for (let j = i + 1; j < columns.length; j++)
         if (Math.abs(matrix[i][j]) > Math.abs(best.v)) best = { i, j, v: matrix[i][j] };
     if (best.i >= 0 && Math.abs(best.v) > 0.4) {
-      ins.push({ text: `Strong ${best.v > 0 ? "positive" : "negative"} correlation (${best.v.toFixed(2)}) between **${columns[best.i]}** and **${columns[best.j]}**.`, confidence: 0.8, tag: "Relationship" });
+      ins.push({
+        text: `Strong ${best.v > 0 ? "positive" : "negative"} correlation (${best.v.toFixed(2)}) between **${columns[best.i]}** and **${columns[best.j]}**.`,
+        why: `These two columns carry overlapping signal — using both as model features risks multicollinearity; pick one or combine them.`,
+        confidence: 0.8, tag: "Relationship",
+      });
     }
   }
   const dt = p.columns.find((c) => c.type === "datetime");
   if (dt && dt.minDate && dt.maxDate) {
-    ins.push({ text: `Time range: **${dt.minDate.slice(0, 10)} → ${dt.maxDate.slice(0, 10)}** in column **${dt.name}**.`, confidence: 0.95, tag: "Temporal" });
+    ins.push({
+      text: `Time range: **${dt.minDate.slice(0, 10)} → ${dt.maxDate.slice(0, 10)}** in column **${dt.name}**.`,
+      why: `Knowing the window prevents over-generalising — patterns outside this range are extrapolation, not evidence.`,
+      confidence: 0.95, tag: "Temporal",
+    });
   }
   return ins.slice(0, 8);
 }

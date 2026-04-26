@@ -4,7 +4,7 @@ import type { DatasetProfile } from "./profiler";
 export function exportReportPDF(opts: {
   profile: DatasetProfile;
   fileName: string;
-  insights: { text: string; confidence: number; tag: string }[];
+  insights: { text: string; why?: string; confidence: number; tag: string }[];
   story?: string;
   narrative?: string;
 }) {
@@ -59,7 +59,10 @@ export function exportReportPDF(opts: {
   if (narrative) { heading("Behavior Narrative"); writeWrapped(narrative); }
 
   heading("Key Insights");
-  for (const i of insights) writeWrapped(`• [${i.tag} · ${(i.confidence * 100).toFixed(0)}%] ${i.text}`);
+  for (const i of insights) {
+    writeWrapped(`• [${i.tag} · ${(i.confidence * 100).toFixed(0)}%] ${i.text}`);
+    if (i.why) writeWrapped(`    Why this matters: ${i.why}`, 10, 3);
+  }
 
   if (profile.risks.length) { heading("Risks"); for (const r of profile.risks) writeWrapped(`• ${r}`); }
   if (profile.contradictions.length) { heading("Contradictions"); for (const r of profile.contradictions) writeWrapped(`• ${r}`); }

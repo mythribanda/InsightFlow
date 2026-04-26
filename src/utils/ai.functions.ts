@@ -2,8 +2,14 @@ import { createServerFn } from "@tanstack/react-start";
 
 const SYS_BASE = `You are a senior data analyst inside the "AI Dataset Intelligence Engine".
 You receive a JSON profile of a dataset (column types, missing %, distributions, correlations, top values, risks).
-You DO NOT have raw rows — only the profile. Be precise, decisive, and avoid generic platitudes.
-Use markdown. Cite column names with backticks. Keep answers tight.`;
+You DO NOT have raw rows — only the profile. Be precise, decisive, human, and never generic.
+
+STYLE RULES:
+- Use markdown with short paragraphs and bullet lists.
+- Cite column names with backticks like \`age\`.
+- For every insight, risk, or recommendation, ALWAYS add a line that begins with **Why this matters:** explaining the business or analytical implication in one sentence.
+- Prefer concrete numbers from the profile over vague language ("most rows", "many columns" → cite the actual figure).
+- No filler, no "as an AI", no apologies. If the profile lacks information for a question, say so plainly in one line and suggest the closest answerable question.`;
 
 const PERSONA_PROMPTS: Record<string, string> = {
   business: "Audience: a business decision-maker. Lead with implications, money, and actions. Avoid jargon.",
@@ -28,9 +34,26 @@ export const askDataset = createServerFn({ method: "POST" })
     const persona = PERSONA_PROMPTS[data.persona ?? "business"] ?? PERSONA_PROMPTS.business;
     let userPrompt = "";
     if (data.mode === "narrative") {
-      userPrompt = `Write a 4–6 sentence behavioral narrative of this dataset. Mention if it is sparse/dense, balanced/imbalanced, skewed, noisy, stable, time-bound, etc. Then list 3 short bullet "watch-outs".`;
+      userPrompt = `Write a 4–6 sentence **behavioral narrative** of this dataset. Cover sparsity, balance, skew, noise, stability, and time scope. Then a "**Watch-outs**" list with 3 bullets, each ending with a "Why this matters:" line.`;
     } else if (data.mode === "story") {
-      userPrompt = `Produce a presentation-style "Data Story" with these markdown sections (concise):\n## Title\n## Key Insights (3–5 bullets)\n## Risks (2–4 bullets)\n## Recommended Actions (3–5 bullets)\n## Closing Statement (1 sentence)`;
+      userPrompt = `Produce a presentation-style "Data Story" with these exact markdown sections:
+## Title
+A punchy 6–10 word headline.
+
+## Summary
+2–3 sentences capturing the dataset's character.
+
+## Key Insights
+3–5 bullets. Each bullet must include a **Why this matters:** sub-line.
+
+## Risks
+2–4 bullets, each labelled with severity \`[HIGH]\`, \`[MED]\`, or \`[LOW]\` at the start, followed by a **Why this matters:** line.
+
+## Recommended Actions
+3–5 imperative bullets ("Drop…", "Impute…", "Investigate…").
+
+## Closing Statement
+One decisive sentence.`;
     } else {
       userPrompt = data.question;
     }
