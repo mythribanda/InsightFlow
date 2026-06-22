@@ -31,4 +31,33 @@ dist-ssr
 *.sln
 *.sw?
 .env
+# Python
+venv/
+backend/venv/
+__pycache__/
+*.pyc
+
+# Environment files
+.env
+
+# Node
+node_modules/
+
+# Build
+dist/
+build/
+
+# VS Code
+.vscode/
+
+# Logs
+*.log
+
+__pycache__/
+*.pyc
+backend/__pycache__/
+backend/src/__pycache__/
+backend/venv/
+venv/
+.venv/
 .env

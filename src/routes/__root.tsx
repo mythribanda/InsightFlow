@@ -1,3 +1,5 @@
+import { useState } from "react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Outlet, Link, createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
 import { Toaster } from "@/components/ui/sonner";
 
@@ -30,14 +32,12 @@ export const Route = createRootRoute({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "AI Dataset Intelligence Engine" },
+      { title: "InsightFlow" },
       { name: "description", content: "Upload datasets and get analyst-grade intelligence: trust score, risks, insights, and chat." },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "AI Dataset Intelligence Engine" },
+      { property: "og:title", content: "InsightFlow" },
       { property: "og:description", content: "Turn raw data into decisions — trust score, risks, contradictions, insights, and chat." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
-      { name: "twitter:site", content: "@Lovable" },
     ],
     links: [
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -69,10 +69,12 @@ function RootShell({ children }: { children: React.ReactNode }) {
 }
 
 function RootComponent() {
+  const [queryClient] = useState(() => new QueryClient());
+
   return (
-    <>
+    <QueryClientProvider client={queryClient}>
       <Outlet />
       <Toaster />
-    </>
+    </QueryClientProvider>
   );
 }

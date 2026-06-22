@@ -39,6 +39,13 @@ function tooltipStyle() {
       borderRadius: 10,
       fontSize: 11,
       backdropFilter: "blur(12px)",
+      color: "var(--color-popover-foreground)",
+    },
+    itemStyle: {
+      color: "var(--color-popover-foreground)",
+    },
+    labelStyle: {
+      color: "var(--color-muted-foreground)",
     },
     cursor: { fill: "var(--color-secondary)", opacity: 0.3 },
   } as const;

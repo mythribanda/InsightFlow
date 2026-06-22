@@ -1,4 +1,4 @@
-# Data Whisperer Pro
+# InsightFlow
 
 ![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-38BDF8?logo=tailwindcss&logoColor=white)
@@ -9,7 +9,7 @@
 
 > **AI-powered data analytics and visualization platform** for turning raw spreadsheets into actionable, explainable insights.
 
-Data Whisperer Pro is a modern analytics experience that helps teams upload datasets, profile data quality, generate charts, surface risks, and ask natural-language questions about their data. It combines a polished React interface with AI-assisted analysis, making it easier to move from CSV to decision-ready insight in minutes.
+InsightFlow is a modern analytics experience that helps teams upload datasets, profile data quality, generate charts, surface risks, and ask natural-language questions about their data. It combines a polished React interface with AI-assisted analysis, making it easier to move from CSV to decision-ready insight in minutes.
 
 ## Overview
 
@@ -57,8 +57,8 @@ This project is designed for analysts, developers, and business users who need a
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/your-username/data-whisperer-pro.git
-cd data-whisperer-pro
+git clone https://github.com/your-username/insightflow.git
+cd insightflow
 ```
 
 ### 2. Install frontend dependencies
@@ -79,8 +79,7 @@ Create a `.env` file and add the required values:
 
 ```env
 VITE_API_BASE_URL=http://localhost:8000
-LOVABLE_API_KEY=your_ai_api_key
-DATABASE_URL=mysql://user:password@localhost:3306/data_whisperer_pro
+DATABASE_URL=mysql://user:password@localhost:3306/insightflow
 GEMINI_API_KEY=your_gemini_key
 OPENAI_API_KEY=your_openai_key
 ```
@@ -127,7 +126,7 @@ Upload file -> Profile data -> Review charts -> Inspect risks -> Ask questions -
 ## Folder Structure
 
 ```text
-data-whisperer-pro/
+insightflow/
 ├── src/
 │   ├── components/
 │   │   ├── AutoCharts.tsx
@@ -169,7 +168,7 @@ Add your product images here to showcase the experience.
 
 ## API Integration
 
-Data Whisperer Pro is built to integrate with a FastAPI backend and AI providers for structured data analysis.
+InsightFlow is built to integrate with a FastAPI backend and AI providers for structured data analysis.
 
 ### Recommended backend endpoints
 
@@ -252,7 +251,7 @@ This project is licensed under the MIT License. See the `LICENSE` file if one is
 
 **Mythri Banda**
 
-- Project: Data Whisperer Pro
+- Project: InsightFlow
 - Role: Creator and maintainer
 - Contact: Add your preferred email or portfolio link here
 

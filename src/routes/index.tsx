@@ -7,7 +7,7 @@ import {
   Activity, AlertTriangle, BarChart3, Brain, Database, Download, FileWarning,
   Lightbulb, ListChecks, MessageSquare, Sparkles, Wand2, GitCompareArrows,
   LayoutDashboard, ShieldCheck, ShieldAlert, ShieldX, ChevronLeft, ChevronRight,
-  Zap, Eye, Target, TrendingUp,
+  Zap, Eye, Target, TrendingUp, Zap as ZapIcon,
 } from "lucide-react";
 import { FileDrop } from "@/components/FileDrop";
 import { MetricCard } from "@/components/MetricCard";
@@ -15,19 +15,24 @@ import { TrustGauge } from "@/components/TrustGauge";
 import { AutoCharts } from "@/components/AutoCharts";
 import { ChatPanel } from "@/components/ChatPanel";
 import { MiniBarChart } from "@/components/MiniBarChart";
+import { ModelingPanel } from "@/components/ModelingPanel";
 import { parseFile } from "@/lib/parseFile";
 import { profileDataset, generateInsights, trendForecast, type DatasetProfile } from "@/lib/profiler";
 import { computeRiskLevel, severityFor, severityStyle } from "@/lib/riskLevel";
 import { exportReportPDF } from "@/lib/exportReport";
 import { askDataset } from "@/utils/ai.functions";
 import { cn } from "@/lib/utils";
+import { startAnalysis, getAnalysisStatus, type AnalysisResult } from "@/server/analysis";
+import { DependencyHeatmaps } from "@/components/DependencyHeatmaps";
+import { AnomalyPanel } from "@/components/AnomalyPanel";
+import { QueryBox } from "@/components/QueryBox";
 
 export const Route = createFileRoute("/")(  {
   head: () => ({
     meta: [
-      { title: "AI Dataset Intelligence Engine — Analyst Console" },
+      { title: "InsightFlow — Analyst Console" },
       { name: "description", content: "Upload a CSV or Excel file and get an analyst-grade intelligence report: dashboard, trust score, risks, insights, and an Ask-Your-Data chat." },
-      { property: "og:title", content: "AI Dataset Intelligence Engine" },
+      { property: "og:title", content: "InsightFlow" },
       { property: "og:description", content: "Turn raw datasets into decision intelligence — dashboard, trust score, risks, contradictions, insights, and chat." },
     ],
   }),
@@ -35,7 +40,7 @@ export const Route = createFileRoute("/")(  {
 });
 
 type Persona = "business" | "student" | "developer";
-type Tab = "dashboard" | "overview" | "charts" | "insights" | "trust" | "chat" | "report";
+type Tab = "dashboard" | "overview" | "charts" | "insights" | "trust" | "chat" | "modeling" | "report" | "anomaly";
 
 function Home() {
   const [busy, setBusy] = useState(false);
@@ -48,7 +53,12 @@ function Home() {
   const [story, setStory] = useState<string>("");
   const [aiBusy, setAiBusy] = useState<"narrative" | "story" | null>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [sessionId, setSessionId] = useState<string>("");
   const ask = useServerFn(askDataset);
+  const runStartAnalysis = useServerFn(startAnalysis);
+  const runGetAnalysisStatus = useServerFn(getAnalysisStatus);
 
   const insights = useMemo(() => (profile ? generateInsights(profile) : []), [profile]);
   const forecast = useMemo(() => (profile ? trendForecast(profile) : null), [profile]);
@@ -72,9 +82,43 @@ function Home() {
       setProfile(p); setRows(parsed.rows); setFileName(parsed.fileName); setTab("dashboard");
       setNarrative(""); setStory("");
       toast.success(`Profiled ${parsed.rows.length.toLocaleString()} rows × ${parsed.headers.length} columns`);
+
+      // Backend Background analysis job
+      setAnalyzing(true);
+      setAnalysis(null);
+      const session_id = `session_${Date.now()}`;
+      setSessionId(session_id);
+      
+      const dataDict: Record<string, unknown[]> = {};
+      parsed.headers.forEach(h => {
+        dataDict[h] = parsed.rows.map(r => r[h]);
+      });
+      
+      await runStartAnalysis({ session_id, data: dataDict });
+      
+      let completed = false;
+      let attempts = 0;
+      while (!completed && attempts < 60) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        const statusRes = await runGetAnalysisStatus({ session_id });
+        if (statusRes.status === "completed" && statusRes.result) {
+          setAnalysis(statusRes.result);
+          completed = true;
+          toast.success("Backend intelligence profile complete!");
+        } else if (statusRes.status === "failed") {
+          throw new Error(statusRes.error || "Backend analysis failed");
+        }
+        attempts++;
+      }
+      if (!completed) {
+        toast.error("Backend analysis timed out. Using client fallback.");
+      }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to parse file");
-    } finally { setBusy(false); }
+    } finally { 
+      setBusy(false); 
+      setAnalyzing(false);
+    }
   };
 
   const runAi = async (mode: "narrative" | "story") => {
@@ -95,6 +139,8 @@ function Home() {
     { id: "charts", label: "Visualizations", icon: BarChart3, desc: "Auto-charts" },
     { id: "insights", label: "Insights", icon: Lightbulb, desc: "Key findings" },
     { id: "trust", label: "Trust & Risk", icon: AlertTriangle, desc: "Quality score" },
+    { id: "modeling", label: "ML Models", icon: ZapIcon, desc: "Train & evaluate" },
+    { id: "anomaly", label: "Anomalies", icon: ShieldAlert, desc: "Outlier detection" },
     { id: "chat", label: "Ask your data", icon: MessageSquare, desc: "AI chat" },
     { id: "report", label: "Report", icon: Download, desc: "Export PDF" },
   ];
@@ -244,13 +290,88 @@ function Home() {
 
           <div key={tab} className="animate-in fade-in-50 slide-in-from-bottom-2 duration-300">
             {tab === "dashboard" && profile && risk && (
-              <Dashboard profile={profile} risk={risk} insights={insights} fileName={fileName} onJump={setTab} />
+              <div className="space-y-6">
+                {analyzing && (
+                  <div className="surface-card p-6 flex flex-col items-center justify-center space-y-4">
+                    <span className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+                    <p className="text-sm font-medium text-muted-foreground">Running backend intelligence profiling...</p>
+                  </div>
+                )}
+                
+                {analysis ? (
+                  <div className="space-y-6">
+                    {/* Backend Shape, Trust Score, & Breakdown */}
+                    <div className="grid gap-6 lg:grid-cols-3">
+                      {/* Shape and Info */}
+                      <div className="surface-card p-5 flex flex-col justify-between">
+                        <div>
+                          <div className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">dataset shape</div>
+                          <div className="mt-2 text-2xl font-bold text-gradient">{analysis.shape.rows.toLocaleString()} rows</div>
+                          <div className="text-lg font-semibold text-muted-foreground">{analysis.shape.cols} columns</div>
+                          <div className="mt-1 text-xs text-muted-foreground">{analysis.shape.total_cells.toLocaleString()} total cells</div>
+                        </div>
+                        <div className="mt-4 border-t border-border/40 pt-4 flex gap-4">
+                          <div>
+                            <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-mono">risk level</span>
+                            <div className="mt-1"><RiskBadge level={risk.level} /></div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Trust Score Breakdown */}
+                      <div className="surface-card p-5 lg:col-span-2 flex flex-col md:flex-row gap-6">
+                        <div className="flex flex-col items-center justify-center shrink-0 w-full md:w-48 border-b md:border-b-0 md:border-r border-border/40 pb-6 md:pb-0 md:pr-6">
+                          <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">trust score</span>
+                          <div className="mt-3 text-6xl font-extrabold animate-pulse-glow" style={{ color: analysis.trust_score >= 80 ? "var(--color-success)" : analysis.trust_score >= 55 ? "var(--color-warning)" : "var(--color-destructive)" }}>
+                            {analysis.trust_score}
+                          </div>
+                          <span className="mt-2 text-xs text-muted-foreground text-center">Composite quality metric</span>
+                        </div>
+                        <div className="flex-1 space-y-3.5">
+                          {analysis.trust_breakdown.map((b) => (
+                            <div key={b.label} className="text-xs">
+                              <div className="flex justify-between font-medium mb-1">
+                                <span>{b.label}</span>
+                                <span className="text-muted-foreground font-mono">{b.score.toFixed(0)}%</span>
+                              </div>
+                              <div className="h-1.5 overflow-hidden rounded-full bg-secondary">
+                                <div className="h-full bg-gradient-to-r from-primary to-accent transition-all duration-500" style={{ width: `${b.score}%` }} />
+                              </div>
+                              <div className="mt-0.5 text-[10px] text-muted-foreground">{b.note}</div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Column Profile Table */}
+                    <BackendColumnTable columns={analysis.columns} />
+
+                    {/* Dependency Heatmaps */}
+                    <DependencyHeatmaps
+                      columns={analysis.dependency.columns}
+                      pearson={analysis.dependency.pearson}
+                      spearman={analysis.dependency.spearman}
+                      mutual_info={analysis.dependency.mutual_info}
+                    />
+                  </div>
+                ) : (
+                  <Dashboard profile={profile} risk={risk} insights={insights} fileName={fileName} onJump={setTab} />
+                )}
+              </div>
             )}
             {tab === "overview" && <Profiling profile={profile} forecast={forecast} narrative={narrative} runNarrative={() => runAi("narrative")} aiBusy={aiBusy === "narrative"} />}
             {tab === "charts" && <AutoCharts profile={profile} rows={rows} />}
             {tab === "insights" && <Insights insights={insights} profile={profile} />}
             {tab === "trust" && <TrustRisk profile={profile} />}
-            {tab === "chat" && <ChatPanel profile={profile} persona={persona} suggestions={profile.suggestedQuestions} />}
+            {tab === "modeling" && <ModelingPanel data={rows} columns={profile?.columns.map(c => c.name) || []} />}
+            {tab === "anomaly" && <AnomalyPanel sessionId={sessionId} />}
+            {tab === "chat" && (
+              <div className="grid gap-6 md:grid-cols-2 items-start">
+                <QueryBox sessionId={sessionId} />
+                <ChatPanel profile={profile} persona={persona} suggestions={profile.suggestedQuestions} />
+              </div>
+            )}
             {tab === "report" && (
               <ReportTab
                 profile={profile}
@@ -280,7 +401,7 @@ function TopBar({ persona, setPersona, hidePersona }: { persona: Persona; setPer
           </div>
           <div>
             <h1 className="text-base font-semibold leading-tight">
-              AI Dataset <span className="text-gradient">Intelligence Engine</span>
+              Insight<span className="text-gradient">Flow</span>
             </h1>
             <p className="text-[10px] text-muted-foreground font-mono uppercase tracking-wider">Upload → Profile → Decide</p>
           </div>
@@ -865,6 +986,58 @@ function ReportTab({
             <Download className="h-4 w-4" /> Download PDF
           </button>
         </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Backend Column Table ─── */
+function BackendColumnTable({ columns }: { columns: any[] }) {
+  return (
+    <div className="surface-card overflow-hidden">
+      <div className="border-b border-border/60 px-5 py-3.5 text-sm font-semibold flex items-center gap-2">
+        <Database className="h-4 w-4 text-primary" /> Column profile (Backend)
+        <span className="ml-auto text-[10px] font-mono text-muted-foreground uppercase tracking-wider">{columns.length} columns</span>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full text-xs">
+          <thead className="bg-secondary/30 text-muted-foreground">
+            <tr>
+              {["Column", "Type", "Missing %", "Unique", "Min", "Max", "Mean", "Median", "Std", "IQR Outliers"].map((h) => (
+                <th key={h} className="px-3 py-2.5 text-left font-mono text-[10px] uppercase tracking-wider">{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {columns.map((c) => (
+              <tr key={c.name} className="border-t border-border/40 transition-colors hover:bg-primary/[0.03]">
+                <td className="px-3 py-2.5 font-medium">{c.name}</td>
+                <td className="px-3 py-2.5"><TypePill type={c.type} /></td>
+                <td className="px-3 py-2.5 tabular-nums">
+                  <div className="flex items-center gap-2">
+                    <div className="h-1.5 w-16 overflow-hidden rounded-full bg-secondary">
+                      <div className="h-full rounded-full bg-[color:var(--color-warning)] transition-all duration-500" style={{ width: `${Math.min(100, c.missingPct)}%` }} />
+                    </div>
+                    <span className={c.missingPct > 20 ? "text-[color:var(--color-warning)] font-semibold" : ""}>{c.missingPct.toFixed(1)}%</span>
+                  </div>
+                </td>
+                <td className="px-3 py-2.5 tabular-nums">{c.unique}</td>
+                <td className="px-3 py-2.5 tabular-nums">{c.min !== undefined && c.min !== null ? c.min.toFixed(2) : "—"}</td>
+                <td className="px-3 py-2.5 tabular-nums">{c.max !== undefined && c.max !== null ? c.max.toFixed(2) : "—"}</td>
+                <td className="px-3 py-2.5 tabular-nums">{c.mean !== undefined && c.mean !== null ? c.mean.toFixed(2) : "—"}</td>
+                <td className="px-3 py-2.5 tabular-nums">{c.median !== undefined && c.median !== null ? c.median.toFixed(2) : "—"}</td>
+                <td className="px-3 py-2.5 tabular-nums">{c.std !== undefined && c.std !== null ? c.std.toFixed(2) : "—"}</td>
+                <td className="px-3 py-2.5 tabular-nums">
+                  {c.outliers !== undefined && c.outliers !== null ? (
+                    <span className={c.outliers > 0 ? "rounded-md bg-[color:var(--color-warning)]/15 px-1.5 py-0.5 text-[10px] font-semibold text-[color:var(--color-warning)]" : ""}>
+                      {c.outliers}
+                    </span>
+                  ) : "—"}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );

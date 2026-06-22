@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 
-const SYS_BASE = `You are a senior data analyst inside the "AI Dataset Intelligence Engine".
+const SYS_BASE = `You are a senior data analyst inside the "InsightFlow" platform.
 You receive a JSON profile of a dataset (column types, missing %, distributions, correlations, top values, risks).
 You DO NOT have raw rows — only the profile. Be precise, decisive, human, and never generic.
 
@@ -28,8 +28,29 @@ interface ChatInput {
 export const askDataset = createServerFn({ method: "POST" })
   .inputValidator((i: ChatInput) => i)
   .handler(async ({ data }) => {
-    const apiKey = process.env.LOVABLE_API_KEY;
-    if (!apiKey) return { error: "AI is not configured." };
+    let apiKey = process.env.OPENAI_API_KEY || process.env.GEMINI_API_KEY;
+    let endpoint = "https://api.openai.com/v1/chat/completions";
+    let model = "gpt-4o-mini";
+
+    if (process.env.GEMINI_API_KEY && !process.env.OPENAI_API_KEY) {
+      endpoint = "https://generativelanguage.googleapis.com/v1beta/openai/v1/chat/completions";
+      model = "gemini-1.5-flash";
+    }
+
+    // Allow manual overrides
+    if (process.env.AI_API_KEY) {
+      apiKey = process.env.AI_API_KEY;
+    }
+    if (process.env.AI_API_ENDPOINT) {
+      endpoint = process.env.AI_API_ENDPOINT;
+    }
+    if (process.env.AI_MODEL) {
+      model = process.env.AI_MODEL;
+    }
+
+    if (!apiKey) {
+      return { error: "AI is not configured. Please set OPENAI_API_KEY or GEMINI_API_KEY." };
+    }
 
     const persona = PERSONA_PROMPTS[data.persona ?? "business"] ?? PERSONA_PROMPTS.business;
     let userPrompt = "";
@@ -66,13 +87,15 @@ One decisive sentence.`;
     ];
 
     try {
-      const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      const res = await fetch(endpoint, {
         method: "POST",
-        headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ model: "google/gemini-3-flash-preview", messages }),
+        headers: { 
+          "Authorization": `Bearer ${apiKey}`, 
+          "Content-Type": "application/json" 
+        },
+        body: JSON.stringify({ model, messages }),
       });
       if (res.status === 429) return { error: "Rate limit reached. Try again in a moment." };
-      if (res.status === 402) return { error: "AI credits exhausted. Add credits in Settings → Workspace → Usage." };
       if (!res.ok) return { error: `AI error (${res.status}).` };
       const json = await res.json();
       const content = json.choices?.[0]?.message?.content ?? "";

@@ -24,7 +24,10 @@ export function MiniBarChart({ data, dataKey = "count", labelKey = "value" }: {
               border: "1px solid var(--color-border)",
               borderRadius: 8,
               fontSize: 11,
+              color: "var(--color-popover-foreground)",
             }}
+            itemStyle={{ color: "var(--color-popover-foreground)" }}
+            labelStyle={{ color: "var(--color-muted-foreground)" }}
             cursor={{ fill: "var(--color-secondary)", opacity: 0.4 }}
           />
           <Bar dataKey={dataKey} radius={[0, 3, 3, 0]}>
