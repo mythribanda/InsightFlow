@@ -125,8 +125,8 @@ const TIMEOUT = 60_000;
         .or(page.locator('input[placeholder*="column"]').first())
         .or(page.locator('input[type="text"]').first());
       
-      await queryInput.fill("average age");
-      console.log("  Typed query: 'average age'");
+      await queryInput.fill("how many employees are in engineering");
+      console.log("  Typed query: 'how many employees are in engineering'");
 
       // Click Run/Submit button
       const runBtn = page.locator('button', { hasText: /run|send|submit/i }).first();
@@ -141,12 +141,12 @@ const TIMEOUT = 60_000;
 
       const queryPageText = await page.locator("body").innerText();
 
-      if (queryPageText.includes("40.3375") || queryPageText.includes("mean")) {
-        console.log("  ✅ NL QUERY: Correct result rendered (found 40.3375 or mean)");
+      if (queryPageText.includes("79") || queryPageText.includes("count") || queryPageText.includes("Engineering")) {
+        console.log("  ✅ NL QUERY: Correct result rendered (found 79 or count/Engineering)");
       } else if (queryPageText.includes("df[") || queryPageText.includes("result =")) {
         console.log("  ✅ NL QUERY: Generated code visible");
         // Check for the numeric result too
-        if (queryPageText.includes("40")) {
+        if (queryPageText.includes("79")) {
           console.log("  ✅ NL QUERY: Result value present");
         }
       } else if (queryPageText.includes("error") || queryPageText.includes("Error") || queryPageText.includes("Failed")) {
@@ -161,17 +161,17 @@ const TIMEOUT = 60_000;
     }
   }
 
-  // Also try clicking a suggestion button (e.g. "average age") directly if it exists
+  // Also try clicking a suggestion button (e.g. "how many employees are in engineering") directly if it exists
   console.log("\n=== Step 5: Try clicking suggestion button ===");
   try {
-    const suggestionBtn = page.locator('button', { hasText: /average age/i }).first();
+    const suggestionBtn = page.locator('button', { hasText: /how many employees are in engineering/i }).first();
     if (await suggestionBtn.isVisible()) {
       await suggestionBtn.click();
-      console.log("  Clicked 'average age' suggestion");
+      console.log("  Clicked 'how many employees are in engineering' suggestion");
       await page.waitForTimeout(8000);
       await page.screenshot({ path: path.join(__dirname, "e2e-screenshot-6-suggestion-result.png") });
       const resultText = await page.locator("body").innerText();
-      if (resultText.includes("40.3375") || resultText.includes("df[")) {
+      if (resultText.includes("79") || resultText.includes("df[")) {
         console.log("  ✅ SUGGESTION QUERY: Result rendered");
       } else {
         console.log("  ❓ SUGGESTION QUERY: Unclear result");

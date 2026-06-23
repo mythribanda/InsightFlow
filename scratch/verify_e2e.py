@@ -92,7 +92,7 @@ def run_verification():
 
     # 6. Run Query (POST /query/{session_id})
     query_url = f"http://localhost:8000/query/{session_id}"
-    query_payload = {"question": "what is the average age of employees?"}
+    query_payload = {"question": "how many employees are in engineering?"}
     print(f"Sending natural language query to {query_url}...")
     req = urllib.request.Request(
         query_url,

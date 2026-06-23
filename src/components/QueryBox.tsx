@@ -55,10 +55,10 @@ export const QueryBox: React.FC<QueryBoxProps> = ({ sessionId }) => {
   };
 
   const suggestions = [
-    "which columns have missing values",
-    "top 5 rows by age",
-    "total row count",
-    "average age",
+    "how many employees are in engineering",
+    "median salary by department",
+    "average salary",
+    "highest salary",
   ];
 
   // Formatter for different result structures
