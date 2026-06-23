@@ -27,12 +27,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { AlertTriangle, CheckCircle2, Zap, BarChart3, TrendingUp, Lightbulb } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Zap, BarChart3, TrendingUp, Lightbulb, Download } from "lucide-react";
 import {
   callModelingAPI,
   checkSuitability,
   getRecommendations,
   getShapAnalysis,
+  exportCleanCSV,
   type ModelResponse,
   type LeakageFlag,
   type SuitabilityResponse,
@@ -40,6 +41,7 @@ import {
   type ShapResponse,
 } from "@/server/modeling";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { toast } from "sonner";
 
 interface ModelingPanelProps {
   data: Record<string, unknown>[];
@@ -69,6 +71,37 @@ export const ModelingPanel: React.FC<ModelingPanelProps> = ({ data, columns, ses
   const runGetRecommendations = useServerFn(getRecommendations);
   const runCallModelingAPI = useServerFn(callModelingAPI);
   const runGetShapAnalysis = useServerFn(getShapAnalysis);
+  const runExportCleanCSV = useServerFn(exportCleanCSV);
+
+  const [isExporting, setIsExporting] = useState(false);
+
+  const handleDownloadCleanCSV = async () => {
+    setIsExporting(true);
+    try {
+      const csvContent = await runExportCleanCSV({
+        data: {
+          session_id: sessionId,
+          excluded_features: Array.from(excludedFeatures),
+        },
+      });
+
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", `insightflow_clean_${sessionId}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      toast.success("Clean CSV downloaded successfully!");
+    } catch (err) {
+      console.error(err);
+      toast.error(err instanceof Error ? err.message : "Failed to export CSV");
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   // State for each view
   const [suitabilityResult, setSuitabilityResult] = useState<SuitabilityResponse | null>(null);
@@ -410,13 +443,29 @@ export const ModelingPanel: React.FC<ModelingPanelProps> = ({ data, columns, ses
                 </div>
               )}
 
-              <Button
-                onClick={() => modelingMutation.mutate()}
-                disabled={modelingMutation.isPending}
-                className="w-full"
-              >
-                {modelingMutation.isPending ? "Training..." : "Train Both Models"}
-              </Button>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Button
+                  onClick={() => modelingMutation.mutate()}
+                  disabled={modelingMutation.isPending}
+                  className="flex-1"
+                >
+                  {modelingMutation.isPending ? "Training..." : "Train Both Models"}
+                </Button>
+                <Button
+                  type="button"
+                  onClick={handleDownloadCleanCSV}
+                  disabled={isExporting}
+                  variant="outline"
+                  className="flex-1 border-primary/40 hover:border-primary text-primary hover:bg-primary/5 transition-all flex items-center justify-center gap-2"
+                >
+                  {isExporting ? (
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                  ) : (
+                    <Download className="h-4 w-4" />
+                  )}
+                  {isExporting ? "Exporting..." : "Download Clean CSV"}
+                </Button>
+              </div>
 
               {modelingMutation.isError && (
                 <Alert variant="destructive">

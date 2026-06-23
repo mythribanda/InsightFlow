@@ -264,3 +264,46 @@ export const getShapAnalysis = createServerFn({ method: "POST" })
     }
   });
 
+
+export const exportCleanCSV = createServerFn({ method: "POST" })
+  .inputValidator((v: unknown) => {
+    if (
+      typeof v === "object" &&
+      v !== null &&
+      "session_id" in v &&
+      "excluded_features" in v
+    ) {
+      return v as { session_id: string; excluded_features: string[] };
+    }
+    throw new Error("Invalid CSV export request");
+  })
+  .handler(async ({ data: request }): Promise<string> => {
+    const BACKEND_URL = process.env.MODELING_API_URL || "http://localhost:8000";
+    try {
+      const params = new URLSearchParams();
+      if (request.excluded_features && request.excluded_features.length > 0) {
+        params.append("excluded_features", JSON.stringify(request.excluded_features));
+      }
+      
+      const response = await fetch(
+        `${BACKEND_URL}/export/clean-csv/${request.session_id}?${params.toString()}`,
+        {
+          method: "GET",
+        }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Backend CSV export failed: ${errorText}`);
+      }
+
+      return await response.text();
+    } catch (error) {
+      console.error("CSV Export server function error:", error);
+      throw new Error(
+        `Failed to export CSV: ${error instanceof Error ? error.message : "Unknown error"}`
+      );
+    }
+  });
+
+

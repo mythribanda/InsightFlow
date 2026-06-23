@@ -287,6 +287,23 @@ async def get_recommendations(session_id: str, request: RecommendationRequest) -
 
 
 
+def impute_missing(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Imputes missing values in a DataFrame:
+    - Mean for numeric columns
+    - Mode or "MISSING" for non-numeric columns
+    """
+    df_clean = df.copy()
+    for col in df_clean.columns:
+        if pd.api.types.is_numeric_dtype(df_clean[col]):
+            df_clean[col] = df_clean[col].fillna(df_clean[col].mean())
+        else:
+            mode_series = df_clean[col].mode()
+            mode_val = mode_series[0] if len(mode_series) > 0 else "MISSING"
+            df_clean[col] = df_clean[col].fillna(mode_val)
+    return df_clean
+
+
 @app.post("/model/{session_id}", response_model=ModelResponse)
 async def train_model(session_id: str, request: ModelRequest) -> ModelResponse:
     """
@@ -355,11 +372,7 @@ async def train_model(session_id: str, request: ModelRequest) -> ModelResponse:
             X_clean = X_clean.drop(columns=[col for col in request.excluded_features if col in X_clean.columns])
         
         # Handle missing values
-        for col in X_clean.columns:
-            if pd.api.types.is_numeric_dtype(X_clean[col]):
-                X_clean[col] = X_clean[col].fillna(X_clean[col].mean())
-            else:
-                X_clean[col] = X_clean[col].fillna(X_clean[col].mode()[0] if len(X_clean[col].mode()) > 0 else "MISSING")
+        X_clean = impute_missing(X_clean)
         
         # Build and fit best model
         from src.modeling import LeakageSafePipeline
@@ -615,6 +628,62 @@ async def add_calc_column(session_id: str, request: CalcColumnRequest) -> CalcCo
     except Exception as e:
         logger.error(f"[{session_id}] Calculated column execution crashed: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Internal server error evaluating column: {str(e)}")
+
+
+@app.get("/export/clean-csv/{session_id}")
+async def export_clean_csv(session_id: str, excluded_features: str = ""):
+    """
+    Exports a cleaned version of the session data as a CSV download.
+    Applies column exclusions and missing value imputation.
+    """
+    try:
+        logger.info(f"[{session_id}] CSV Export request received. Excluded: '{excluded_features}'")
+        
+        # Get df from session_data_store
+        df = session_data_store.get(session_id)
+        if df is None:
+            logger.warning(f"[{session_id}] CSV Export failed: session not found")
+            raise HTTPException(status_code=404, detail="Session data not found. Please upload a dataset first.")
+            
+        # Make a copy to avoid mutating original session data
+        export_df = df.copy()
+        
+        # Parse excluded features (robustly handles JSON arrays or comma-separated lists)
+        exclude_list = []
+        if excluded_features:
+            if excluded_features.startswith("["):
+                try:
+                    exclude_list = json.loads(excluded_features)
+                except Exception:
+                    exclude_list = [col.strip() for col in excluded_features.split(",") if col.strip()]
+            else:
+                exclude_list = [col.strip() for col in excluded_features.split(",") if col.strip()]
+                
+        if exclude_list:
+            logger.info(f"[{session_id}] Excluding columns for export: {exclude_list}")
+            export_df = export_df.drop(columns=[col for col in exclude_list if col in export_df.columns], errors='ignore')
+            
+        # Impute missing values using the helper function
+        export_df = impute_missing(export_df)
+        
+        # Convert df to CSV string
+        csv_data = export_df.to_csv(index=False)
+        
+        # Return Response with headers forcing download
+        from fastapi.responses import Response
+        return Response(
+            content=csv_data,
+            media_type="text/csv",
+            headers={
+                "Content-Disposition": f'attachment; filename="insightflow_clean_{session_id}.csv"',
+                "Access-Control-Expose-Headers": "Content-Disposition"
+            }
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"[{session_id}] CSV Export crashed: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Failed to export CSV: {str(e)}")
 
 
 @app.get("/health")
