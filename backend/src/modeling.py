@@ -305,10 +305,8 @@ class LeakageSafePipeline:
         n_jobs_val = 1 if sys.platform == "win32" else -1
         
         if task == "classification":
-            print(f"[modeling.py] LogisticRegression resolved n_jobs={n_jobs_val} on platform={sys.platform}")
             estimator = LogisticRegression(random_state=42, max_iter=1000, n_jobs=n_jobs_val)
         else:
-            print(f"[modeling.py] LinearRegression resolved n_jobs={n_jobs_val} on platform={sys.platform}")
             estimator = LinearRegression(n_jobs=n_jobs_val)
             
         return Pipeline([
