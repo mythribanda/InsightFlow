@@ -342,13 +342,11 @@ async def train_model(session_id: str, request: ModelRequest) -> ModelResponse:
             X_clean = X_clean.drop(columns=[col for col in request.excluded_features if col in X_clean.columns])
         
         # Handle missing values
-        print(f"Null count before imputation: {X_clean.isna().sum().sum()}")
         for col in X_clean.columns:
             if pd.api.types.is_numeric_dtype(X_clean[col]):
                 X_clean[col] = X_clean[col].fillna(X_clean[col].mean())
             else:
                 X_clean[col] = X_clean[col].fillna(X_clean[col].mode()[0] if len(X_clean[col].mode()) > 0 else "MISSING")
-        print(f"Null count after imputation: {X_clean.isna().sum().sum()}")
         
         # Build and fit best model
         from src.modeling import LeakageSafePipeline
