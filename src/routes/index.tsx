@@ -94,13 +94,13 @@ function Home() {
         dataDict[h] = parsed.rows.map(r => r[h]);
       });
       
-      await runStartAnalysis({ session_id, data: dataDict });
+      await runStartAnalysis({ data: { session_id, data: dataDict } });
       
       let completed = false;
       let attempts = 0;
       while (!completed && attempts < 60) {
         await new Promise(resolve => setTimeout(resolve, 1000));
-        const statusRes = await runGetAnalysisStatus({ session_id });
+        const statusRes = await runGetAnalysisStatus({ data: { session_id } });
         if (statusRes.status === "completed" && statusRes.result) {
           setAnalysis(statusRes.result);
           completed = true;
@@ -364,7 +364,7 @@ function Home() {
             {tab === "charts" && <AutoCharts profile={profile} rows={rows} />}
             {tab === "insights" && <Insights insights={insights} profile={profile} />}
             {tab === "trust" && <TrustRisk profile={profile} />}
-            {tab === "modeling" && <ModelingPanel data={rows} columns={profile?.columns.map(c => c.name) || []} />}
+            {tab === "modeling" && <ModelingPanel data={rows} columns={profile?.columns.map(c => c.name) || []} sessionId={sessionId} />}
             {tab === "anomaly" && <AnomalyPanel sessionId={sessionId} />}
             {tab === "chat" && (
               <div className="grid gap-6 md:grid-cols-2 items-start">

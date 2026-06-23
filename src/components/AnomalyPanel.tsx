@@ -33,7 +33,7 @@ export const AnomalyPanel: React.FC<AnomalyPanelProps> = ({ sessionId }) => {
 
   const { data: anomalies, isLoading, error } = useQuery({
     queryKey: ["anomalyReport", sessionId],
-    queryFn: () => fetchAnomalyReport({ session_id: sessionId }),
+    queryFn: () => fetchAnomalyReport({ data: { session_id: sessionId } }),
     enabled: !!sessionId,
   });
 

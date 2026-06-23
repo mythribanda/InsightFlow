@@ -300,10 +300,16 @@ class LeakageSafePipeline:
             
         preprocessor = ColumnTransformer(transformers=transformers, remainder="drop")
         
+        import sys
+        # Gated to n_jobs=1 on Windows due to OpenMP/joblib duplicate runtime deadlock, -1 (max parallel) on Linux
+        n_jobs_val = 1 if sys.platform == "win32" else -1
+        
         if task == "classification":
-            estimator = LogisticRegression(random_state=42, max_iter=1000, n_jobs=-1)
+            print(f"[modeling.py] LogisticRegression resolved n_jobs={n_jobs_val} on platform={sys.platform}")
+            estimator = LogisticRegression(random_state=42, max_iter=1000, n_jobs=n_jobs_val)
         else:
-            estimator = LinearRegression(n_jobs=-1)
+            print(f"[modeling.py] LinearRegression resolved n_jobs={n_jobs_val} on platform={sys.platform}")
+            estimator = LinearRegression(n_jobs=n_jobs_val)
             
         return Pipeline([
             ("preprocessor", preprocessor),

@@ -44,6 +44,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 interface ModelingPanelProps {
   data: Record<string, unknown>[];
   columns: string[];
+  sessionId: string;
 }
 
 /**
@@ -57,7 +58,7 @@ interface ModelingPanelProps {
  *
  * Reuses computation: no duplicate training
  */
-export const ModelingPanel: React.FC<ModelingPanelProps> = ({ data, columns }) => {
+export const ModelingPanel: React.FC<ModelingPanelProps> = ({ data, columns, sessionId }) => {
   const [selectedTarget, setSelectedTarget] = useState<string>("");
   const [excludedFeatures, setExcludedFeatures] = useState<Set<string>>(new Set());
   const [activeTab, setActiveTab] = useState<string>("target");
@@ -100,7 +101,7 @@ export const ModelingPanel: React.FC<ModelingPanelProps> = ({ data, columns }) =
       const dataDict = Object.fromEntries(
         columns.map((col) => [col, data.map((row) => row[col as keyof typeof row])])
       );
-      return runCheckSuitability({ data: { target: selectedTarget, data: dataDict } });
+      return runCheckSuitability({ data: { target: selectedTarget, data: dataDict, session_id: sessionId } });
     },
     onSuccess: (result) => {
       setSuitabilityResult(result);
@@ -115,7 +116,7 @@ export const ModelingPanel: React.FC<ModelingPanelProps> = ({ data, columns }) =
       const dataDict = Object.fromEntries(
         columns.map((col) => [col, data.map((row) => row[col as keyof typeof row])])
       );
-      return runGetRecommendations({ data: { target: selectedTarget, data: dataDict } });
+      return runGetRecommendations({ data: { target: selectedTarget, data: dataDict, session_id: sessionId } });
     },
     onSuccess: (result) => {
       setRecommendationsResult(result);
@@ -134,6 +135,7 @@ export const ModelingPanel: React.FC<ModelingPanelProps> = ({ data, columns }) =
           data: dataDict,
           excluded_features: Array.from(excludedFeatures),
           cv_splits: 5,
+          session_id: sessionId,
         }
       });
     },
@@ -145,7 +147,7 @@ export const ModelingPanel: React.FC<ModelingPanelProps> = ({ data, columns }) =
 
   const shapMutation = useMutation({
     mutationFn: async (idx: number) => {
-      return runGetShapAnalysis({ data: { sample_idx: idx } });
+      return runGetShapAnalysis({ data: { sample_idx: idx, session_id: sessionId } });
     },
     onSuccess: (response) => {
       setShapResponse(response);

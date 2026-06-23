@@ -84,13 +84,13 @@ export type ShapResponse = {
 export const checkSuitability = createServerFn({ method: "POST" })
   .inputValidator((v: unknown) => {
     if (typeof v === "object" && v !== null && "target" in v) {
-      return v as { target: string; data: Record<string, unknown[]> };
+      return v as { target: string; data: Record<string, unknown[]>; session_id?: string };
     }
     throw new Error("Invalid suitability request");
   })
   .handler(async ({ data: request }): Promise<SuitabilityResponse> => {
     const BACKEND_URL = process.env.MODELING_API_URL || "http://localhost:8000";
-    const SESSION_ID = "default";
+    const SESSION_ID = request.session_id || "default";
     console.log("checkSuitability handler: request =", request);
 
     try {
@@ -131,13 +131,13 @@ export const checkSuitability = createServerFn({ method: "POST" })
 export const getRecommendations = createServerFn({ method: "POST" })
   .inputValidator((v: unknown) => {
     if (typeof v === "object" && v !== null && "target" in v) {
-      return v as { target: string; data: Record<string, unknown[]> };
+      return v as { target: string; data: Record<string, unknown[]>; session_id?: string };
     }
     throw new Error("Invalid recommendation request");
   })
   .handler(async ({ data: request }): Promise<RecommendationResponse> => {
     const BACKEND_URL = process.env.MODELING_API_URL || "http://localhost:8000";
-    const SESSION_ID = "default";
+    const SESSION_ID = request.session_id || "default";
 
     try {
       const response = await fetch(`${BACKEND_URL}/recommend/${SESSION_ID}`, {
@@ -176,13 +176,13 @@ export const getRecommendations = createServerFn({ method: "POST" })
 export const callModelingAPI = createServerFn({ method: "POST" })
   .inputValidator((v: unknown) => {
     if (typeof v === "object" && v !== null && "target" in v) {
-      return v as { target: string; data: Record<string, unknown[]>; excluded_features?: string[]; cv_splits?: number };
+      return v as { target: string; data: Record<string, unknown[]>; excluded_features?: string[]; cv_splits?: number; session_id?: string };
     }
     throw new Error("Invalid model request");
   })
   .handler(async ({ data: request }): Promise<ModelResponse> => {
     const BACKEND_URL = process.env.MODELING_API_URL || "http://localhost:8000";
-    const SESSION_ID = "default";
+    const SESSION_ID = request.session_id || "default";
 
     try {
       const response = await fetch(`${BACKEND_URL}/model/${SESSION_ID}`, {
@@ -222,14 +222,14 @@ export const callModelingAPI = createServerFn({ method: "POST" })
 
 export const getShapAnalysis = createServerFn({ method: "POST" })
   .inputValidator((v: unknown) => {
-    if (typeof v === "object" && v !== null && "sample_idx" in v) {
-      return v as { sample_idx?: number };
+    if (typeof v === "object" && v !== null) {
+      return v as { sample_idx?: number; session_id?: string };
     }
     throw new Error("Invalid SHAP request");
   })
   .handler(async ({ data: request }): Promise<ShapResponse> => {
     const BACKEND_URL = process.env.MODELING_API_URL || "http://localhost:8000";
-    const SESSION_ID = "default";
+    const SESSION_ID = request.session_id || "default";
 
     try {
       const response = await fetch(`${BACKEND_URL}/shap/${SESSION_ID}`, {

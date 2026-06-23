@@ -16,6 +16,40 @@ import json
 import logging
 import pickle
 import os
+import numpy as np
+import sys
+if sys.platform == "win32":
+    os.environ["OMP_NUM_THREADS"] = "1"
+    os.environ["MKL_NUM_THREADS"] = "1"
+    os.environ["OPENBLAS_NUM_THREADS"] = "1"
+    os.environ["VECLIB_MAXIMUM_THREADS"] = "1"
+    os.environ["NUMEXPR_NUM_THREADS"] = "1"
+
+def parse_request_data(data: Any) -> pd.DataFrame:
+    """Parses raw request data into a DataFrame with proper types and missing values."""
+    if isinstance(data, str):
+        # Base64 or CSV string
+        try:
+            import base64
+            decoded = base64.b64decode(data).decode('utf-8')
+            df = pd.read_csv(io.StringIO(decoded))
+        except:
+            df = pd.read_csv(io.StringIO(data))
+    else:
+        # Dict format
+        df = pd.DataFrame(data)
+    
+    # Replace empty strings and whitespace-only strings with NaN
+    df = df.replace(r'^\s*$', np.nan, regex=True)
+    
+    # Try to convert each column to numeric if possible
+    for col in df.columns:
+        try:
+            df[col] = pd.to_numeric(df[col])
+        except (ValueError, TypeError):
+            pass
+            
+    return df
 
 from src.modeling import run_modeling_pipeline, TaskDetector, check_class_imbalance
 from src.modeling_extensions import (
@@ -160,7 +194,7 @@ async def check_suitability(session_id: str, request: SuitabilityRequest) -> Sui
         logger.info(f"[{session_id}] Suitability check for target: {request.target}")
         
         # Parse data
-        df = pd.DataFrame(request.data)
+        df = parse_request_data(request.data)
         
         if request.target not in df.columns:
             raise HTTPException(
@@ -201,7 +235,7 @@ async def get_recommendations(session_id: str, request: RecommendationRequest) -
         logger.info(f"[{session_id}] Feature recommendations for target: {request.target}")
         
         # Parse data
-        df = pd.DataFrame(request.data)
+        df = parse_request_data(request.data)
         
         if request.target not in df.columns:
             raise HTTPException(status_code=400, detail=f"Target column '{request.target}' not found")
@@ -269,18 +303,9 @@ async def train_model(session_id: str, request: ModelRequest) -> ModelResponse:
         logger.info(f"[{session_id}] Received model training request for target: {request.target}")
         
         # Parse data
-        if isinstance(request.data, str):
-            # Base64 or CSV string
-            try:
-                import base64
-                decoded = base64.b64decode(request.data).decode('utf-8')
-                df = pd.read_csv(io.StringIO(decoded))
-            except:
-                df = pd.read_csv(io.StringIO(request.data))
-        else:
-            # Dict format
-            df = pd.DataFrame(request.data)
+        df = parse_request_data(request.data)
         
+        session_data_store[session_id] = df
         logger.info(f"[{session_id}] Loaded data: {df.shape[0]} rows, {df.shape[1]} columns")
         
         # Validate target
@@ -448,7 +473,7 @@ def run_analysis(session_id: str, df: pd.DataFrame):
 async def start_analysis(session_id: str, request: AnalyzeRequest, background_tasks: BackgroundTasks):
     try:
         logger.info(f"[{session_id}] Received analysis request")
-        df = pd.DataFrame(request.data)
+        df = parse_request_data(request.data)
         
         # Cache the dataframe for later GET requests (e.g. /anomaly)
         session_data_store[session_id] = df

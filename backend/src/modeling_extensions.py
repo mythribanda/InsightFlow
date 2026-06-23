@@ -38,9 +38,15 @@ def get_feature_importance(
         
         # Compute permutation importance on the transformed data
         model = pipeline.named_steps['model']
+        
+        import sys
+        # Gated to n_jobs=1 on Windows due to OpenMP/joblib duplicate runtime deadlock, -1 (max parallel) on Linux
+        n_jobs_val = 1 if sys.platform == "win32" else -1
+        print(f"[modeling_extensions.py] permutation_importance resolved n_jobs={n_jobs_val} on platform={sys.platform}")
+        
         importances = permutation_importance(
             model, X_transformed, y,
-            n_repeats=5, random_state=42, n_jobs=-1,
+            n_repeats=5, random_state=42, n_jobs=n_jobs_val,
             scoring=scoring
         )
         

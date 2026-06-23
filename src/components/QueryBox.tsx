@@ -21,7 +21,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Terminal, Send, HelpCircle, Code, Play, ShieldAlert, CheckCircle2 } from "lucide-react";
+import { Terminal, Send, HelpCircle, Code, Play, ShieldAlert, CheckCircle2, AlertTriangle } from "lucide-react";
 
 interface QueryBoxProps {
   sessionId: string;
@@ -37,7 +37,7 @@ export const QueryBox: React.FC<QueryBoxProps> = ({ sessionId }) => {
       if (!sessionId) throw new Error("Please upload a dataset first.");
       if (!q.strip) q = q.trim();
       if (!q) throw new Error("Please enter a question.");
-      return runQuery({ session_id: sessionId, question: q });
+      return runQuery({ data: { session_id: sessionId, question: q } });
     },
     onSuccess: (res) => {
       setQueryResponse(res);
