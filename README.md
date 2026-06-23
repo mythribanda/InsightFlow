@@ -160,6 +160,9 @@ bun run dev            # or: npm run dev   (Vite dev server on :8080)
 6. Ask a question in the query box (e.g. "top 5 rows by salary") and inspect the generated pandas code before the result.
 7. Generate the Data Story and export a PDF.
 
+### Try it with other data
+You can also try running the platform with `electric_vehicles_spec_2025.csv` (479 rows of electric vehicle specifications) to test target suitability, modeling, and NL queries on different tabular domains.
+
 ---
 
 ## Environment variables

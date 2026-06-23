@@ -61,3 +61,4 @@ backend/venv/
 venv/
 .venv/
 .env
+scratch/
