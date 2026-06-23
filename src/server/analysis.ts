@@ -132,3 +132,76 @@ export const getAnalysisStatus = createServerFn({ method: "GET" })
       );
     }
   });
+
+
+export const addCalcColumn = createServerFn({ method: "POST" })
+  .inputValidator((v: unknown) => {
+    if (
+      typeof v === "object" &&
+      v !== null &&
+      "session_id" in v &&
+      "name" in v &&
+      "formula" in v &&
+      "data" in v
+    ) {
+      return v as {
+        session_id: string;
+        name: string;
+        formula: string;
+        data: Record<string, unknown[]>;
+      };
+    }
+    throw new Error("Invalid add calculated column request");
+  })
+  .handler(
+    async ({
+      data: request,
+    }): Promise<{ success: boolean; preview?: any[]; error?: string }> => {
+      const BACKEND_URL = process.env.MODELING_API_URL || "http://localhost:8000";
+      try {
+        const response = await fetch(
+          `${BACKEND_URL}/calc-column/${request.session_id}`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              name: request.name,
+              formula: request.formula,
+              data: request.data,
+            }),
+          }
+        );
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          const detail = errorData.detail;
+          const msg =
+            typeof detail === "string"
+              ? detail
+              : Array.isArray(detail)
+                ? detail
+                    .map((e: any) => `${e.loc?.join(".") || "error"}: ${e.msg}`)
+                    .join("; ")
+                : typeof detail === "object" && detail !== null
+                  ? JSON.stringify(detail)
+                  : `Backend error: ${response.statusText}`;
+          throw new Error(msg);
+        }
+
+        return (await response.json()) as {
+          success: boolean;
+          preview?: any[];
+          error?: string;
+        };
+      } catch (error) {
+        console.error("Add calculated column error:", error);
+        throw new Error(
+          `Failed to add calculated column: ${
+            error instanceof Error ? error.message : "Unknown error"
+          }`
+        );
+      }
+    }
+  );

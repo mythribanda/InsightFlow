@@ -26,6 +26,8 @@ import { startAnalysis, getAnalysisStatus, type AnalysisResult } from "@/server/
 import { DependencyHeatmaps } from "@/components/DependencyHeatmaps";
 import { AnomalyPanel } from "@/components/AnomalyPanel";
 import { QueryBox } from "@/components/QueryBox";
+import { CalcColumnPanel } from "@/components/CalcColumnPanel";
+import { Calculator } from "lucide-react";
 
 export const Route = createFileRoute("/")(  {
   head: () => ({
@@ -40,7 +42,7 @@ export const Route = createFileRoute("/")(  {
 });
 
 type Persona = "business" | "student" | "developer";
-type Tab = "dashboard" | "overview" | "charts" | "insights" | "trust" | "chat" | "modeling" | "report" | "anomaly";
+type Tab = "dashboard" | "overview" | "charts" | "insights" | "trust" | "chat" | "modeling" | "report" | "anomaly" | "calc";
 
 function Home() {
   const [busy, setBusy] = useState(false);
@@ -133,6 +135,39 @@ function Home() {
     } finally { setAiBusy(null); }
   };
 
+  const handleColumnCreated = (name: string, allValues: any[]) => {
+    if (!profile) return;
+    // Map allValues to the existing rows to add the new column
+    const updatedRows = rows.map((row, idx) => ({
+      ...row,
+      [name]: allValues[idx],
+    }));
+    setRows(updatedRows);
+    
+    // Build updated headers
+    const updatedHeaders = [...profile.columns.map(c => c.name), name];
+    
+    // Reprofile client side
+    const p = profileDataset(updatedRows, updatedHeaders);
+    setProfile(p);
+    
+    // Pull the updated backend analysis
+    setAnalyzing(true);
+    runGetAnalysisStatus({ data: { session_id: sessionId } })
+      .then((statusRes) => {
+        if (statusRes.status === "completed" && statusRes.result) {
+          setAnalysis(statusRes.result);
+          toast.success(`Calculated column '${name}' analysis refreshed.`);
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to fetch updated analysis", err);
+      })
+      .finally(() => {
+        setAnalyzing(false);
+      });
+  };
+
   const tabs: { id: Tab; label: string; icon: typeof Database; desc: string }[] = [
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, desc: "Overview" },
     { id: "overview", label: "Profiling", icon: Database, desc: "Column analysis" },
@@ -141,6 +176,7 @@ function Home() {
     { id: "trust", label: "Trust & Risk", icon: AlertTriangle, desc: "Quality score" },
     { id: "modeling", label: "ML Models", icon: ZapIcon, desc: "Train & evaluate" },
     { id: "anomaly", label: "Anomalies", icon: ShieldAlert, desc: "Outlier detection" },
+    { id: "calc", label: "Calculated Cols", icon: Calculator, desc: "Create new columns" },
     { id: "chat", label: "Ask your data", icon: MessageSquare, desc: "AI chat" },
     { id: "report", label: "Report", icon: Download, desc: "Export PDF" },
   ];
@@ -366,6 +402,14 @@ function Home() {
             {tab === "trust" && <TrustRisk profile={profile} />}
             {tab === "modeling" && <ModelingPanel data={rows} columns={profile?.columns.map(c => c.name) || []} sessionId={sessionId} />}
             {tab === "anomaly" && <AnomalyPanel sessionId={sessionId} />}
+            {tab === "calc" && (
+              <CalcColumnPanel
+                sessionId={sessionId}
+                rows={rows}
+                headers={profile?.columns.map(c => c.name) || []}
+                onColumnCreated={handleColumnCreated}
+              />
+            )}
             {tab === "chat" && (
               <div className="grid gap-6 md:grid-cols-2 items-start">
                 <QueryBox sessionId={sessionId} />

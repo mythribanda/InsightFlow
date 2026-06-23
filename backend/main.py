@@ -58,6 +58,7 @@ from src.modeling_extensions import (
 from src.profile import profile_dataset
 from src.trust import compute_trust_score
 from src.dependency import compute_dependency_matrices
+from src.calc_columns import add_calculated_column
 from fastapi import BackgroundTasks
 
 # Setup logging
@@ -175,6 +176,18 @@ class AnalyzeStatusResponse(BaseModel):
 class QueryRequest(BaseModel):
     """Request for NL query endpoint."""
     question: str
+
+
+class CalcColumnRequest(BaseModel):
+    name: str
+    formula: str
+    data: Dict[str, Any]
+
+
+class CalcColumnResponse(BaseModel):
+    success: bool
+    preview: Optional[List[Any]] = None
+    error: Optional[str] = None
 
 
 analysis_jobs = {}
@@ -570,6 +583,38 @@ async def query_dataset(session_id: str, request: QueryRequest):
     except Exception as e:
         logger.error(f"[{session_id}] Query execution failed: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Query failed: {str(e)}")
+
+
+@app.post("/calc-column/{session_id}", response_model=CalcColumnResponse)
+async def add_calc_column(session_id: str, request: CalcColumnRequest) -> CalcColumnResponse:
+    """
+    Evaluates a user-defined calculated column expression and adds it to the session data.
+    """
+    try:
+        logger.info(f"[{session_id}] Adding calculated column '{request.name}' with formula '{request.formula}'")
+        
+        # Parse data
+        df = parse_request_data(request.data)
+        
+        # Run calculation
+        updated_df, preview_values, error_msg = add_calculated_column(df, request.name, request.formula)
+        
+        if error_msg:
+            logger.warning(f"[{session_id}] Calculated column evaluation error: {error_msg}")
+            return CalcColumnResponse(success=False, error=error_msg)
+            
+        # Store updated DataFrame in the session data stores
+        session_data_store[session_id] = updated_df
+        
+        # Sync update background analysis so dashboard is immediately updated!
+        run_analysis(session_id, updated_df)
+        
+        logger.info(f"[{session_id}] Calculated column '{request.name}' successfully added and session analysis updated.")
+        return CalcColumnResponse(success=True, preview=preview_values)
+        
+    except Exception as e:
+        logger.error(f"[{session_id}] Calculated column execution crashed: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Internal server error evaluating column: {str(e)}")
 
 
 @app.get("/health")
