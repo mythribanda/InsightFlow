@@ -1,8 +1,6 @@
 import { useState, useEffect } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
-import { getDevLoginLink } from "@/server/auth";
 import {
   Card,
   CardContent,
@@ -31,7 +29,6 @@ export const Route = createFileRoute("/login")({
 
 function Login() {
   const navigate = useNavigate();
-  const runGetDevLoginLink = useServerFn(getDevLoginLink);
   const [email, setEmail] = useState("");
   const [otpCode, setOtpCode] = useState("");
   const [step, setStep] = useState<"request" | "verify">("request");
@@ -112,19 +109,6 @@ function Login() {
       toast.success("Code sent successfully!");
     } catch (err: any) {
       console.error("OTP send error:", err);
-      try {
-        toast.info("SMTP limits/errors detected. Attempting Dev-mode link/OTP generation...");
-        const res = await runGetDevLoginLink({ data: { email: email.trim(), redirectTo: window.location.origin + "/" } });
-        if (res.success && res.otp) {
-          toast.success("Bypassing SMTP: OTP code generated.");
-          setMessage(`[DEV BYPASS] SMTP server failed to send email. Pre-filled development login code: ${res.otp}`);
-          setOtpCode(res.otp);
-          setStep("verify");
-          return;
-        }
-      } catch (fallbackErr: any) {
-        console.error("Fallback error:", fallbackErr);
-      }
       setError(err?.message || "Failed to send verification code. Please try again.");
       toast.error("Failed to send code");
     } finally {
@@ -139,8 +123,8 @@ function Login() {
       setError("Please enter the 6-digit code.");
       return;
     }
-    if (otpCode.trim().length < 6) {
-      setError("The verification code must be at least 6 characters.");
+    if (otpCode.trim().length !== 6) {
+      setError("The verification code must be exactly 6 digits.");
       return;
     }
 
@@ -299,9 +283,9 @@ function Login() {
                       <Input
                         type="text"
                         placeholder="123456"
-                        maxLength={10}
+                        maxLength={6}
                         value={otpCode}
-                        onChange={(e) => setOtpCode(e.target.value.replace(/\s/g, ""))}
+                        onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ""))}
                         required
                         disabled={loading}
                         className="pl-10 h-11 border-border/60 bg-background/50 font-mono tracking-widest text-center text-lg focus:border-primary"
@@ -310,7 +294,7 @@ function Login() {
                   </div>
                   <Button
                     type="submit"
-                    disabled={loading || otpCode.trim().length < 6}
+                    disabled={loading || otpCode.trim().length !== 6}
                     className="w-full h-11 bg-gradient-to-r from-primary to-accent font-semibold text-primary-foreground shadow-[0_0_24px_-6px_var(--color-primary)] transition-all duration-200 hover:opacity-90 active:scale-98"
                   >
                     {loading ? (
