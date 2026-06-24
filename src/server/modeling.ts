@@ -307,3 +307,63 @@ export const exportCleanCSV = createServerFn({ method: "POST" })
   });
 
 
+export const exportReproductionCode = createServerFn({ method: "POST" })
+  .inputValidator((v: unknown) => {
+    if (
+      typeof v === "object" &&
+      v !== null &&
+      "session_id" in v &&
+      "target" in v &&
+      "leakage" in v &&
+      "best_model_name" in v &&
+      "task" in v
+    ) {
+      return v as {
+        session_id: string;
+        target: string;
+        excluded_features: string[] | null;
+        leakage: LeakageFlag[];
+        best_model_name: string;
+        task: string;
+      };
+    }
+    throw new Error("Invalid code reproduction export request");
+  })
+  .handler(async ({ data: request }): Promise<string> => {
+    const BACKEND_URL = process.env.MODELING_API_URL || "http://localhost:8000";
+    try {
+      const response = await fetch(
+        `${BACKEND_URL}/export/code/${request.session_id}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            target: request.target,
+            excluded_features: request.excluded_features || [],
+            leakage: request.leakage,
+            best_model_name: request.best_model_name,
+            task: request.task,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Backend reproduction code export failed: ${errorText}`);
+      }
+
+      return await response.text();
+    } catch (error) {
+      console.error("Code Export server function error:", error);
+      throw new Error(
+        `Failed to export reproduction code: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
+    }
+  });
+
+
+

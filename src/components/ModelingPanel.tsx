@@ -34,6 +34,7 @@ import {
   getRecommendations,
   getShapAnalysis,
   exportCleanCSV,
+  exportReproductionCode,
   type ModelResponse,
   type LeakageFlag,
   type SuitabilityResponse,
@@ -100,6 +101,45 @@ export const ModelingPanel: React.FC<ModelingPanelProps> = ({ data, columns, ses
       toast.error(err instanceof Error ? err.message : "Failed to export CSV");
     } finally {
       setIsExporting(false);
+    }
+  };
+
+  const runExportReproductionCode = useServerFn(exportReproductionCode);
+  const [isExportingCode, setIsExportingCode] = useState(false);
+
+  const handleDownloadReproductionCode = async () => {
+    if (!modelResponse) {
+      toast.error("Please train a model first.");
+      return;
+    }
+    setIsExportingCode(true);
+    try {
+      const codeContent = await runExportReproductionCode({
+        data: {
+          session_id: sessionId,
+          target: selectedTarget,
+          excluded_features: Array.from(excludedFeatures),
+          leakage: modelResponse.leakage,
+          best_model_name: modelResponse.best.model,
+          task: modelResponse.task,
+        },
+      });
+
+      const blob = new Blob([codeContent], { type: "text/x-python;charset=utf-8;" });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", `reproduce.py`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      toast.success("Reproduction script downloaded successfully!");
+    } catch (err) {
+      console.error(err);
+      toast.error(err instanceof Error ? err.message : "Failed to export reproduction code");
+    } finally {
+      setIsExportingCode(false);
     }
   };
 
@@ -465,6 +505,22 @@ export const ModelingPanel: React.FC<ModelingPanelProps> = ({ data, columns, ses
                   )}
                   {isExporting ? "Exporting..." : "Download Clean CSV"}
                 </Button>
+                {modelResponse && (
+                  <Button
+                    type="button"
+                    onClick={handleDownloadReproductionCode}
+                    disabled={isExportingCode}
+                    variant="outline"
+                    className="flex-1 border-emerald-500/40 hover:border-emerald-500 text-emerald-500 hover:bg-emerald-500/5 transition-all flex items-center justify-center gap-2"
+                  >
+                    {isExportingCode ? (
+                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-emerald-500/80 border-t-transparent" />
+                    ) : (
+                      <Download className="h-4 w-4" />
+                    )}
+                    {isExportingCode ? "Generating..." : "Reproduction Code"}
+                  </Button>
+                )}
               </div>
 
               {modelingMutation.isError && (
@@ -574,16 +630,30 @@ export const ModelingPanel: React.FC<ModelingPanelProps> = ({ data, columns, ses
                   </div>
                 </div>
 
-                <div className="flex gap-2">
-                  <Button onClick={() => setActiveTab("train")} variant="outline">
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <Button onClick={() => setActiveTab("train")} variant="outline" className="flex-1">
                     ← Retrain
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={handleDownloadReproductionCode}
+                    disabled={isExportingCode}
+                    variant="outline"
+                    className="flex-1 border-emerald-500/40 hover:border-emerald-500 text-emerald-500 hover:bg-emerald-500/5 transition-all flex items-center justify-center gap-2"
+                  >
+                    {isExportingCode ? (
+                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-emerald-500/80 border-t-transparent" />
+                    ) : (
+                      <Download className="h-4 w-4" />
+                    )}
+                    {isExportingCode ? "Generating..." : "Reproduction Code"}
                   </Button>
                   <Button
                     onClick={() => {
                       shapMutation.mutate(shapSampleIdx);
                     }}
                     disabled={shapMutation.isPending}
-                    className="flex-1"
+                    className="flex-[2]"
                   >
                     {shapMutation.isPending ? "Generating..." : "SHAP Analysis →"}
                   </Button>
