@@ -35,7 +35,7 @@ export const QueryBox: React.FC<QueryBoxProps> = ({ sessionId }) => {
   const queryMutation = useMutation({
     mutationFn: async (q: string) => {
       if (!sessionId) throw new Error("Please upload a dataset first.");
-      if (!q.strip) q = q.trim();
+      q = q.trim();
       if (!q) throw new Error("Please enter a question.");
       return runQuery({ data: { session_id: sessionId, question: q } });
     },

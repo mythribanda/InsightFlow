@@ -265,6 +265,13 @@ async def get_recommendations(session_id: str, request: RecommendationRequest) -
         y = df[request.target]
         X = df.drop(columns=[request.target])
         
+        # Drop rows where target is missing
+        nan_mask = y.isna()
+        if nan_mask.any():
+            logger.info(f"[{session_id}] Dropping {nan_mask.sum()} rows with missing target values in recommend.")
+            X = X[~nan_mask]
+            y = y[~nan_mask]
+        
         # Detect task
         task = TaskDetector.detect(y)
         
@@ -357,6 +364,13 @@ async def train_model(session_id: str, request: ModelRequest) -> ModelResponse:
         # Prepare X and y
         y = df[request.target]
         X = df.drop(columns=[request.target])
+        
+        # Drop rows where target is missing
+        nan_mask = y.isna()
+        if nan_mask.any():
+            logger.info(f"[{session_id}] Dropping {nan_mask.sum()} rows with missing target values.")
+            X = X[~nan_mask]
+            y = y[~nan_mask]
         
         logger.info(f"[{session_id}] X shape: {X.shape}, y shape: {y.shape}")
         logger.info(f"[{session_id}] Excluded features: {request.excluded_features}")
@@ -939,6 +953,13 @@ def main():
         
     y = df[target_col]
     X = df.drop(columns=[target_col])
+    
+    # Drop rows where target is missing
+    nan_mask = y.isna()
+    if nan_mask.any():
+        print(f"Dropping {nan_mask.sum()} rows with missing target values.")
+        X = X[~nan_mask]
+        y = y[~nan_mask]
     
     # Identify numeric and categorical columns
     numeric_cols = X.select_dtypes(include=[np.number]).columns.tolist()

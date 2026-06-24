@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 export type AnalysisResult = {
   shape: {
@@ -59,6 +60,7 @@ export const startAnalysis = createServerFn({ method: "POST" })
     }
     throw new Error("Invalid start analysis request");
   })
+  .middleware([requireSupabaseAuth])
   .handler(async ({ data: request }): Promise<{ status: string }> => {
     const BACKEND_URL = process.env.MODELING_API_URL || "http://localhost:8000";
     try {
@@ -101,6 +103,7 @@ export const getAnalysisStatus = createServerFn({ method: "GET" })
     }
     throw new Error("Invalid status request");
   })
+  .middleware([requireSupabaseAuth])
   .handler(async ({ data: request }): Promise<AnalysisStatusResponse> => {
     const BACKEND_URL = process.env.MODELING_API_URL || "http://localhost:8000";
     try {
@@ -153,6 +156,7 @@ export const addCalcColumn = createServerFn({ method: "POST" })
     }
     throw new Error("Invalid add calculated column request");
   })
+  .middleware([requireSupabaseAuth])
   .handler(
     async ({
       data: request,

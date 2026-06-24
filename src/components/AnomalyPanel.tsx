@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { getAnomalyReport, type AnomalyRow } from "@/server/anomaly";
+import { getAnomalyReport, type AnomalyRow, type AnomalyDriver } from "@/server/anomaly";
 import {
   Card,
   CardContent,
@@ -130,7 +130,7 @@ export const AnomalyPanel: React.FC<AnomalyPanelProps> = ({ sessionId }) => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {anomalies.map((row) => {
+                  {anomalies.map((row: AnomalyRow) => {
                     const isExpanded = expandedRows.has(row.row_index);
                     const primaryDriver = row.drivers[0];
 
@@ -192,7 +192,7 @@ export const AnomalyPanel: React.FC<AnomalyPanelProps> = ({ sessionId }) => {
                                     Attributed by robust standardized deviation from the column's median value, scaled by its Interquartile Range (IQR). Category columns use value frequency deviation.
                                   </p>
                                   <div className="space-y-3 mt-2">
-                                    {row.drivers.map((driver, idx) => {
+                                    {row.drivers.map((driver: AnomalyDriver, idx: number) => {
                                       // Scale helper for the progress bar (max deviation in view, capped at 15 for visualization)
                                       const progressValue = Math.min((driver.deviation / 10) * 100, 100);
                                       let severityVariant = "default";
@@ -230,7 +230,7 @@ export const AnomalyPanel: React.FC<AnomalyPanelProps> = ({ sessionId }) => {
                                   </h4>
                                   <div className="max-h-[220px] overflow-y-auto rounded-lg border border-border bg-card p-3 font-mono text-[10px] space-y-1 scrollbar-thin">
                                     {Object.entries(row.row_data).map(([key, val]) => {
-                                      const isDriver = row.drivers.some(d => d.column === key);
+                                      const isDriver = row.drivers.some((d: AnomalyDriver) => d.column === key);
                                       return (
                                         <div
                                           key={key}

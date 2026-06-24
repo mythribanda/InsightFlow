@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const SYS_BASE = `You are a senior data analyst inside the "InsightFlow" platform.
 You receive a JSON profile of a dataset (column types, missing %, distributions, correlations, top values, risks).
@@ -27,29 +28,52 @@ interface ChatInput {
 
 export const askDataset = createServerFn({ method: "POST" })
   .inputValidator((i: ChatInput) => i)
+  .middleware([requireSupabaseAuth])
   .handler(async ({ data }) => {
-    let apiKey = process.env.OPENAI_API_KEY || process.env.GEMINI_API_KEY;
-    let endpoint = "https://api.openai.com/v1/chat/completions";
-    let model = "gpt-4o-mini";
-
-    if (process.env.GEMINI_API_KEY && !process.env.OPENAI_API_KEY) {
-      endpoint = "https://generativelanguage.googleapis.com/v1beta/openai/v1/chat/completions";
-      model = "gemini-1.5-flash";
+    interface APIConfig {
+      provider: string;
+      apiKey: string;
+      endpoint: string;
+      model: string;
     }
 
-    // Allow manual overrides
-    if (process.env.AI_API_KEY) {
-      apiKey = process.env.AI_API_KEY;
-    }
-    if (process.env.AI_API_ENDPOINT) {
-      endpoint = process.env.AI_API_ENDPOINT;
-    }
-    if (process.env.AI_MODEL) {
-      model = process.env.AI_MODEL;
+    const isPlaceholder = (key: string | undefined): boolean => {
+      if (!key) return true;
+      const lower = key.toLowerCase().trim();
+      return lower === "" || lower.includes("your_") || lower.includes("placeholder");
+    };
+
+    const configs: APIConfig[] = [];
+
+    if (process.env.AI_API_KEY && !isPlaceholder(process.env.AI_API_KEY)) {
+      configs.push({
+        provider: "override",
+        apiKey: process.env.AI_API_KEY,
+        endpoint: process.env.AI_API_ENDPOINT || "https://api.openai.com/v1/chat/completions",
+        model: process.env.AI_MODEL || "gpt-4o-mini",
+      });
     }
 
-    if (!apiKey) {
-      return { error: "AI is not configured. Please set OPENAI_API_KEY or GEMINI_API_KEY." };
+    if (process.env.OPENAI_API_KEY && !isPlaceholder(process.env.OPENAI_API_KEY)) {
+      configs.push({
+        provider: "openai",
+        apiKey: process.env.OPENAI_API_KEY,
+        endpoint: "https://api.openai.com/v1/chat/completions",
+        model: "gpt-4o-mini",
+      });
+    }
+
+    if (process.env.GEMINI_API_KEY && !isPlaceholder(process.env.GEMINI_API_KEY)) {
+      configs.push({
+        provider: "gemini",
+        apiKey: process.env.GEMINI_API_KEY,
+        endpoint: "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
+        model: "gemini-2.5-flash",
+      });
+    }
+
+    if (configs.length === 0) {
+      return { error: "AI is not configured. Please set OPENAI_API_KEY or GEMINI_API_KEY in your .env file." };
     }
 
     const persona = PERSONA_PROMPTS[data.persona ?? "business"] ?? PERSONA_PROMPTS.business;
@@ -86,21 +110,41 @@ One decisive sentence.`;
       { role: "user", content: userPrompt },
     ];
 
-    try {
-      const res = await fetch(endpoint, {
-        method: "POST",
-        headers: { 
-          "Authorization": `Bearer ${apiKey}`, 
-          "Content-Type": "application/json" 
-        },
-        body: JSON.stringify({ model, messages }),
-      });
-      if (res.status === 429) return { error: "Rate limit reached. Try again in a moment." };
-      if (!res.ok) return { error: `AI error (${res.status}).` };
-      const json = await res.json();
-      const content = json.choices?.[0]?.message?.content ?? "";
-      return { content };
-    } catch (e) {
-      return { error: e instanceof Error ? e.message : "Unknown error" };
+    let lastError = "AI is not configured properly.";
+    for (const config of configs) {
+      try {
+        console.log(`[AI] Attempting chat completions using ${config.provider} (${config.model})...`);
+        const res = await fetch(config.endpoint, {
+          method: "POST",
+          headers: { 
+            "Authorization": `Bearer ${config.apiKey}`, 
+            "Content-Type": "application/json" 
+          },
+          body: JSON.stringify({ model: config.model, messages }),
+        });
+
+        if (res.status === 429) {
+          console.warn(`[AI] Provider ${config.provider} returned 429 (Rate limit reached).`);
+          lastError = "Rate limit reached. Try again in a moment.";
+          continue;
+        }
+
+        if (!res.ok) {
+          const bodyText = await res.text().catch(() => "");
+          console.warn(`[AI] Provider ${config.provider} returned status ${res.status}: ${bodyText}`);
+          lastError = `AI error (${res.status}).`;
+          continue;
+        }
+
+        const json = await res.json();
+        const content = json.choices?.[0]?.message?.content ?? "";
+        return { content };
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : "Unknown error";
+        console.error(`[AI] Exception with provider ${config.provider}:`, msg);
+        lastError = msg;
+      }
     }
+
+    return { error: lastError };
   });

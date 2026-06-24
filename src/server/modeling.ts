@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 /**
  * Server functions to call the Python modeling backend.
@@ -88,6 +89,7 @@ export const checkSuitability = createServerFn({ method: "POST" })
     }
     throw new Error("Invalid suitability request");
   })
+  .middleware([requireSupabaseAuth])
   .handler(async ({ data: request }): Promise<SuitabilityResponse> => {
     const BACKEND_URL = process.env.MODELING_API_URL || "http://localhost:8000";
     const SESSION_ID = request.session_id || "default";
@@ -135,6 +137,7 @@ export const getRecommendations = createServerFn({ method: "POST" })
     }
     throw new Error("Invalid recommendation request");
   })
+  .middleware([requireSupabaseAuth])
   .handler(async ({ data: request }): Promise<RecommendationResponse> => {
     const BACKEND_URL = process.env.MODELING_API_URL || "http://localhost:8000";
     const SESSION_ID = request.session_id || "default";
@@ -180,6 +183,7 @@ export const callModelingAPI = createServerFn({ method: "POST" })
     }
     throw new Error("Invalid model request");
   })
+  .middleware([requireSupabaseAuth])
   .handler(async ({ data: request }): Promise<ModelResponse> => {
     const BACKEND_URL = process.env.MODELING_API_URL || "http://localhost:8000";
     const SESSION_ID = request.session_id || "default";
@@ -227,6 +231,7 @@ export const getShapAnalysis = createServerFn({ method: "POST" })
     }
     throw new Error("Invalid SHAP request");
   })
+  .middleware([requireSupabaseAuth])
   .handler(async ({ data: request }): Promise<ShapResponse> => {
     const BACKEND_URL = process.env.MODELING_API_URL || "http://localhost:8000";
     const SESSION_ID = request.session_id || "default";
@@ -277,6 +282,7 @@ export const exportCleanCSV = createServerFn({ method: "POST" })
     }
     throw new Error("Invalid CSV export request");
   })
+  .middleware([requireSupabaseAuth])
   .handler(async ({ data: request }): Promise<string> => {
     const BACKEND_URL = process.env.MODELING_API_URL || "http://localhost:8000";
     try {
@@ -329,6 +335,7 @@ export const exportReproductionCode = createServerFn({ method: "POST" })
     }
     throw new Error("Invalid code reproduction export request");
   })
+  .middleware([requireSupabaseAuth])
   .handler(async ({ data: request }): Promise<string> => {
     const BACKEND_URL = process.env.MODELING_API_URL || "http://localhost:8000";
     try {

@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 export type AnomalyDriver = {
   column: string;
@@ -21,6 +22,7 @@ export const getAnomalyReport = createServerFn({ method: "GET" })
     }
     throw new Error("Invalid anomaly report request");
   })
+  .middleware([requireSupabaseAuth])
   .handler(async ({ data: request }): Promise<AnomalyRow[]> => {
     const BACKEND_URL = process.env.MODELING_API_URL || "http://localhost:8000";
     const contamination = request.contamination ?? 0.05;

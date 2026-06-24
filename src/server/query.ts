@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 export type QueryResponse = {
   code: string;
@@ -12,6 +13,7 @@ export const queryDataset = createServerFn({ method: "POST" })
     }
     throw new Error("Invalid query request");
   })
+  .middleware([requireSupabaseAuth])
   .handler(async ({ data: request }): Promise<QueryResponse> => {
     const BACKEND_URL = process.env.MODELING_API_URL || "http://localhost:8000";
 

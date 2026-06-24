@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { useMemo, useState, useEffect } from "react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
@@ -7,8 +7,9 @@ import {
   Activity, AlertTriangle, BarChart3, Brain, Database, Download, FileWarning,
   Lightbulb, ListChecks, MessageSquare, Sparkles, Wand2, GitCompareArrows,
   LayoutDashboard, ShieldCheck, ShieldAlert, ShieldX, ChevronLeft, ChevronRight,
-  Zap, Eye, Target, TrendingUp, Zap as ZapIcon,
+  Zap, Eye, Target, TrendingUp, Zap as ZapIcon, Loader2,
 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import { FileDrop } from "@/components/FileDrop";
 import { MetricCard } from "@/components/MetricCard";
 import { TrustGauge } from "@/components/TrustGauge";
@@ -45,7 +46,26 @@ type Persona = "business" | "student" | "developer";
 type Tab = "dashboard" | "overview" | "charts" | "insights" | "trust" | "chat" | "modeling" | "report" | "anomaly" | "calc";
 
 function Home() {
+  const navigate = useNavigate();
+  const [loadingSession, setLoadingSession] = useState(true);
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    async function checkAuth() {
+      try {
+        const { data, error } = await supabase.auth.getSession();
+        if (error || !data.session) {
+          navigate({ to: "/login" });
+        } else {
+          setLoadingSession(false);
+        }
+      } catch (e) {
+        console.error("Auth check failed:", e);
+        navigate({ to: "/login" });
+      }
+    }
+    checkAuth();
+  }, [navigate]);
   const [profile, setProfile] = useState<DatasetProfile | null>(null);
   const [rows, setRows] = useState<Record<string, unknown>[]>([]);
   const [fileName, setFileName] = useState("");
@@ -154,13 +174,13 @@ function Home() {
     // Pull the updated backend analysis
     setAnalyzing(true);
     runGetAnalysisStatus({ data: { session_id: sessionId } })
-      .then((statusRes) => {
+      .then((statusRes: any) => {
         if (statusRes.status === "completed" && statusRes.result) {
           setAnalysis(statusRes.result);
           toast.success(`Calculated column '${name}' analysis refreshed.`);
         }
       })
-      .catch((err) => {
+      .catch((err: any) => {
         console.error("Failed to fetch updated analysis", err);
       })
       .finally(() => {
@@ -182,6 +202,18 @@ function Home() {
   ];
 
   // Landing (no dataset) — full-width hero
+  if (loadingSession) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center relative overflow-hidden">
+        <div className="absolute inset-0 bg-grid opacity-5" />
+        <div className="flex flex-col items-center space-y-4 relative">
+          <Loader2 className="h-8 w-8 text-primary animate-spin" />
+          <p className="text-xs text-muted-foreground font-mono">Checking active sessions...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (!profile) {
     return (
       <div className="min-h-screen">
@@ -436,6 +468,7 @@ function Home() {
 
 /* ─── TopBar ─── */
 function TopBar({ persona, setPersona, hidePersona }: { persona: Persona; setPersona: (p: Persona) => void; hidePersona?: boolean }) {
+  const navigate = useNavigate();
   return (
     <header className="glass-topbar sticky top-0 z-20">
       <div className="mx-auto flex max-w-[1600px] items-center justify-between gap-4 px-6 py-3">
@@ -452,17 +485,35 @@ function TopBar({ persona, setPersona, hidePersona }: { persona: Persona; setPer
         </div>
         <div className="flex items-center gap-3">
           {!hidePersona && (
-            <div className="flex items-center gap-2">
-              <span className="hidden sm:inline font-mono text-[10px] uppercase tracking-wider text-muted-foreground">persona</span>
-              <select
-                value={persona}
-                onChange={(e) => setPersona(e.target.value as Persona)}
-                className="rounded-lg border border-input bg-background/60 px-2.5 py-1.5 text-xs backdrop-blur-sm transition-colors focus:border-primary focus:outline-none"
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
+                <span className="hidden sm:inline font-mono text-[10px] uppercase tracking-wider text-muted-foreground">persona</span>
+                <select
+                  value={persona}
+                  onChange={(e) => setPersona(e.target.value as Persona)}
+                  className="rounded-lg border border-input bg-background/60 px-2.5 py-1.5 text-xs backdrop-blur-sm transition-colors focus:border-primary focus:outline-none"
+                >
+                  <option value="business">Business</option>
+                  <option value="student">Student</option>
+                  <option value="developer">Developer</option>
+                </select>
+              </div>
+
+              <button
+                onClick={async () => {
+                  try {
+                    await supabase.auth.signOut();
+                    toast.success("Signed out successfully");
+                    navigate({ to: "/login" });
+                  } catch (err) {
+                    console.error("Sign out error:", err);
+                    toast.error("Failed to sign out");
+                  }
+                }}
+                className="rounded-lg border border-border bg-secondary/40 px-3 py-1.5 text-xs font-semibold text-muted-foreground transition-all duration-200 hover:border-destructive hover:bg-destructive/15 hover:text-destructive"
               >
-                <option value="business">Business</option>
-                <option value="student">Student</option>
-                <option value="developer">Developer</option>
-              </select>
+                Sign out
+              </button>
             </div>
           )}
         </div>
