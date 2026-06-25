@@ -4,7 +4,7 @@ import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const APP_URL = "http://localhost:8081";
-const CSV_PATH = path.join(__dirname, "demo-employee-data.csv");
+const CSV_PATH = path.join(__dirname, "..", "..", "demo-employee-data.csv");
 const TIMEOUT = 90_000;
 
 (async () => {
@@ -42,7 +42,7 @@ const TIMEOUT = 90_000;
     await calcTab.click();
     console.log("  Clicked Calculated Cols tab.");
     await page.waitForTimeout(1000);
-    await page.screenshot({ path: path.join(__dirname, "calc-screenshot-1-tab.png") });
+    await page.screenshot({ path: path.join(__dirname, "..", "images_of_e2e", "calc-screenshot-1-tab.png") });
 
     console.log("\n=== Step 4: Test Happy Path Calculated Column creation ===");
     console.log("  Creating 'bonus' = ROUND(salary * 0.1, 2)");
@@ -61,7 +61,7 @@ const TIMEOUT = 90_000;
     await page.waitForSelector('text=Created Successfully', { timeout: 15_000 });
     console.log("  ... Success text found. Fetching preview values...");
     await page.waitForTimeout(2000);
-    await page.screenshot({ path: path.join(__dirname, "calc-screenshot-2-happy-path.png") });
+    await page.screenshot({ path: path.join(__dirname, "..", "images_of_e2e", "calc-screenshot-2-happy-path.png") });
 
     // Print preview values from the page
     const previewTable = page.locator('table').first();
@@ -87,7 +87,7 @@ const TIMEOUT = 90_000;
     } else {
       console.log("  ❌ WARNING: Error was shown but might not be the expected AST whitelist rejection.");
     }
-    await page.screenshot({ path: path.join(__dirname, "calc-screenshot-3-security-blocked.png") });
+    await page.screenshot({ path: path.join(__dirname, "..", "images_of_e2e", "calc-screenshot-3-security-blocked.png") });
 
     console.log("\n=== Step 6: Create Boolean Calculated Column ===");
     console.log("  Creating 'high_sal' = IF(salary > 100000, True, False)");
@@ -99,7 +99,7 @@ const TIMEOUT = 90_000;
     await page.waitForSelector('text=high_sal\' Created Successfully', { timeout: 10_000 });
     console.log("  ... Success text found.");
     await page.waitForTimeout(2000);
-    await page.screenshot({ path: path.join(__dirname, "calc-screenshot-4-boolean.png") });
+    await page.screenshot({ path: path.join(__dirname, "..", "images_of_e2e", "calc-screenshot-4-boolean.png") });
 
     console.log("\n=== Step 7: Train Model Using Calculated Column ('bonus') as Target ===");
     const modelTab = page.locator('button', { hasText: /ML Models/i }).first();
@@ -126,7 +126,7 @@ const TIMEOUT = 90_000;
     // Wait for S2 Recommendations page to render
     await page.waitForSelector('text=Feature Recommendations', { timeout: 20_000 });
     console.log("  ✅ SUCCESS: Suitability and Feature Recommendations computed.");
-    await page.screenshot({ path: path.join(__dirname, "calc-screenshot-5-suitability.png") });
+    await page.screenshot({ path: path.join(__dirname, "..", "images_of_e2e", "calc-screenshot-5-suitability.png") });
 
     // Click Next: Configure & Train
     const configureBtn = page.locator('button', { hasText: /Configure & Train/i });
@@ -142,7 +142,7 @@ const TIMEOUT = 90_000;
     // Wait for model comparison to show up
     await page.waitForSelector('text=Model Comparison', { timeout: 45_000 });
     console.log("  ✅ SUCCESS: Both models successfully trained!");
-    await page.screenshot({ path: path.join(__dirname, "calc-screenshot-6-trained.png") });
+    await page.screenshot({ path: path.join(__dirname, "..", "images_of_e2e", "calc-screenshot-6-trained.png") });
 
     const metricsTable = page.locator('table').first();
     console.log("  Model comparison metrics table:\n", await metricsTable.innerText());
@@ -154,7 +154,7 @@ const TIMEOUT = 90_000;
     
     await page.waitForSelector('text=Global Feature Importance', { timeout: 30_000 });
     console.log("  ✅ SUCCESS: SHAP plots generated successfully.");
-    await page.screenshot({ path: path.join(__dirname, "calc-screenshot-7-shap.png") });
+    await page.screenshot({ path: path.join(__dirname, "..", "images_of_e2e", "calc-screenshot-7-shap.png") });
 
     console.log("\n=== E2E Integration Verification COMPLETED SUCCESSFULLY! ===");
     await browser.close();
@@ -162,7 +162,7 @@ const TIMEOUT = 90_000;
 
   } catch (err) {
     console.error("\n❌ E2E Integration Verification FAILED:", err);
-    await page.screenshot({ path: path.join(__dirname, "calc-screenshot-error.png") });
+    await page.screenshot({ path: path.join(__dirname, "..", "images_of_e2e", "calc-screenshot-error.png") });
     await browser.close();
     process.exit(1);
   }

@@ -24,7 +24,7 @@ const TIMEOUT = 15_000;
     const title = await page.locator("h1").innerText();
     console.log("  Branding header text:", title);
 
-    await page.screenshot({ path: path.join(__dirname, "login-screenshot-1-loaded.png") });
+    await page.screenshot({ path: path.join(__dirname, "..", "images_of_e2e", "login-screenshot-1-loaded.png") });
 
     console.log("\n=== Step 2: Testing Google OAuth (Unconfigured Provider) ===");
     // Click Google Login
@@ -34,7 +34,7 @@ const TIMEOUT = 15_000;
 
     // Wait a couple of seconds for OAuth attempt to complete and display the error
     await page.waitForTimeout(3000);
-    await page.screenshot({ path: path.join(__dirname, "login-screenshot-2-google-error.png") });
+    await page.screenshot({ path: path.join(__dirname, "..", "images_of_e2e", "login-screenshot-2-google-error.png") });
 
     let bodyText = await page.locator("body").innerText();
     if (bodyText.includes("Authentication Error") || bodyText.includes("error") || bodyText.includes("failed")) {
@@ -62,7 +62,7 @@ const TIMEOUT = 15_000;
 
     // Wait for the verification code step
     await page.waitForTimeout(4000);
-    await page.screenshot({ path: path.join(__dirname, "login-screenshot-3-otp-step.png") });
+    await page.screenshot({ path: path.join(__dirname, "..", "images_of_e2e", "login-screenshot-3-otp-step.png") });
 
     bodyText = await page.locator("body").innerText();
     if (bodyText.includes("Confirm your email") || bodyText.includes("Verify")) {
@@ -79,7 +79,7 @@ const TIMEOUT = 15_000;
 
       // Wait for validation error to display
       await page.waitForTimeout(3000);
-      await page.screenshot({ path: path.join(__dirname, "login-screenshot-4-otp-error.png") });
+      await page.screenshot({ path: path.join(__dirname, "..", "images_of_e2e", "login-screenshot-4-otp-error.png") });
 
       const verifyBodyText = await page.locator("body").innerText();
       if (verifyBodyText.includes("Authentication Error") || verifyBodyText.includes("Invalid") || verifyBodyText.includes("expired") || verifyBodyText.includes("error")) {

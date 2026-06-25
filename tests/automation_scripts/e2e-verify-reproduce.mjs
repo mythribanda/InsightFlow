@@ -6,7 +6,7 @@ import { execSync } from "child_process";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const APP_URL = "http://localhost:8081";
-const CSV_PATH = path.join(__dirname, "demo-employee-data.csv");
+const CSV_PATH = path.join(__dirname, "..", "..", "demo-employee-data.csv");
 const TIMEOUT = 90_000;
 
 (async () => {
@@ -113,9 +113,8 @@ const TIMEOUT = 90_000;
     console.log("  ✅ Verification of script file contents successful!");
 
     console.log("\n=== Step 10: Run reproduce.py Standalone ===");
-    // Run the script using the python executable in backend/venv
-    const pythonPath = path.join(__dirname, "backend", "venv", "Scripts", "python.exe");
-    const cmd = `"${pythonPath}" reproduce.py demo-employee-data.csv`;
+    const pythonPath = path.join(__dirname, "..", "..", "backend", "venv", "Scripts", "python.exe");
+    const cmd = `"${pythonPath}" reproduce.py ../../demo-employee-data.csv`;
     console.log(`  Executing: ${cmd}`);
     
     // Clean up any old image files if they exist

@@ -11,7 +11,7 @@ import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const APP_URL = "http://localhost:8081";
-const CSV_PATH = path.join(__dirname, "demo-employee-data.csv");
+const CSV_PATH = path.join(__dirname, "..", "..", "demo-employee-data.csv");
 const TIMEOUT = 60_000;
 
 (async () => {
@@ -28,7 +28,7 @@ const TIMEOUT = 60_000;
   console.log("  Page loaded:", await page.title());
 
   // Take a screenshot for reference
-  await page.screenshot({ path: path.join(__dirname, "e2e-screenshot-1-loaded.png") });
+  await page.screenshot({ path: path.join(__dirname, "..", "images_of_e2e", "e2e-screenshot-1-loaded.png") });
 
   console.log("\n=== Step 2: Upload demo-employee-data.csv ===");
   // Find the file input (may be hidden) and set the file
@@ -52,7 +52,7 @@ const TIMEOUT = 60_000;
     console.log("  WARNING: Could not detect Anomalies tab text, continuing anyway...");
   }
 
-  await page.screenshot({ path: path.join(__dirname, "e2e-screenshot-2-after-upload.png") });
+  await page.screenshot({ path: path.join(__dirname, "..", "images_of_e2e", "e2e-screenshot-2-after-upload.png") });
 
   // Print all visible tab-like buttons for debugging
   const buttons = await page.locator("button").allTextContents();
@@ -76,7 +76,7 @@ const TIMEOUT = 60_000;
     console.log("  Waiting for anomaly results...");
     await page.waitForTimeout(5000); // Give the useQuery time to fire and resolve
     
-    await page.screenshot({ path: path.join(__dirname, "e2e-screenshot-3-anomaly.png") });
+    await page.screenshot({ path: path.join(__dirname, "..", "images_of_e2e", "e2e-screenshot-3-anomaly.png") });
 
     // Check for anomaly content
     const pageText = await page.locator("body").innerText();
@@ -90,7 +90,7 @@ const TIMEOUT = 60_000;
     } else if (pageText.includes("Loading") || pageText.includes("loading")) {
       console.log("  ⏳ ANOMALY TAB: Still loading, waiting more...");
       await page.waitForTimeout(10000);
-      await page.screenshot({ path: path.join(__dirname, "e2e-screenshot-3b-anomaly-retry.png") });
+      await page.screenshot({ path: path.join(__dirname, "..", "images_of_e2e", "e2e-screenshot-3b-anomaly-retry.png") });
       const retryText = await page.locator("body").innerText();
       if (retryText.includes("score") || retryText.includes("driver")) {
         console.log("  ✅ ANOMALY TAB: Content rendered after extra wait");
@@ -117,7 +117,7 @@ const TIMEOUT = 60_000;
 
   if (queryClicked) {
     await page.waitForTimeout(2000);
-    await page.screenshot({ path: path.join(__dirname, "e2e-screenshot-4-query-tab.png") });
+    await page.screenshot({ path: path.join(__dirname, "..", "images_of_e2e", "e2e-screenshot-4-query-tab.png") });
 
     // Find the query input and type a question
     try {
@@ -137,7 +137,7 @@ const TIMEOUT = 60_000;
       console.log("  Waiting for query result...");
       await page.waitForTimeout(8000);
 
-      await page.screenshot({ path: path.join(__dirname, "e2e-screenshot-5-query-result.png") });
+      await page.screenshot({ path: path.join(__dirname, "..", "images_of_e2e", "e2e-screenshot-5-query-result.png") });
 
       const queryPageText = await page.locator("body").innerText();
 
@@ -169,7 +169,7 @@ const TIMEOUT = 60_000;
       await suggestionBtn.click();
       console.log("  Clicked 'how many employees are in engineering' suggestion");
       await page.waitForTimeout(8000);
-      await page.screenshot({ path: path.join(__dirname, "e2e-screenshot-6-suggestion-result.png") });
+      await page.screenshot({ path: path.join(__dirname, "..", "images_of_e2e", "e2e-screenshot-6-suggestion-result.png") });
       const resultText = await page.locator("body").innerText();
       if (resultText.includes("79") || resultText.includes("df[")) {
         console.log("  ✅ SUGGESTION QUERY: Result rendered");
