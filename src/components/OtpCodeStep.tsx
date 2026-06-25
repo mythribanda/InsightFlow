@@ -22,7 +22,7 @@ export function OtpCodeStep({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (otpCode.length === 6) {
+    if (otpCode.length >= 6 && otpCode.length <= 8) {
       onSubmit(otpCode);
     }
   };
@@ -35,8 +35,8 @@ export function OtpCodeStep({
             <KeyRound className="absolute left-3.5 top-3.5 h-4 w-4 text-muted-foreground/60" />
             <Input
               type="text"
-              placeholder="123456"
-              maxLength={6}
+              placeholder="12345678"
+              maxLength={8}
               value={otpCode}
               onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ""))}
               required
@@ -47,7 +47,7 @@ export function OtpCodeStep({
         </div>
         <Button
           type="submit"
-          disabled={loading || otpCode.length !== 6}
+          disabled={loading || otpCode.length < 6 || otpCode.length > 8}
           className="w-full h-11 bg-gradient-to-r from-primary to-accent font-semibold text-primary-foreground shadow-[0_0_24px_-6px_var(--color-primary)] transition-all duration-200 hover:opacity-90 active:scale-98 cursor-pointer disabled:cursor-not-allowed"
         >
           {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2 inline" /> : buttonText}

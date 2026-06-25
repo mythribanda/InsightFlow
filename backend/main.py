@@ -182,6 +182,12 @@ class AnalyzeStatusResponse(BaseModel):
     error: Optional[str] = None
 
 
+class VisualizationRequest(BaseModel):
+    column1: str
+    column2: Optional[str] = None
+    chart_type: str
+
+
 class QueryRequest(BaseModel):
     """Request for NL query endpoint."""
     question: str
@@ -203,6 +209,254 @@ analysis_jobs = {}
 
 
 # ============ ENDPOINTS ============
+
+@app.post("/visualize/{session_id}")
+async def get_visualization(session_id: str, request: VisualizationRequest):
+    """
+    Generate data and insights for client-side visualizations.
+    """
+    try:
+        logger.info(f"[{session_id}] Visualization request for: {request.column1} & {request.column2} (type: {request.chart_type})")
+        
+        # Retrieve df from store
+        df = session_data_store.get(session_id)
+        if df is None:
+            raise HTTPException(
+                status_code=404,
+                detail="No dataset found for this session. Please upload a dataset first."
+            )
+            
+        col1 = request.column1
+        col2 = request.column2
+        chart_type = request.chart_type
+        
+        if col1 not in df.columns:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Column '{col1}' not found in dataset"
+            )
+            
+        if col2 and col2 not in df.columns:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Column '{col2}' not found in dataset"
+            )
+            
+        # 1. Scatter Plot
+        if chart_type == "scatter":
+            if not col2:
+                raise HTTPException(status_code=400, detail="Scatter plot requires two columns")
+            df_clean = df[[col1, col2]].dropna()
+            if len(df_clean) < 2:
+                return {"data": [], "insight": "Not enough data points for scatter plot."}
+            
+            # Sample for performance if needed
+            if len(df_clean) > 5000:
+                df_clean = df_clean.sample(n=5000, random_state=42)
+                
+            data = df_clean.to_dict('records')
+            
+            # Compute correlation
+            try:
+                r = float(df_clean[col1].corr(df_clean[col2]))
+            except:
+                r = float('nan')
+                
+            # Compute trend line
+            try:
+                x = df_clean[col1].values.astype(float)
+                y = df_clean[col2].values.astype(float)
+                m, c = np.polyfit(x, y, 1)
+                for record in data:
+                    record['trend'] = float(m * record[col1] + c)
+            except:
+                pass
+                
+            if not np.isnan(r):
+                strength = "strong" if abs(r) > 0.7 else "moderate" if abs(r) > 0.4 else "weak"
+                direction = "positive" if r > 0 else "negative"
+                insight = f"Strong positive correlation (r={r:.2f}) between {col1} and {col2}. This suggests values increase together." if strength == "strong" and direction == "positive" else \
+                          f"Strong negative correlation (r={r:.2f}) between {col1} and {col2}. This suggests values move in opposite directions." if strength == "strong" and direction == "negative" else \
+                          f"There is a {strength} {direction} correlation (r={r:.2f}) between '{col1}' and '{col2}'."
+            else:
+                insight = f"Scatter plot of '{col1}' vs '{col2}' generated (no linear correlation computed)."
+                
+            return {"data": data, "insight": insight, "correlation": r if not np.isnan(r) else None}
+            
+        # 2. Histogram
+        elif chart_type == "histogram":
+            df_clean = df[col1].dropna()
+            if len(df_clean) < 1:
+                return {"data": [], "insight": "Not enough data points for histogram."}
+            
+            counts, bin_edges = np.histogram(df_clean, bins='auto')
+            data = []
+            for i in range(len(counts)):
+                data.append({
+                    "bin": f"{bin_edges[i]:.2f} - {bin_edges[i+1]:.2f}",
+                    "count": int(counts[i])
+                })
+            
+            peak_bin = data[np.argmax(counts)]["bin"]
+            insight = f"The values of '{col1}' range from {df_clean.min():.2f} to {df_clean.max():.2f}, with the peak frequency in the bin '{peak_bin}'."
+            return {"data": data, "insight": insight}
+            
+        # 3. Box Plot (single column)
+        elif chart_type == "boxplot" and not col2:
+            df_clean = df[col1].dropna()
+            if len(df_clean) < 1:
+                return {"data": [], "insight": "Not enough data points for box plot."}
+                
+            desc = df_clean.describe()
+            q1 = float(desc.get('25%', 0))
+            median = float(desc.get('50%', 0))
+            q3 = float(desc.get('75%', 0))
+            min_val = float(desc.get('min', 0))
+            max_val = float(desc.get('max', 0))
+            
+            data = [{
+                "name": col1,
+                "min": min_val,
+                "q1": q1,
+                "median": median,
+                "q3": q3,
+                "max": max_val
+            }]
+            insight = f"'{col1}' has a median value of {median:.2f}, with 50% of the data falling between {q1:.2f} (Q1) and {q3:.2f} (Q3)."
+            return {"data": data, "insight": insight}
+            
+        # 4. Box Plot (grouped: categorical + numeric)
+        elif chart_type == "boxplot" and col2:
+            # col1 is categorical, col2 is numeric
+            df_clean = df[[col1, col2]].dropna()
+            if len(df_clean) < 1:
+                return {"data": [], "insight": "Not enough data points for grouped box plot."}
+                
+            groups = df_clean.groupby(col1)[col2]
+            data = []
+            for name, g in groups:
+                if len(g) == 0:
+                    continue
+                desc = g.describe()
+                data.append({
+                    "group": str(name),
+                    "min": float(desc.get('min', 0)),
+                    "q1": float(desc.get('25%', 0)),
+                    "median": float(desc.get('50%', 0)),
+                    "q3": float(desc.get('75%', 0)),
+                    "max": float(desc.get('max', 0))
+                })
+            
+            if not data:
+                return {"data": [], "insight": "No grouped data generated."}
+                
+            data = sorted(data, key=lambda x: x['median'], reverse=True)
+            insight = f"Grouped by '{col1}', the highest median '{col2}' is found in group '{data[0]['group']}' ({data[0]['median']:.2f})."
+            return {"data": data, "insight": insight}
+            
+        # 5. Distribution (KDE)
+        elif chart_type == "kde":
+            df_clean = df[col1].dropna()
+            if len(df_clean) < 2:
+                return {"data": [], "insight": "Not enough data points for KDE distribution."}
+                
+            values = df_clean.values.astype(float)
+            x_grid = np.linspace(values.min(), values.max(), 100)
+            
+            # Silverman's bandwidth selection
+            n = len(values)
+            std = np.std(values)
+            if std == 0:
+                std = 1.0
+            bandwidth = 1.06 * std * (n ** -0.2)
+            
+            # Compute Gaussian KDE densities in pure numpy
+            densities = []
+            for x in x_grid:
+                diffs = (values - x) / bandwidth
+                kernels = np.exp(-0.5 * (diffs ** 2)) / (np.sqrt(2 * np.pi) * bandwidth)
+                densities.append(float(np.mean(kernels)))
+                
+            data = [{"x": float(x), "density": float(d)} for x, d in zip(x_grid, densities)]
+            peak_x = x_grid[np.argmax(densities)]
+            insight = f"The distribution of '{col1}' is continuous, with a peak density near {peak_x:.2f}."
+            return {"data": data, "insight": insight}
+            
+        # 6. Bar Chart (categorical + numeric)
+        elif chart_type == "bar":
+            if not col2:
+                raise HTTPException(status_code=400, detail="Bar chart requires two columns")
+            df_clean = df[[col1, col2]].dropna()
+            if len(df_clean) < 1:
+                return {"data": [], "insight": "Not enough data points for bar chart."}
+                
+            # Aggregate by mean
+            grouped = df_clean.groupby(col1)[col2].mean().reset_index()
+            data = grouped.rename(columns={col1: "category", col2: "value"}).to_dict('records')
+            
+            if not data:
+                return {"data": [], "insight": "No aggregated data generated."}
+                
+            data = sorted(data, key=lambda x: x['value'], reverse=True)
+            insight = f"On average, group '{data[0]['category']}' has the highest '{col2}' value of {data[0]['value']:.2f}."
+            return {"data": data, "insight": insight}
+            
+        # 7. Heatmap (categorical + categorical)
+        elif chart_type == "heatmap":
+            if not col2:
+                raise HTTPException(status_code=400, detail="Heatmap requires two columns")
+            df_clean = df[[col1, col2]].dropna()
+            if len(df_clean) < 1:
+                return {"data": [], "insight": "Not enough data points for heatmap."}
+                
+            ct = pd.crosstab(df_clean[col1], df_clean[col2])
+            data = []
+            for idx in ct.index:
+                for col in ct.columns:
+                    data.append({
+                        "x": str(idx),
+                        "y": str(col),
+                        "count": int(ct.loc[idx, col])
+                    })
+                    
+            if not data:
+                return {"data": [], "insight": "No cross-tabulated data generated."}
+                
+            max_cell = max(data, key=lambda x: x['count'])
+            insight = f"The combination of '{col1}' = '{max_cell['x']}' and '{col2}' = '{max_cell['y']}' is most frequent, with {max_cell['count']} occurrences."
+            return {"data": data, "insight": insight}
+            
+        # 8. Grouped Bar Chart (categorical + categorical)
+        elif chart_type == "grouped_bar":
+            if not col2:
+                raise HTTPException(status_code=400, detail="Grouped bar chart requires two columns")
+            df_clean = df[[col1, col2]].dropna()
+            if len(df_clean) < 1:
+                return {"data": [], "insight": "Not enough data points for grouped bar chart."}
+                
+            ct = pd.crosstab(df_clean[col1], df_clean[col2])
+            data = []
+            for idx in ct.index:
+                row = {"name": str(idx)}
+                for col in ct.columns:
+                    row[str(col)] = int(ct.loc[idx, col])
+                data.append(row)
+                
+            keys = [str(col) for col in ct.columns]
+            insight = f"Comparing '{col1}' across '{col2}', the distribution shows varying frequencies per category."
+            return {"data": data, "insight": insight, "keys": keys}
+            
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Unsupported chart type '{chart_type}'"
+            )
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"[{session_id}] Visualization error: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Visualization failed: {str(e)}")
 
 @app.post("/suitability/{session_id}", response_model=SuitabilityResponse)
 async def check_suitability(session_id: str, request: SuitabilityRequest) -> SuitabilityResponse:

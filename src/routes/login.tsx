@@ -1,51 +1,64 @@
 import { useState, useEffect } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { toast } from "sonner";
-import {
-  Brain,
-  Chrome,
-  Mail,
-  Loader2,
-  AlertTriangle,
-  CheckCircle2,
-  KeyRound,
-  ArrowLeft,
-} from "lucide-react";
+import { Brain, Loader2, Mail, Lock, Eye, EyeOff } from "lucide-react";
+import { DataPointsBackground } from "@/components/DataPointsBackground";
 
 export const Route = createFileRoute("/login")({
-  component: Login,
+  component: LoginPage,
 });
 
-function Login() {
+function LoginPage() {
   const navigate = useNavigate();
+  const [step, setStep] = useState<"credentials" | "otp">("credentials");
+  const [loginMethod, setLoginMethod] = useState<"password" | "email_otp">("password");
+
+  // Credentials / OTP inputs
   const [email, setEmail] = useState("");
-  const [otpCode, setOtpCode] = useState("");
-  const [step, setStep] = useState<"request" | "verify">("request");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+
+  // OTP verification inputs
+  const [otp, setOtp] = useState("");
+  const [tempEmail, setTempEmail] = useState("");
+
+  // UI states
   const [loading, setLoading] = useState(false);
   const [checkingSession, setCheckingSession] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
 
-  // Check if user is already signed in on mount
+  // Check if profile is complete
+  async function checkProfileComplete(userId: string) {
+    try {
+      const { data: profile, error } = await supabase
+        .from("profiles")
+        .select("display_name, phone")
+        .eq("id", userId)
+        .single();
+
+      if (error || !profile?.display_name || !profile?.phone) {
+        navigate({ to: "/complete-profile" });
+        return false;
+      }
+      return true;
+    } catch {
+      navigate({ to: "/complete-profile" });
+      return false;
+    }
+  }
+
+  // Check session on mount
   useEffect(() => {
     async function checkSession() {
       try {
         const { data, error: sessionError } = await supabase.auth.getSession();
         if (sessionError) throw sessionError;
         if (data.session) {
-          toast.success("Welcome back! Redirecting to dashboard...");
-          navigate({ to: "/" });
+          const isComplete = await checkProfileComplete(data.session.user.id);
+          if (isComplete) {
+            navigate({ to: "/" });
+          }
         }
       } catch (err) {
         console.error("Error checking session:", err);
@@ -56,41 +69,50 @@ function Login() {
     checkSession();
   }, [navigate]);
 
-  // Google OAuth Login
-  const handleGoogleLogin = async () => {
+  // Handle Continue Button for Password Mode
+  async function handleCredentialsSubmit() {
+    if (!email.trim() || !password) return;
     setLoading(true);
     setError(null);
-    setMessage(null);
+
     try {
-      const { error: oauthError } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: {
-          redirectTo: `${window.location.origin}/`,
-        },
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
       });
-      if (oauthError) {
-        throw oauthError;
+
+      if (signInError) {
+        if (signInError.message.includes("Invalid login credentials")) {
+          setError("Email or password incorrect. Try again or sign up.");
+        } else {
+          setError(signInError.message);
+        }
+        throw signInError;
+      }
+
+      if (data.session) {
+        const isComplete = await checkProfileComplete(data.user.id);
+        if (isComplete) {
+          toast.success("Login successful!");
+          navigate({ to: "/" });
+        }
+      } else {
+        setTempEmail(email.trim());
+        setStep("otp");
+        toast.info("Check your email for verification code");
       }
     } catch (err: any) {
-      console.error("OAuth error:", err);
-      setError(err?.message || "An unexpected error occurred during Google Sign-in.");
-      toast.error("Google login failed");
+      console.error("Login error:", err);
     } finally {
       setLoading(false);
     }
-  };
+  }
 
-  // Request OTP Email
-  const handleRequestOtp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email.trim()) {
-      setError("Please enter a valid email address.");
-      return;
-    }
-
+  // Handle Continue Button for Email OTP Mode
+  async function handleSendOtp() {
+    if (!email.trim()) return;
     setLoading(true);
     setError(null);
-    setMessage(null);
 
     try {
       const { error: otpError } = await supabase.auth.signInWithOtp({
@@ -101,64 +123,86 @@ function Login() {
       });
 
       if (otpError) {
+        if (otpError.message.includes("Error sending confirmation email") || otpError.status === 500) {
+          toast.warning("Email rate limit reached. Proceeding to OTP entry in case you have a recent code.");
+          setTempEmail(email.trim());
+          setStep("otp");
+          return;
+        }
         throw otpError;
       }
 
-      setMessage(`A 6-digit confirmation code has been sent to ${email}.`);
-      setStep("verify");
-      toast.success("Code sent successfully!");
+      setTempEmail(email.trim());
+      setStep("otp");
+      toast.info("Verification code sent to your email");
     } catch (err: any) {
-      console.error("OTP send error:", err);
-      setError(err?.message || "Failed to send verification code. Please try again.");
+      setError(err.message || "Failed to send verification code");
       toast.error("Failed to send code");
     } finally {
       setLoading(false);
     }
-  };
+  }
 
-  // Verify OTP Code
-  const handleVerifyOtp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!otpCode.trim()) {
-      setError("Please enter the 6-digit code.");
-      return;
-    }
-    if (otpCode.trim().length !== 6) {
-      setError("The verification code must be exactly 6 digits.");
-      return;
-    }
-
+  // Handle OTP Code Verification
+  async function handleOtpSubmit() {
+    if (otp.length !== 6) return;
     setLoading(true);
     setError(null);
 
     try {
-      const { error: verifyError } = await supabase.auth.verifyOtp({
-        email: email.trim(),
-        token: otpCode.trim(),
+      const { data, error: verifyError } = await supabase.auth.verifyOtp({
+        email: tempEmail || email.trim(),
+        token: otp,
         type: "email",
       });
 
-      if (verifyError) {
-        throw verifyError;
-      }
+      if (verifyError) throw verifyError;
 
-      toast.success("Verification successful! Logging in...");
-      navigate({ to: "/" });
+      if (data.user) {
+        const isComplete = await checkProfileComplete(data.user.id);
+        if (isComplete) {
+          toast.success("Verification successful!");
+          navigate({ to: "/" });
+        }
+      }
     } catch (err: any) {
-      console.error("OTP verification error:", err);
-      setError(err?.message || "Invalid or expired verification code. Please check and try again.");
+      setError(err.message || "OTP verification failed");
       toast.error("Verification failed");
     } finally {
       setLoading(false);
     }
-  };
+  }
+
+  // Google OAuth
+  async function handleGoogleSignIn() {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: `${window.location.origin}/complete-google-profile`,
+        },
+      });
+
+      if (error) throw error;
+    } catch (err: any) {
+      setError(err.message || "Google sign-in failed");
+      toast.error("Google sign-in failed");
+      setLoading(false);
+    }
+  }
+
+  const isCredentialsValid = loginMethod === "password" ? (email.trim().length > 0 && password.length > 0) : email.trim().length > 0;
 
   if (checkingSession) {
     return (
       <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center relative overflow-hidden">
+        <DataPointsBackground />
         <div className="absolute inset-0 bg-grid opacity-5" />
-        <div className="flex flex-col items-center space-y-4 relative">
-          <Loader2 className="h-8 w-8 text-primary animate-spin" />
+        <div className="flex flex-col items-center space-y-4 relative z-10">
+          <Loader2 className="h-8 w-8 text-cyan-500 animate-spin" />
           <p className="text-xs text-muted-foreground font-mono">Checking active sessions...</p>
         </div>
       </div>
@@ -166,163 +210,338 @@ function Login() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4 relative overflow-hidden font-sans">
-      {/* Decorative Glow elements */}
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-primary/10 blur-[120px] rounded-full pointer-events-none" />
-      <div className="absolute bottom-1/4 left-1/4 w-[300px] h-[300px] bg-accent/5 blur-[100px] rounded-full pointer-events-none" />
-      <div className="absolute inset-0 bg-grid opacity-5 pointer-events-none" />
+    <div className="min-h-screen bg-slate-950 relative overflow-hidden flex items-center justify-center p-4">
+      {/* Layer 1: animated particles */}
+      <DataPointsBackground />
 
-      {/* Main Container */}
-      <div className="w-full max-w-md space-y-6 relative">
-        {/* Header Logo */}
-        <div className="flex flex-col items-center space-y-2 text-center">
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-accent shadow-[0_0_24px_-4px_var(--color-primary)]">
-            <Brain className="h-6 w-6 text-primary-foreground" />
+      {/* Layer 2: soft color glows */}
+      <div className="absolute top-[10%] left-1/2 -translate-x-1/2 w-[600px] h-[600px] rounded-full pointer-events-none z-[1]"
+        style={{ background: "radial-gradient(circle, rgba(14,165,233,0.18), transparent 70%)" }} />
+      <div className="absolute bottom-[5%] right-[15%] w-[400px] h-[400px] rounded-full pointer-events-none z-[1]"
+        style={{ background: "radial-gradient(circle, rgba(168,85,247,0.15), transparent 70%)" }} />
+
+      {/* Layer 3: content */}
+      <div className="relative z-10 w-full max-w-md">
+        {/* Logo block */}
+        <div className="flex flex-col items-center mb-8">
+          <div
+            className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4"
+            style={{
+              background: "linear-gradient(135deg, #0ea5e9, #a855f7)",
+              boxShadow: "0 0 40px -8px rgba(14,165,233,0.6)",
+            }}
+          >
+            <Brain className="w-7 h-7 text-white" />
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">
-            Insight<span className="text-gradient">Flow</span>
+          <h1 className="text-3xl font-bold tracking-tight text-white">
+            Insight<span className="text-cyan-400">Flow</span>
           </h1>
-          <p className="text-xs text-muted-foreground font-mono uppercase tracking-wider">
-            data intelligence console
-          </p>
         </div>
 
-        {/* Card */}
-        <Card className="border border-border/80 bg-card/45 backdrop-blur-md shadow-2xl rounded-2xl overflow-hidden">
-          <CardHeader className="space-y-1.5 pb-6">
-            <CardTitle className="text-xl font-bold text-center">
-              {step === "request" ? "Sign in or Sign up" : "Confirm your email"}
-            </CardTitle>
-            <CardDescription className="text-center text-xs">
-              {step === "request"
-                ? "Enter your email to receive a login code, or continue with Google"
-                : `Enter the 6-digit code sent to ${email}`}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-5">
-            {/* Success Message */}
-            {message && (
-              <Alert className="bg-emerald-500/10 border-emerald-500/25 text-emerald-400 text-xs">
-                <CheckCircle2 className="h-4 w-4 text-emerald-400" />
-                <AlertDescription>{message}</AlertDescription>
-              </Alert>
-            )}
+        {/* Glass card */}
+        <div
+          className="rounded-3xl p-8 border"
+          style={{
+            background: "rgba(15, 23, 42, 0.55)",
+            backdropFilter: "blur(20px)",
+            WebkitBackdropFilter: "blur(20px)",
+            borderColor: "rgba(148, 163, 184, 0.15)",
+            boxShadow: "0 8px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.03) inset",
+          }}
+        >
+          <div className="text-center mb-6">
+            <h2 className="text-xl font-semibold text-white mb-1">
+              {step === "credentials" ? "Sign in to InsightFlow" : "Verify your email"}
+            </h2>
+            <p className="text-sm text-slate-400">
+              {step === "credentials"
+                ? loginMethod === "password"
+                  ? "Enter your email and password or continue with Google"
+                  : "Enter your email to receive a verification code"
+                : "Enter the 6-digit code sent to your email"}
+            </p>
+          </div>
 
-            {/* Error Message */}
-            {error && (
-              <Alert variant="destructive" className="text-xs">
-                <AlertTriangle className="h-4 w-4" />
-                <AlertTitle>Authentication Error</AlertTitle>
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
+          {error && (
+            <div role="alert" className="mb-4 px-4 py-3 rounded-xl text-sm text-red-300 text-destructive"
+              style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)" }}>
+              {error}
+            </div>
+          )}
 
-            {step === "request" ? (
+          <div className="space-y-4">
+            {step === "credentials" ? (
               <>
-                {/* Google Auth Button */}
-                <Button
-                  variant="outline"
-                  onClick={handleGoogleLogin}
-                  disabled={loading}
-                  className="w-full h-11 border-border/80 bg-secondary/20 hover:bg-secondary/40 font-medium text-sm flex items-center justify-center gap-3 transition-all duration-200"
-                >
-                  {loading ? (
-                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                  ) : (
-                    <Chrome className="h-4 w-4 text-primary" />
-                  )}
-                  Continue with Google
-                </Button>
-
-                {/* Divider */}
-                <div className="relative py-2">
-                  <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t border-border/60" />
-                  </div>
-                  <div className="relative flex justify-center text-[10px] uppercase font-mono tracking-wider">
-                    <span className="bg-slate-950/80 px-3 text-muted-foreground">or email magic link</span>
+                {/* Email Input */}
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-1.5">
+                    Email <span className="text-cyan-400">*</span>
+                  </label>
+                  <div className="relative">
+                    <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="your@email.com"
+                      disabled={loading}
+                      className="w-full pl-10 pr-4 py-3 rounded-xl text-white placeholder:text-slate-500 outline-none transition-all"
+                      style={{
+                        background: "rgba(255,255,255,0.04)",
+                        border: "1px solid rgba(148,163,184,0.2)",
+                      }}
+                      onFocus={(e) => {
+                        e.currentTarget.style.borderColor = "#0ea5e9";
+                        e.currentTarget.style.boxShadow = "0 0 0 3px rgba(14,165,233,0.15)";
+                      }}
+                      onBlur={(e) => {
+                        e.currentTarget.style.borderColor = "rgba(148,163,184,0.2)";
+                        e.currentTarget.style.boxShadow = "none";
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          loginMethod === "password" ? handleCredentialsSubmit() : handleSendOtp();
+                        }
+                      }}
+                    />
                   </div>
                 </div>
 
-                {/* OTP Email Form */}
-                <form onSubmit={handleRequestOtp} className="space-y-4">
-                  <div className="space-y-2">
+                {/* Password Input (only in password mode) */}
+                {loginMethod === "password" && (
+                  <div>
+                    <label className="block text-sm font-medium text-slate-300 mb-1.5">
+                      Password <span className="text-cyan-400">*</span>
+                    </label>
                     <div className="relative">
-                      <Mail className="absolute left-3.5 top-3.5 h-4 w-4 text-muted-foreground/60" />
-                      <Input
-                        type="email"
-                        placeholder="name@company.com"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        required
+                      <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                      <input
+                        type={showPassword ? "text" : "password"}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="••••••••"
                         disabled={loading}
-                        className="pl-10 h-11 border-border/60 bg-background/50 text-sm focus:border-primary"
+                        className="w-full pl-10 pr-10 py-3 rounded-xl text-white placeholder:text-slate-500 outline-none transition-all"
+                        style={{
+                          background: "rgba(255,255,255,0.04)",
+                          border: "1px solid rgba(148,163,184,0.2)",
+                        }}
+                        onFocus={(e) => {
+                          e.currentTarget.style.borderColor = "#0ea5e9";
+                          e.currentTarget.style.boxShadow = "0 0 0 3px rgba(14,165,233,0.15)";
+                        }}
+                        onBlur={(e) => {
+                          e.currentTarget.style.borderColor = "rgba(148,163,184,0.2)";
+                          e.currentTarget.style.boxShadow = "none";
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") handleCredentialsSubmit();
+                        }}
                       />
+                      <button
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white cursor-pointer"
+                        type="button"
+                      >
+                        {showPassword ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
+                      </button>
                     </div>
                   </div>
-                  <Button
-                    type="submit"
-                    disabled={loading || !email.trim()}
-                    className="w-full h-11 bg-gradient-to-r from-primary to-accent font-semibold text-primary-foreground shadow-[0_0_24px_-6px_var(--color-primary)] transition-all duration-200 hover:opacity-90 active:scale-98"
+                )}
+
+                {/* Continue button */}
+                <button
+                  onClick={loginMethod === "password" ? handleCredentialsSubmit : handleSendOtp}
+                  disabled={!isCredentialsValid || loading}
+                  className="w-full py-3.5 rounded-xl font-semibold transition-all flex items-center justify-center gap-2 mt-2"
+                  style={
+                    isCredentialsValid && !loading
+                      ? {
+                          background: "linear-gradient(135deg, #0ea5e9, #06b6d4)",
+                          color: "#fff",
+                          boxShadow: "0 4px 20px -4px rgba(14,165,233,0.5)",
+                          cursor: "pointer",
+                        }
+                      : {
+                          background: "rgba(148,163,184,0.12)",
+                          color: "rgba(148,163,184,0.6)",
+                          cursor: "not-allowed",
+                        }
+                  }
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Signing in...
+                    </>
+                  ) : (
+                    "Continue"
+                  )}
+                </button>
+
+                {/* Toggle button */}
+                <div className="text-center mt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setLoginMethod(loginMethod === "password" ? "email_otp" : "password");
+                      setError(null);
+                    }}
+                    className="text-xs text-cyan-400 hover:text-cyan-300 font-medium cursor-pointer"
                   >
-                    {loading ? (
-                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                    ) : (
-                      "Send Login Code"
-                    )}
-                  </Button>
-                </form>
+                    {loginMethod === "password"
+                      ? "Sign in with email code instead"
+                      : "Sign in with password instead"}
+                  </button>
+                </div>
+
+                {/* Divider */}
+                <div className="relative py-1">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-slate-800" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-slate-900/90 px-2 text-slate-400">Or</span>
+                  </div>
+                </div>
+
+                {/* Google Button */}
+                <button
+                  onClick={handleGoogleSignIn}
+                  disabled={loading}
+                  className="w-full py-3.5 rounded-xl font-semibold transition-all flex items-center justify-center gap-3 cursor-pointer"
+                  style={{
+                    background: "rgba(255,255,255,0.04)",
+                    border: "1px solid rgba(148,163,184,0.2)",
+                    color: "#cbd5e1",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = "rgba(255,255,255,0.08)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = "rgba(255,255,255,0.04)";
+                  }}
+                >
+                  <svg className="w-4 h-4" viewBox="0 0 24 24">
+                    <path
+                      fill="currentColor"
+                      d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                    />
+                    <path
+                      fill="currentColor"
+                      d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                    />
+                    <path
+                      fill="currentColor"
+                      d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                    />
+                    <path
+                      fill="currentColor"
+                      d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                    />
+                  </svg>
+                  Continue with Google
+                </button>
+
+                {/* Sign Up Link */}
+                <div className="text-center text-sm mt-1">
+                  <span className="text-slate-400">Don't have an account? </span>
+                  <button
+                    onClick={() => navigate({ to: "/signup" })}
+                    className="text-cyan-400 hover:text-cyan-300 font-medium cursor-pointer"
+                  >
+                    Sign up
+                  </button>
+                </div>
               </>
             ) : (
               <>
-                {/* OTP Verification Form */}
-                <form onSubmit={handleVerifyOtp} className="space-y-4">
-                  <div className="space-y-2">
-                    <div className="relative">
-                      <KeyRound className="absolute left-3.5 top-3.5 h-4 w-4 text-muted-foreground/60" />
-                      <Input
-                        type="text"
-                        placeholder="123456"
-                        maxLength={6}
-                        value={otpCode}
-                        onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ""))}
-                        required
-                        disabled={loading}
-                        className="pl-10 h-11 border-border/60 bg-background/50 font-mono tracking-widest text-center text-lg focus:border-primary"
-                      />
-                    </div>
-                  </div>
-                  <Button
-                    type="submit"
-                    disabled={loading || otpCode.trim().length !== 6}
-                    className="w-full h-11 bg-gradient-to-r from-primary to-accent font-semibold text-primary-foreground shadow-[0_0_24px_-6px_var(--color-primary)] transition-all duration-200 hover:opacity-90 active:scale-98"
-                  >
-                    {loading ? (
-                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                    ) : (
-                      "Verify & Login"
-                    )}
-                  </Button>
-                </form>
+                {/* OTP Input */}
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-1.5">
+                    Verification Code <span className="text-cyan-400">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={otp}
+                    onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                    placeholder="123456"
+                    disabled={loading}
+                    maxLength={6}
+                    className="w-full text-center text-2xl tracking-widest py-3 rounded-xl text-white placeholder:text-slate-600 outline-none transition-all"
+                    style={{
+                      background: "rgba(255,255,255,0.04)",
+                      border: "1px solid rgba(148,163,184,0.2)",
+                    }}
+                    onFocus={(e) => {
+                      e.currentTarget.style.borderColor = "#0ea5e9";
+                      e.currentTarget.style.boxShadow = "0 0 0 3px rgba(14,165,233,0.15)";
+                    }}
+                    onBlur={(e) => {
+                      e.currentTarget.style.borderColor = "rgba(148,163,184,0.2)";
+                      e.currentTarget.style.boxShadow = "none";
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && otp.length === 6) handleOtpSubmit();
+                    }}
+                  />
+                </div>
+
+                {/* Verify Button */}
+                <button
+                  onClick={handleOtpSubmit}
+                  disabled={otp.length !== 6 || loading}
+                  className="w-full py-3.5 rounded-xl font-semibold transition-all flex items-center justify-center gap-2 mt-2"
+                  style={
+                    otp.length === 6 && !loading
+                      ? {
+                          background: "linear-gradient(135deg, #0ea5e9, #06b6d4)",
+                          color: "#fff",
+                          boxShadow: "0 4px 20px -4px rgba(14,165,233,0.5)",
+                          cursor: "pointer",
+                        }
+                      : {
+                          background: "rgba(148,163,184,0.12)",
+                          color: "rgba(148,163,184,0.6)",
+                          cursor: "not-allowed",
+                        }
+                  }
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Verifying...
+                    </>
+                  ) : (
+                    "Verify"
+                  )}
+                </button>
 
                 {/* Back Button */}
                 <button
-                  type="button"
                   onClick={() => {
-                    setStep("request");
-                    setOtpCode("");
+                    setStep("credentials");
+                    setOtp("");
                     setError(null);
-                    setMessage(null);
                   }}
                   disabled={loading}
-                  className="w-full flex items-center justify-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors py-2 font-medium"
+                  className="w-full py-3.5 rounded-xl font-semibold transition-all flex items-center justify-center gap-2 border cursor-pointer"
+                  style={{
+                    background: "transparent",
+                    borderColor: "rgba(148,163,184,0.2)",
+                    color: "#cbd5e1",
+                  }}
                 >
-                  <ArrowLeft className="h-3 w-3" /> Change email address
+                  Back
                 </button>
               </>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     </div>
   );

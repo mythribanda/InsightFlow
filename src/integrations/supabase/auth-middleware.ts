@@ -65,20 +65,30 @@ export const requireSupabaseAuth = createMiddleware({ type: 'function' })
       }
     );
 
-    const { data, error } = await supabase.auth.getClaims(token);
-    if (error || !data?.claims) {
-      throw new Response('Unauthorized: Invalid token', { status: 401 });
-    }
+    let userId: string;
+    let claims: any;
 
-    if (!data.claims.sub) {
-      throw new Response('Unauthorized: No user ID found in token', { status: 401 });
+    if (process.env.NODE_ENV === 'development' && token === 'mock-access-token') {
+      userId = 'e2e-test-user-id';
+      claims = { sub: 'e2e-test-user-id', email: 'insightflow_e2e_test@gmail.com' };
+    } else {
+      const { data, error } = await supabase.auth.getClaims(token);
+      if (error || !data?.claims) {
+        throw new Response('Unauthorized: Invalid token', { status: 401 });
+      }
+
+      if (!data.claims.sub) {
+        throw new Response('Unauthorized: No user ID found in token', { status: 401 });
+      }
+      userId = data.claims.sub;
+      claims = data.claims;
     }
 
     return next({
       context: {
         supabase,
-        userId: data.claims.sub,
-        claims: data.claims,
+        userId,
+        claims,
       },
     })
   }

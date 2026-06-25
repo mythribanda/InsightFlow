@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback, useEffect } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
@@ -28,12 +28,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { AlertTriangle, CheckCircle2, Zap, BarChart3, TrendingUp, Lightbulb, Download } from "lucide-react";
+import { ClickSpark } from "@/components/reactbits/ClickSpark";
 import {
   callModelingAPI,
   checkSuitability,
   getRecommendations,
   getShapAnalysis,
-  exportCleanCSV,
   exportReproductionCode,
   type ModelResponse,
   type LeakageFlag,
@@ -61,48 +61,25 @@ interface ModelingPanelProps {
  *
  * Reuses computation: no duplicate training
  */
+type HarmfulFeature = {
+  name: string;
+  reason: string;
+  category: 'constant' | 'leakage' | 'other';
+};
+
 export const ModelingPanel: React.FC<ModelingPanelProps> = ({ data, columns, sessionId }) => {
   const [selectedTarget, setSelectedTarget] = useState<string>("");
   const [excludedFeatures, setExcludedFeatures] = useState<Set<string>>(new Set());
   const [activeTab, setActiveTab] = useState<string>("target");
   const [shapSampleIdx, setShapSampleIdx] = useState<number>(0);
+  const [harmfulFeatures, setHarmfulFeatures] = useState<HarmfulFeature[]>([]);
 
   // Server functions
   const runCheckSuitability = useServerFn(checkSuitability);
   const runGetRecommendations = useServerFn(getRecommendations);
   const runCallModelingAPI = useServerFn(callModelingAPI);
   const runGetShapAnalysis = useServerFn(getShapAnalysis);
-  const runExportCleanCSV = useServerFn(exportCleanCSV);
 
-  const [isExporting, setIsExporting] = useState(false);
-
-  const handleDownloadCleanCSV = async () => {
-    setIsExporting(true);
-    try {
-      const csvContent = await runExportCleanCSV({
-        data: {
-          session_id: sessionId,
-          excluded_features: Array.from(excludedFeatures),
-        },
-      });
-
-      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.setAttribute("download", `insightflow_clean_${sessionId}.csv`);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-      toast.success("Clean CSV downloaded successfully!");
-    } catch (err) {
-      console.error(err);
-      toast.error(err instanceof Error ? err.message : "Failed to export CSV");
-    } finally {
-      setIsExporting(false);
-    }
-  };
 
   const runExportReproductionCode = useServerFn(exportReproductionCode);
   const [isExportingCode, setIsExportingCode] = useState(false);
@@ -251,6 +228,84 @@ export const ModelingPanel: React.FC<ModelingPanelProps> = ({ data, columns, ses
     () => columns.filter((col) => col !== selectedTarget),
     [columns, selectedTarget]
   );
+
+  useEffect(() => {
+    if (!recommendationsResult && !suitabilityResult) {
+      setHarmfulFeatures([]);
+      return;
+    }
+
+    const found: HarmfulFeature[] = [];
+    const seen = new Set<string>();
+
+    const addHarmful = (feat: HarmfulFeature) => {
+      if (!seen.has(feat.name)) {
+        seen.add(feat.name);
+        found.push(feat);
+      }
+    };
+
+    if (recommendationsResult) {
+      recommendationsResult.harmful.forEach((item) => {
+        const name = availableFeatures.find((f) => item.startsWith(f)) || item.split(" ")[0];
+        const rawDetails = item.replace(name, "").trim();
+        const details = rawDetails ? rawDetails.replace(/^\(|\)$/g, "") : "Harmful feature";
+
+        if (item.includes("(constant)")) {
+          addHarmful({ name, reason: "Constant column", category: "constant" });
+        } else if (item.toLowerCase().includes("leakage")) {
+          addHarmful({ name, reason: "Leakage detected", category: "leakage" });
+        } else {
+          let reason = "Flagged as harmful";
+          if (details === "high cardinality") reason = "High cardinality";
+          if (details === "negative importance") reason = "Negative importance";
+          addHarmful({ name, reason, category: "other" });
+        }
+      });
+
+      recommendationsResult.leakage.forEach((item) => {
+        const name = availableFeatures.find((f) => item.startsWith(f)) || item.split(" ")[0];
+        const rawDetails = item.replace(name, "").trim();
+        const details = rawDetails ? rawDetails.replace(/^\(|\)$/g, "") : "Leakage detected";
+        addHarmful({ name, reason: details || "Leakage detected", category: "leakage" });
+      });
+    }
+
+    if (suitabilityResult) {
+      availableFeatures.forEach((feat) => {
+        suitabilityResult.warnings.forEach((warn) => {
+          if (warn.includes(feat)) {
+            const lowerWarn = warn.toLowerCase();
+            if (lowerWarn.includes("imbalance") || lowerWarn.includes("imbalanced")) {
+              addHarmful({ name: feat, reason: "Imbalance warnings", category: "other" });
+            } else if (lowerWarn.includes("constant")) {
+              addHarmful({ name: feat, reason: "Constant column", category: "constant" });
+            } else if (lowerWarn.includes("leakage")) {
+              addHarmful({ name: feat, reason: "Leakage detected", category: "leakage" });
+            }
+          }
+        });
+        suitabilityResult.issues.forEach((issue) => {
+          if (issue.includes(feat)) {
+            const lowerIssue = issue.toLowerCase();
+            if (lowerIssue.includes("imbalance") || lowerIssue.includes("imbalanced")) {
+              addHarmful({ name: feat, reason: "Imbalance warnings", category: "other" });
+            } else if (lowerIssue.includes("constant")) {
+              addHarmful({ name: feat, reason: "Constant column", category: "constant" });
+            } else if (lowerIssue.includes("leakage")) {
+              addHarmful({ name: feat, reason: "Leakage detected", category: "leakage" });
+            }
+          }
+        });
+      });
+    }
+
+    setHarmfulFeatures(found);
+  }, [recommendationsResult, suitabilityResult, availableFeatures]);
+
+  useEffect(() => {
+    setExcludedFeatures(new Set(harmfulFeatures.map((f) => f.name)));
+  }, [harmfulFeatures]);
 
   return (
     <div className="space-y-6">
@@ -461,50 +516,87 @@ export const ModelingPanel: React.FC<ModelingPanelProps> = ({ data, columns, ses
               <CardDescription>Exclude features and train both models</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {availableFeatures.length > 0 && (
-                <div>
-                  <label className="block text-sm font-medium mb-2">Exclude Features (Optional)</label>
-                  <div className="flex flex-wrap gap-2">
-                    {availableFeatures.map((col) => (
-                      <Badge
-                        key={col}
-                        variant={excludedFeatures.has(col) ? "destructive" : "outline"}
-                        className="cursor-pointer"
-                        onClick={() => toggleExcludeFeature(col)}
-                      >
-                        {col}
-                        {excludedFeatures.has(col) && " ✕"}
-                      </Badge>
-                    ))}
+              {availableFeatures.length > 0 && (() => {
+                const harmfulList = availableFeatures.filter((col) => harmfulFeatures.some((f) => f.name === col));
+                const cleanList = availableFeatures.filter((col) => !harmfulFeatures.some((f) => f.name === col));
+                return (
+                  <div className="space-y-4">
+                    {/* 🔴 Auto-excluded harmful features */}
+                    {harmfulList.length > 0 && (
+                      <div className="rounded-lg border border-red-500/20 bg-red-950/5 p-4 space-y-2">
+                        <label className="block text-xs font-semibold uppercase tracking-wider text-red-400 flex items-center gap-1.5">
+                          <span className="text-sm">🔴</span> Auto-excluded (Flagged as Harmful)
+                        </label>
+                        <p className="text-[11px] text-muted-foreground">
+                          These features were flagged as harmful (constant value, leakage detected, or severe imbalance) and are auto-excluded. Click any to override and include it anyway.
+                        </p>
+                        <div className="flex flex-wrap gap-2 pt-1">
+                          {harmfulList.map((col) => {
+                            const harmful = harmfulFeatures.find((f) => f.name === col)!;
+                            const isExcluded = excludedFeatures.has(col);
+                            return (
+                              <Badge
+                                key={col}
+                                variant={isExcluded ? "destructive" : "outline"}
+                                className={`cursor-pointer flex items-center gap-1.5 py-1 px-2.5 transition-all ${
+                                  isExcluded 
+                                    ? "bg-red-500/10 border-red-500/40 text-red-400 hover:bg-red-500/20 line-through decoration-red-500/60" 
+                                    : "border-border bg-transparent text-muted-foreground hover:bg-secondary/40"
+                                }`}
+                                onClick={() => toggleExcludeFeature(col)}
+                              >
+                                <AlertTriangle className={`h-3 w-3 ${isExcluded ? "text-red-400" : "text-muted-foreground"}`} />
+                                <span>
+                                  {col} <span className="text-[10px] opacity-80 font-normal">({harmful.reason})</span>
+                                </span>
+                                {isExcluded && <span className="ml-1 text-[10px]">✕</span>}
+                              </Badge>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Exclude Features (Optional) */}
+                    {cleanList.length > 0 && (
+                      <div className="space-y-2">
+                        <label className="block text-sm font-medium">Exclude Features (Optional)</label>
+                        <div className="flex flex-wrap gap-2">
+                          {cleanList.map((col) => {
+                            const isExcluded = excludedFeatures.has(col);
+                            return (
+                              <Badge
+                                key={col}
+                                variant={isExcluded ? "destructive" : "outline"}
+                                className="cursor-pointer py-1 px-2.5"
+                                onClick={() => toggleExcludeFeature(col)}
+                              >
+                                <span>{col}</span>
+                                {isExcluded && <span className="ml-1 text-[10px]">✕</span>}
+                              </Badge>
+                            );
+                          })}
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Click to exclude clean features from the model training process if needed.
+                        </p>
+                      </div>
+                    )}
                   </div>
-                  <p className="text-xs text-muted-foreground mt-2">
-                    Click to exclude harmful or leakage features
-                  </p>
-                </div>
-              )}
+                );
+              })()}
 
               <div className="flex flex-col sm:flex-row gap-3">
-                <Button
-                  onClick={() => modelingMutation.mutate()}
-                  disabled={modelingMutation.isPending}
-                  className="flex-1"
-                >
-                  {modelingMutation.isPending ? "Training..." : "Train Both Models"}
-                </Button>
-                <Button
-                  type="button"
-                  onClick={handleDownloadCleanCSV}
-                  disabled={isExporting}
-                  variant="outline"
-                  className="flex-1 border-primary/40 hover:border-primary text-primary hover:bg-primary/5 transition-all flex items-center justify-center gap-2"
-                >
-                  {isExporting ? (
-                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                  ) : (
-                    <Download className="h-4 w-4" />
-                  )}
-                  {isExporting ? "Exporting..." : "Download Clean CSV"}
-                </Button>
+                <ClickSpark sparkCount={10} sparkColor="var(--color-primary)" sparkRadius={56} className="flex-1">
+                  <Button
+                    onClick={() => modelingMutation.mutate()}
+                    disabled={modelingMutation.isPending}
+                    className="w-full"
+                  >
+                    {modelingMutation.isPending ? "Training..." : "Train Both Models"}
+                  </Button>
+                </ClickSpark>
+
                 {modelResponse && (
                   <Button
                     type="button"

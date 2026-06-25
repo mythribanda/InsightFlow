@@ -51,21 +51,26 @@ const TIMEOUT = 15_000;
     // Reload page to clear states
     await page.goto(APP_URL, { waitUntil: "networkidle" });
 
+    // Toggle to Email OTP mode
+    const toggleOtpBtn = page.locator("button:has-text('email code')");
+    await toggleOtpBtn.click();
+    console.log("  Clicked toggle to switch to Email OTP mode");
+
     // Enter a dummy email and submit
     const emailInput = page.locator("input[type='email']");
     await emailInput.fill("insightflow_e2e_test@gmail.com");
     console.log("  Filled email input: 'insightflow_e2e_test@gmail.com'");
 
-    const submitEmailBtn = page.locator("button:has-text('Send Login Code')");
+    const submitEmailBtn = page.locator("button:text-is('Continue')");
     await submitEmailBtn.click();
-    console.log("  Clicked 'Send Login Code'");
+    console.log("  Clicked 'Continue'");
 
     // Wait for the verification code step
     await page.waitForTimeout(4000);
     await page.screenshot({ path: path.join(__dirname, "..", "images_of_e2e", "login-screenshot-3-otp-step.png") });
 
     bodyText = await page.locator("body").innerText();
-    if (bodyText.includes("Confirm your email") || bodyText.includes("Verify")) {
+    if (bodyText.includes("Verify your email") || bodyText.includes("Verify")) {
       console.log("  ✅ SUCCESS: Transitioned to OTP verification step!");
 
       // Enter an incorrect 6-digit code
@@ -73,16 +78,16 @@ const TIMEOUT = 15_000;
       await codeInput.fill("999999");
       console.log("  Filled incorrect code: '999999'");
 
-      const verifyBtn = page.locator("button:has-text('Verify & Login')");
+      const verifyBtn = page.locator("button:has-text('Verify')");
       await verifyBtn.click();
-      console.log("  Clicked 'Verify & Login'");
+      console.log("  Clicked 'Verify'");
 
       // Wait for validation error to display
       await page.waitForTimeout(3000);
       await page.screenshot({ path: path.join(__dirname, "..", "images_of_e2e", "login-screenshot-4-otp-error.png") });
 
       const verifyBodyText = await page.locator("body").innerText();
-      if (verifyBodyText.includes("Authentication Error") || verifyBodyText.includes("Invalid") || verifyBodyText.includes("expired") || verifyBodyText.includes("error")) {
+      if (verifyBodyText.includes("Authentication Error") || verifyBodyText.includes("Invalid") || verifyBodyText.includes("expired") || verifyBodyText.includes("error") || verifyBodyText.includes("failed")) {
         console.log("  ✅ SUCCESS: Correctly displayed invalid OTP code error!");
         const errorAlert = page.locator("[role='alert']");
         if (await errorAlert.count() > 0) {

@@ -13,6 +13,8 @@ import { Route as SignupRouteImport } from './routes/signup'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as CompleteProfileRouteImport } from './routes/complete-profile'
+import { Route as CompleteGoogleProfileRouteImport } from './routes/complete-google-profile'
 import { Route as IndexRouteImport } from './routes/index'
 
 const SignupRoute = SignupRouteImport.update({
@@ -35,6 +37,16 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CompleteProfileRoute = CompleteProfileRouteImport.update({
+  id: '/complete-profile',
+  path: '/complete-profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CompleteGoogleProfileRoute = CompleteGoogleProfileRouteImport.update({
+  id: '/complete-google-profile',
+  path: '/complete-google-profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -43,6 +55,8 @@ const IndexRoute = IndexRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/complete-google-profile': typeof CompleteGoogleProfileRoute
+  '/complete-profile': typeof CompleteProfileRoute
   '/login': typeof LoginRoute
   '/profile': typeof ProfileRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -50,6 +64,8 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/complete-google-profile': typeof CompleteGoogleProfileRoute
+  '/complete-profile': typeof CompleteProfileRoute
   '/login': typeof LoginRoute
   '/profile': typeof ProfileRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -58,6 +74,8 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/complete-google-profile': typeof CompleteGoogleProfileRoute
+  '/complete-profile': typeof CompleteProfileRoute
   '/login': typeof LoginRoute
   '/profile': typeof ProfileRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -65,14 +83,38 @@ export interface FileRoutesById {
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/login' | '/profile' | '/reset-password' | '/signup'
+  fullPaths:
+    | '/'
+    | '/complete-google-profile'
+    | '/complete-profile'
+    | '/login'
+    | '/profile'
+    | '/reset-password'
+    | '/signup'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/login' | '/profile' | '/reset-password' | '/signup'
-  id: '__root__' | '/' | '/login' | '/profile' | '/reset-password' | '/signup'
+  to:
+    | '/'
+    | '/complete-google-profile'
+    | '/complete-profile'
+    | '/login'
+    | '/profile'
+    | '/reset-password'
+    | '/signup'
+  id:
+    | '__root__'
+    | '/'
+    | '/complete-google-profile'
+    | '/complete-profile'
+    | '/login'
+    | '/profile'
+    | '/reset-password'
+    | '/signup'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  CompleteGoogleProfileRoute: typeof CompleteGoogleProfileRoute
+  CompleteProfileRoute: typeof CompleteProfileRoute
   LoginRoute: typeof LoginRoute
   ProfileRoute: typeof ProfileRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
@@ -109,6 +151,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/complete-profile': {
+      id: '/complete-profile'
+      path: '/complete-profile'
+      fullPath: '/complete-profile'
+      preLoaderRoute: typeof CompleteProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/complete-google-profile': {
+      id: '/complete-google-profile'
+      path: '/complete-google-profile'
+      fullPath: '/complete-google-profile'
+      preLoaderRoute: typeof CompleteGoogleProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -121,6 +177,8 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  CompleteGoogleProfileRoute: CompleteGoogleProfileRoute,
+  CompleteProfileRoute: CompleteProfileRoute,
   LoginRoute: LoginRoute,
   ProfileRoute: ProfileRoute,
   ResetPasswordRoute: ResetPasswordRoute,

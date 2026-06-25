@@ -1,8 +1,25 @@
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
+import { getVisualization } from "@/server/visualize";
+import {
+  ResponsiveContainer,
+  ScatterChart,
+  Scatter,
+  XAxis,
+  YAxis,
+  Tooltip as RechartsTooltip,
+  Legend,
+  CartesianGrid,
+  BarChart,
+  Bar,
+  AreaChart,
+  Area,
+  Line,
+  ComposedChart
+} from "recharts";
 import {
   Activity, AlertTriangle, BarChart3, Brain, Database, Download, FileWarning,
   Lightbulb, ListChecks, MessageSquare, Sparkles, Wand2, GitCompareArrows,
@@ -24,11 +41,18 @@ import { exportReportPDF } from "@/lib/exportReport";
 import { askDataset } from "@/utils/ai.functions";
 import { cn } from "@/lib/utils";
 import { startAnalysis, getAnalysisStatus, type AnalysisResult } from "@/server/analysis";
+import { exportCleanCSV } from "@/server/modeling";
 import { DependencyHeatmaps } from "@/components/DependencyHeatmaps";
 import { AnomalyPanel } from "@/components/AnomalyPanel";
 import { QueryBox } from "@/components/QueryBox";
 import { CalcColumnPanel } from "@/components/CalcColumnPanel";
 import { Calculator } from "lucide-react";
+import { CountUp } from "@/components/reactbits/CountUp";
+import { BlurText } from "@/components/reactbits/BlurText";
+import { Aurora } from "@/components/reactbits/Aurora";
+import { AnimatedList } from "@/components/reactbits/AnimatedList";
+import { ClickSpark } from "@/components/reactbits/ClickSpark";
+import { AnimatedContent } from "@/components/reactbits/AnimatedContent";
 
 export const Route = createFileRoute("/")(  {
   head: () => ({
@@ -43,7 +67,7 @@ export const Route = createFileRoute("/")(  {
 });
 
 type Persona = "business" | "student" | "developer";
-type Tab = "dashboard" | "overview" | "charts" | "insights" | "trust" | "chat" | "modeling" | "report" | "anomaly" | "calc";
+type Tab = "dashboard" | "overview" | "charts" | "visualizations" | "insights" | "chat" | "modeling" | "report" | "anomaly" | "calc";
 
 function Home() {
   const navigate = useNavigate();
@@ -57,7 +81,18 @@ function Home() {
         if (error || !data.session) {
           navigate({ to: "/login" });
         } else {
-          setLoadingSession(false);
+          // Check if profile is complete
+          const { data: profile, error: profileError } = await supabase
+            .from("profiles")
+            .select("display_name, phone")
+            .eq("id", data.session.user.id)
+            .single();
+
+          if (profileError || !profile?.display_name || !profile?.phone) {
+            navigate({ to: "/complete-profile" });
+          } else {
+            setLoadingSession(false);
+          }
         }
       } catch (e) {
         console.error("Auth check failed:", e);
@@ -78,6 +113,8 @@ function Home() {
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [sessionId, setSessionId] = useState<string>("");
+  // BlurText one-shot gate: once insights tab is visited with the current dataset, skip replay
+  const insightsSeenRef = useRef<string>("");
   const ask = useServerFn(askDataset);
   const runStartAnalysis = useServerFn(startAnalysis);
   const runGetAnalysisStatus = useServerFn(getAnalysisStatus);
@@ -191,13 +228,13 @@ function Home() {
   const tabs: { id: Tab; label: string; icon: typeof Database; desc: string }[] = [
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, desc: "Overview" },
     { id: "overview", label: "Profiling", icon: Database, desc: "Column analysis" },
-    { id: "charts", label: "Visualizations", icon: BarChart3, desc: "Auto-charts" },
+    { id: "charts", label: "Auto-Charts", icon: Sparkles, desc: "Auto-generated charts" },
     { id: "insights", label: "Insights", icon: Lightbulb, desc: "Key findings" },
-    { id: "trust", label: "Trust & Risk", icon: AlertTriangle, desc: "Quality score" },
     { id: "modeling", label: "ML Models", icon: ZapIcon, desc: "Train & evaluate" },
     { id: "anomaly", label: "Anomalies", icon: ShieldAlert, desc: "Outlier detection" },
     { id: "calc", label: "Calculated Cols", icon: Calculator, desc: "Create new columns" },
     { id: "chat", label: "Ask your data", icon: MessageSquare, desc: "AI chat" },
+    { id: "visualizations", label: "Visualizations", icon: BarChart3, desc: "Custom exploration" },
     { id: "report", label: "Report", icon: Download, desc: "Export PDF" },
   ];
 
@@ -356,7 +393,7 @@ function Home() {
             ))}
           </nav>
 
-          <div key={tab} className="animate-in fade-in-50 slide-in-from-bottom-2 duration-300">
+          <AnimatedContent key={tab} animation="slide-up" duration={320}>
             {tab === "dashboard" && profile && risk && (
               <div className="space-y-6">
                 {analyzing && (
@@ -374,9 +411,9 @@ function Home() {
                       <div className="surface-card p-5 flex flex-col justify-between">
                         <div>
                           <div className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">dataset shape</div>
-                          <div className="mt-2 text-2xl font-bold text-gradient">{analysis.shape.rows.toLocaleString()} rows</div>
+                          <div className="mt-2 text-2xl font-bold text-gradient"><CountUp to={analysis.shape.rows} from={0} duration={1.4} separator="," /> rows</div>
                           <div className="text-lg font-semibold text-muted-foreground">{analysis.shape.cols} columns</div>
-                          <div className="mt-1 text-xs text-muted-foreground">{analysis.shape.total_cells.toLocaleString()} total cells</div>
+                          <div className="mt-1 text-xs text-muted-foreground"><CountUp to={analysis.shape.total_cells} from={0} duration={1.6} separator="," /> total cells</div>
                         </div>
                         <div className="mt-4 border-t border-border/40 pt-4 flex gap-4">
                           <div>
@@ -391,7 +428,7 @@ function Home() {
                         <div className="flex flex-col items-center justify-center shrink-0 w-full md:w-48 border-b md:border-b-0 md:border-r border-border/40 pb-6 md:pb-0 md:pr-6">
                           <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">trust score</span>
                           <div className="mt-3 text-6xl font-extrabold animate-pulse-glow" style={{ color: analysis.trust_score >= 80 ? "var(--color-success)" : analysis.trust_score >= 55 ? "var(--color-warning)" : "var(--color-destructive)" }}>
-                            {analysis.trust_score}
+                            <CountUp to={analysis.trust_score} from={0} duration={1.8} />
                           </div>
                           <span className="mt-2 text-xs text-muted-foreground text-center">Composite quality metric</span>
                         </div>
@@ -428,10 +465,18 @@ function Home() {
                 )}
               </div>
             )}
-            {tab === "overview" && <Profiling profile={profile} forecast={forecast} narrative={narrative} runNarrative={() => runAi("narrative")} aiBusy={aiBusy === "narrative"} />}
+            {tab === "overview" && (
+              <Profiling
+                profile={profile}
+                forecast={forecast}
+                narrative={narrative}
+                runNarrative={() => runAi("narrative")}
+                aiBusy={aiBusy === "narrative"}
+                sessionId={sessionId}
+              />
+            )}
             {tab === "charts" && <AutoCharts profile={profile} rows={rows} />}
             {tab === "insights" && <Insights insights={insights} profile={profile} />}
-            {tab === "trust" && <TrustRisk profile={profile} />}
             {tab === "modeling" && <ModelingPanel data={rows} columns={profile?.columns.map(c => c.name) || []} sessionId={sessionId} />}
             {tab === "anomaly" && <AnomalyPanel sessionId={sessionId} />}
             {tab === "calc" && (
@@ -448,6 +493,9 @@ function Home() {
                 <ChatPanel profile={profile} persona={persona} suggestions={profile.suggestedQuestions} />
               </div>
             )}
+            {tab === "visualizations" && profile && (
+              <Visualizations profile={profile} sessionId={sessionId} />
+            )}
             {tab === "report" && (
               <ReportTab
                 profile={profile}
@@ -459,7 +507,7 @@ function Home() {
                 aiBusy={aiBusy === "story"}
               />
             )}
-          </div>
+          </AnimatedContent>
         </main>
       </div>
     </div>
@@ -555,8 +603,9 @@ function Dashboard({
 
   return (
     <div className="space-y-6">
-      {/* Header strip */}
+      {/* Header strip with Aurora background */}
       <div className="surface-card relative overflow-hidden p-6">
+        <Aurora colors={["hsl(192 100% 50% / 0.12)","hsl(262 100% 65% / 0.10)","hsl(220 100% 60% / 0.09)"]} blur={90} speed={0.6} />
         <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-accent/5" />
         <div className="relative flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div className="min-w-0">
@@ -574,7 +623,9 @@ function Dashboard({
           <div className="flex items-center gap-4">
             <div className="text-right">
               <div className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">trust score</div>
-              <div className="text-4xl font-bold tabular-nums animate-pulse-glow" style={{ color: trustColor }}>{profile.trustScore}</div>
+              <div className="text-4xl font-bold tabular-nums animate-pulse-glow" style={{ color: trustColor }}>
+                <CountUp to={profile.trustScore} from={0} duration={1.6} />
+              </div>
             </div>
             <div className="h-12 w-px bg-border/50" />
             <button
@@ -589,18 +640,18 @@ function Dashboard({
 
       {/* KPI grid */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <MetricCard label="Rows" value={profile.rowCount.toLocaleString()} icon={Database} accent="primary" />
+        <MetricCard label="Rows" value={<CountUp to={profile.rowCount} from={0} duration={1.2} separator="," />} icon={Database} accent="primary" />
         <MetricCard label="Columns" value={profile.colCount} icon={BarChart3} accent="primary" />
         <MetricCard
           label="Missing cells"
-          value={`${profile.missingPct.toFixed(1)}%`}
+          value={<><CountUp to={profile.missingPct} from={0} duration={1.3} decimals={1} />%</>}
           hint={`${profile.missingCells.toLocaleString()} total cells missing`}
           icon={Eye}
           accent={profile.missingPct > 10 ? "warning" : "success"}
         />
         <MetricCard
           label="Duplicate rows"
-          value={profile.duplicateRows.toLocaleString()}
+          value={<CountUp to={profile.duplicateRows} from={0} duration={1.2} separator="," />}
           hint={profile.duplicateRows > 0 ? "May affect analysis accuracy" : "Clean — no duplicates found"}
           icon={Target}
           accent={profile.duplicateRows ? "warning" : "success"}
@@ -669,8 +720,56 @@ function Dashboard({
 
 /* ─── Profiling ─── */
 function Profiling({
-  profile, forecast, narrative, runNarrative, aiBusy,
-}: { profile: DatasetProfile; forecast: string | null; narrative: string; runNarrative: () => void; aiBusy: boolean }) {
+  profile, forecast, narrative, runNarrative, aiBusy, sessionId,
+}: {
+  profile: DatasetProfile;
+  forecast: string | null;
+  narrative: string;
+  runNarrative: () => void;
+  aiBusy: boolean;
+  sessionId: string;
+}) {
+  const runExportCleanCSV = useServerFn(exportCleanCSV);
+  const [isExporting, setIsExporting] = useState(false);
+
+  const handleDownloadCleanCSV = async () => {
+    if (!sessionId) {
+      toast.error("No active session found.");
+      return;
+    }
+    setIsExporting(true);
+    try {
+      const csvContent = await runExportCleanCSV({
+        data: {
+          session_id: sessionId,
+          excluded_features: [],
+        },
+      });
+
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", `insightflow_clean_${sessionId}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      toast.success("Clean CSV downloaded successfully!");
+    } catch (err) {
+      console.error(err);
+      toast.error(err instanceof Error ? err.message : "Failed to export CSV");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const getTrustBadgeClass = (score: number) => {
+    if (score >= 80) return "bg-[color:var(--color-success)]/15 text-[color:var(--color-success)] border-[color:var(--color-success)]/30";
+    if (score >= 50) return "bg-[color:var(--color-warning)]/15 text-[color:var(--color-warning)] border-[color:var(--color-warning)]/30";
+    return "bg-destructive/15 text-destructive border-destructive/30";
+  };
+
   return (
     <div className="space-y-6">
       <div className="grid gap-4 lg:grid-cols-3">
@@ -721,6 +820,40 @@ function Profiling({
 
       <ColumnTable profile={profile} />
       <PreviewTable profile={profile} />
+
+      {/* Export Clean Dataset Card */}
+      <div className="surface-card relative overflow-hidden p-6">
+        <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-accent/5" />
+        <div className="relative flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-2.5">
+              <h3 className="text-sm font-semibold flex items-center gap-2">
+                <Download className="h-4 w-4 text-primary" /> Export Clean Dataset
+              </h3>
+              <span className={cn("rounded-full border px-2.5 py-0.5 text-[11px] font-bold tracking-wider", getTrustBadgeClass(profile.trustScore))}>
+                Data Trust: {profile.trustScore}/100
+              </span>
+            </div>
+            <p className="text-xs text-muted-foreground max-w-lg">
+              Download the clean dataset. Missing values imputed, outliers marked, and duplicate rows dropped.
+            </p>
+          </div>
+          <ClickSpark sparkCount={10} sparkColor="#A855F7" sparkRadius={52} duration={550}>
+            <button
+              onClick={handleDownloadCleanCSV}
+              disabled={isExporting || !sessionId}
+              className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-primary to-accent px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-[0_0_30px_-6px_var(--color-primary)] transition-all duration-200 hover:opacity-90 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:scale-100 disabled:pointer-events-none"
+            >
+              {isExporting ? (
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
+              ) : (
+                <Download className="h-4 w-4" />
+              )}
+              {isExporting ? "Exporting..." : "Download Preprocessed CSV"}
+            </button>
+          </ClickSpark>
+        </div>
+      </div>
     </div>
   );
 }
@@ -822,197 +955,788 @@ function PreviewTable({ profile }: { profile: DatasetProfile }) {
 function Insights({
   insights, profile,
 }: { insights: { text: string; why?: string; confidence: number; tag: string }[]; profile: DatasetProfile }) {
+  const trustColor = profile.trustScore >= 80 ? "var(--color-success)" : profile.trustScore >= 50 ? "var(--color-warning)" : "var(--color-destructive)";
+  // BlurText one-shot gate — keyed to the insights fingerprint so it replays on new dataset upload
+  const blurKeyRef = useRef("");
+  const insightFingerprint = insights.map(i => i.tag).join("-");
+  const isFirstRender = blurKeyRef.current !== insightFingerprint;
+  if (isFirstRender) blurKeyRef.current = insightFingerprint;
+  
+  const hasClassImbalance = profile.risks.some(r => /imbalance|imbalanced|dominated/i.test(r)) ||
+    profile.columns.some(c => c.type === "categorical" && c.topValues && c.topValues[0] && (c.topValues[0].count / Math.max(c.count - c.missing, 1) > 0.85));
+
+  const hasLeakageRisk = profile.risks.some(r => /leakage|correlation|perfectly correlated/i.test(r)) ||
+    profile.contradictions.some(c => /leakage|correlation|perfectly correlated/i.test(c));
+
+  const hasHighMissingValues = profile.missingPct > 10 || profile.columns.some(c => c.missingPct > 30);
+
+  const recommendations: string[] = [];
+  if (hasClassImbalance) {
+    profile.columns.forEach(c => {
+      if (c.type === "categorical" && c.topValues && c.topValues[0] && (c.topValues[0].count / Math.max(c.count - c.missing, 1) > 0.85)) {
+        recommendations.push(`Use class weighting or SMOTE for dominated column '${c.name}' (dominated by "${c.topValues[0].value}").`);
+      }
+    });
+    if (recommendations.length === 0) {
+      recommendations.push("Apply class balancing techniques (e.g., SMOTE, class weights) for skewed target/categorical variables.");
+    }
+  }
+  if (hasLeakageRisk) {
+    const leakageColumns: string[] = [];
+    profile.risks.forEach(r => {
+      const match = r.match(/'([^']+)'/);
+      if (match && /leakage|correlation/i.test(r)) {
+        leakageColumns.push(match[1]);
+      }
+    });
+    profile.contradictions.forEach(c => {
+      const match = c.match(/'([^']+)'/);
+      if (match && /leakage|correlation/i.test(c)) {
+        leakageColumns.push(match[1]);
+      }
+    });
+    if (leakageColumns.length > 0) {
+      const uniqueCols = Array.from(new Set(leakageColumns));
+      uniqueCols.forEach(col => {
+        recommendations.push(`Drop leakage feature '${col}' to prevent target leakage.`);
+      });
+    } else {
+      recommendations.push("Inspect and remove features that have near-perfect correlation with the target variable.");
+    }
+  }
+  if (hasHighMissingValues) {
+    profile.columns.forEach(c => {
+      if (c.missingPct > 30) {
+        recommendations.push(`Impute missing values in '${c.name}' (${c.missingPct.toFixed(0)}% missing) or consider dropping it.`);
+      }
+    });
+    if (profile.missingPct > 10 && !profile.columns.some(c => c.missingPct > 30)) {
+      recommendations.push(`Impute missing cells (overall ${profile.missingPct.toFixed(1)}% missingness) to prevent training bias.`);
+    }
+  }
+
   return (
-    <div className="grid gap-4 lg:grid-cols-2">
-      <div className="surface-card p-5">
-        <h3 className="mb-4 flex items-center gap-2 text-sm font-semibold">
-          <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary/10">
-            <Lightbulb className="h-4 w-4 text-primary" />
+    <div className="space-y-6">
+      {/* Data Health & Risk Assessment Card */}
+      <div className="surface-card p-6 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-accent/5" />
+        <div className="relative space-y-4">
+          <div className="flex items-center gap-2">
+            <ShieldAlert className="h-5 w-5 text-primary" />
+            <h3 className="text-sm font-semibold">Data Health & Risk Assessment</h3>
           </div>
-          Key findings
-        </h3>
-        <ul className="space-y-3">
-          {insights.map((i, idx) => (
-            <li key={idx} className="group rounded-lg border border-border/60 bg-background/30 p-3.5 transition-all duration-200 hover:border-primary/30 hover:bg-primary/[0.02]">
-              <div className="flex items-start gap-3">
-                <div className="mt-0.5 flex h-7 min-w-[3rem] items-center justify-center rounded-md bg-primary/10 font-mono text-[10px] font-semibold text-primary">
-                  {(i.confidence * 100).toFixed(0)}%
-                </div>
-                <div className="flex-1">
-                  <span className="mr-2 rounded-md bg-secondary px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">{i.tag}</span>
-                  <span className="text-sm">
-                    <ReactMarkdown components={{ p: ({ children }) => <span>{children}</span> }}>
-                      {i.text}
-                    </ReactMarkdown>
-                  </span>
-                  {i.why && (
-                    <div className="mt-2 rounded-md bg-background/40 px-2.5 py-1.5 text-xs text-muted-foreground">
-                      <span className="font-semibold text-primary/80">Why this matters: </span>{i.why}
-                    </div>
-                  )}
-                </div>
+          
+          <div className="grid gap-6 md:grid-cols-3 border-t border-border/40 pt-4">
+            {/* Trust Score Section */}
+            <div className="flex flex-col items-center justify-center border-b md:border-b-0 md:border-r border-border/40 pb-6 md:pb-0 md:pr-6 text-center">
+              <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">trust score</span>
+              <div className="mt-2 text-5xl font-extrabold animate-pulse-glow" style={{ color: trustColor }}>
+                <CountUp to={profile.trustScore} from={0} duration={1.8} />
               </div>
-            </li>
-          ))}
-        </ul>
-      </div>
-
-      <div className="surface-card p-5">
-        <h3 className="mb-4 flex items-center gap-2 text-sm font-semibold">
-          <div className="flex h-7 w-7 items-center justify-center rounded-md bg-accent/10">
-            <MessageSquare className="h-4 w-4 text-accent" />
-          </div>
-          Suggested questions
-        </h3>
-        <ul className="space-y-2">
-          {profile.suggestedQuestions.map((q) => (
-            <li key={q} className="group flex items-center gap-2 rounded-lg border border-border/60 bg-background/30 px-3.5 py-2.5 text-sm transition-all duration-200 hover:border-primary/30 hover:text-primary cursor-pointer">
-              <Sparkles className="h-3 w-3 shrink-0 text-muted-foreground transition-colors group-hover:text-primary" />
-              <span>{q}</span>
-            </li>
-          ))}
-        </ul>
-      </div>
-
-      <div className="surface-card p-5 lg:col-span-2">
-        <h3 className="mb-4 flex items-center gap-2 text-sm font-semibold">
-          <div className="flex h-7 w-7 items-center justify-center rounded-md bg-[color:var(--color-success)]/10">
-            <ListChecks className="h-4 w-4 text-[color:var(--color-success)]" />
-          </div>
-          Recommended actions
-        </h3>
-        <div className="grid gap-2 md:grid-cols-2">
-          {profile.recommendedActions.map((a) => (
-            <div key={a} className="flex items-start gap-2 rounded-lg border border-border/60 bg-background/30 px-3.5 py-2.5 text-sm transition-all duration-200 hover:border-[color:var(--color-success)]/30">
-              <ChevronRight className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[color:var(--color-success)]" />
-              <span>{a}</span>
+              <span className="mt-1.5 text-xs text-muted-foreground">Composite quality metric</span>
             </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
 
-/* ─── Trust & Risk ─── */
-function TrustRisk({ profile }: { profile: DatasetProfile }) {
-  return (
-    <div className="grid gap-4 lg:grid-cols-3">
-      <div className="surface-card p-5">
-        <h3 className="mb-4 flex items-center gap-2 text-sm font-semibold">
-          <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary/10">
-            <Activity className="h-4 w-4 text-primary" />
-          </div>
-          Trust breakdown
-        </h3>
-        <div className="space-y-4">
-          {profile.trustBreakdown.map((b) => (
-            <div key={b.label}>
-              <div className="mb-1.5 flex items-baseline justify-between text-xs">
-                <span className="font-medium">{b.label}</span>
-                <span className="font-mono tabular-nums text-muted-foreground">{b.score.toFixed(0)} · w{(b.weight * 100).toFixed(0)}</span>
-              </div>
-              <div className="h-2 overflow-hidden rounded-full bg-secondary">
-                <div className="h-full bg-gradient-to-r from-primary to-accent transition-all duration-700 ease-out" style={{ width: `${b.score}%` }} />
-              </div>
-              <div className="mt-1 text-[11px] text-muted-foreground">{b.note}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <SeverityList title="Risks" icon={AlertTriangle} items={profile.risks} empty="No major risks detected." />
-      <SeverityList title="Contradictions" icon={GitCompareArrows} items={profile.contradictions} empty="No internal contradictions detected." variant="warning" />
-      <HumanErrorPanel items={profile.humanErrors} />
-    </div>
-  );
-}
-
-/* ─── Severity List ─── */
-function SeverityList({
-  title, icon: Icon, items, empty, variant = "warning",
-}: { title: string; icon: typeof AlertTriangle; items: string[]; empty: string; variant?: "warning" | "info" }) {
-  return (
-    <div className="surface-card p-5">
-      <h3 className="mb-4 flex items-center gap-2 text-sm font-semibold">
-        <div className={cn(
-          "flex h-7 w-7 items-center justify-center rounded-md",
-          variant === "warning" ? "bg-[color:var(--color-warning)]/10" : "bg-[color:var(--color-info)]/10",
-        )}>
-          <Icon className={cn("h-4 w-4", variant === "warning" ? "text-[color:var(--color-warning)]" : "text-[color:var(--color-info)]")} />
-        </div>
-        {title}
-      </h3>
-      {items.length ? (
-        <ul className="space-y-2">
-          {items.map((r) => {
-            const sev = severityFor(r);
-            const sty = severityStyle(sev);
-            return (
-              <li
-                key={r}
-                className="flex gap-2 rounded-lg border-l-2 bg-background/30 px-3.5 py-2.5 text-sm transition-all duration-200 hover:bg-background/50"
-                style={{ borderLeftColor: sty.color }}
-              >
-                <span
-                  className="mt-0.5 inline-flex h-5 shrink-0 items-center rounded-md px-1.5 font-mono text-[9px] font-bold tracking-wider"
-                  style={{ background: `color-mix(in oklab, ${sty.color} 15%, transparent)`, color: sty.color }}
-                >
-                  {sty.label}
-                </span>
-                <span className="flex-1">{r}</span>
-              </li>
-            );
-          })}
-        </ul>
-      ) : (
-        <div className="flex items-center gap-2 rounded-lg border border-[color:var(--color-success)]/20 bg-[color:var(--color-success)]/5 px-3.5 py-2.5 text-sm text-[color:var(--color-success)]">
-          <ShieldCheck className="h-4 w-4" /> {empty}
-        </div>
-      )}
-    </div>
-  );
-}
-
-/* ─── Human Error Panel ─── */
-function HumanErrorPanel({ items }: { items: string[] }) {
-  return (
-    <div className="surface-card p-5 lg:col-span-3">
-      <h3 className="mb-4 flex items-center gap-2 text-sm font-semibold">
-        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-destructive/10">
-          <FileWarning className="h-4 w-4 text-destructive" />
-        </div>
-        Human-error signals
-      </h3>
-      {items.length ? (
-        <div className="grid gap-2 md:grid-cols-2">
-          {items.map((r) => {
-            // pull out the first quoted column name for highlight
-            const m = r.match(/'([^']+)'/);
-            const col = m?.[1];
-            return (
-              <div
-                key={r}
-                className="rounded-lg border border-destructive/20 bg-destructive/5 px-3.5 py-2.5 text-sm transition-all duration-200 hover:border-destructive/40"
-              >
-                <div className="flex items-start gap-2">
-                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
-                  <div className="flex-1">
-                    {col && (
-                      <span className="mr-1.5 rounded-md bg-destructive/15 px-1.5 py-0.5 font-mono text-[10px] font-semibold text-destructive">
-                        {col}
-                      </span>
-                    )}
-                    <span>{r.replace(/'[^']+'/, "").replace(/^\s+/, "")}</span>
+            {/* Risk Checklist */}
+            <div className="space-y-3.5 border-b md:border-b-0 md:border-r border-border/40 pb-6 md:pb-0 md:pr-6">
+              <div className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">risk checklist</div>
+              
+              {/* Class Imbalance Flag */}
+              <div className="flex items-start gap-2.5 text-xs">
+                {hasClassImbalance ? (
+                  <ShieldAlert className="mt-0.5 h-4 w-4 text-[color:var(--color-warning)] shrink-0" />
+                ) : (
+                  <ShieldCheck className="mt-0.5 h-4 w-4 text-[color:var(--color-success)] shrink-0" />
+                )}
+                <div>
+                  <div className="font-semibold">Class imbalance</div>
+                  <div className="text-[10px] text-muted-foreground">
+                    {hasClassImbalance ? "Flagged: Target or categorical column heavily skewed" : "Optimal class distribution"}
                   </div>
                 </div>
               </div>
-            );
-          })}
+
+              {/* Leakage Risk Flag */}
+              <div className="flex items-start gap-2.5 text-xs">
+                {hasLeakageRisk ? (
+                  <ShieldX className="mt-0.5 h-4 w-4 text-destructive shrink-0" />
+                ) : (
+                  <ShieldCheck className="mt-0.5 h-4 w-4 text-[color:var(--color-success)] shrink-0" />
+                )}
+                <div>
+                  <div className="font-semibold">Leakage risk</div>
+                  <div className="text-[10px] text-muted-foreground">
+                    {hasLeakageRisk ? "Flagged: Features perfectly correlated or leak target signal" : "No significant leakage risk"}
+                  </div>
+                </div>
+              </div>
+
+              {/* High Missing Flag */}
+              <div className="flex items-start gap-2.5 text-xs">
+                {hasHighMissingValues ? (
+                  <ShieldAlert className="mt-0.5 h-4 w-4 text-[color:var(--color-warning)] shrink-0" />
+                ) : (
+                  <ShieldCheck className="mt-0.5 h-4 w-4 text-[color:var(--color-success)] shrink-0" />
+                )}
+                <div>
+                  <div className="font-semibold">High missing values</div>
+                  <div className="text-[10px] text-muted-foreground">
+                    {hasHighMissingValues ? "Flagged: High missingness overall or in individual features" : "Optimal missing value percentage"}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Recommended Actions */}
+            <div className="space-y-2">
+              <div className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">recommended actions</div>
+              {recommendations.length > 0 ? (
+                <AnimatedList
+                  items={recommendations.map((rec, index) => (
+                    <div key={index} className="flex items-start gap-2 text-xs">
+                      <ChevronRight className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+                      <span>{rec}</span>
+                    </div>
+                  ))}
+                  itemDelay={100}
+                />
+              ) : (
+                <div className="flex items-center gap-2 rounded-lg border border-[color:var(--color-success)]/20 bg-[color:var(--color-success)]/5 px-3 py-2 text-xs text-[color:var(--color-success)]">
+                  <ShieldCheck className="h-4 w-4 shrink-0" />
+                  <span>All checks passed! No critical data quality actions recommended.</span>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
-      ) : (
-        <div className="flex items-center gap-2 rounded-lg border border-[color:var(--color-success)]/20 bg-[color:var(--color-success)]/5 px-3.5 py-2.5 text-sm text-[color:var(--color-success)]">
-          <ShieldCheck className="h-4 w-4" /> No suspicious values detected.
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <div className="surface-card p-5">
+          <h3 className="mb-4 flex items-center gap-2 text-sm font-semibold">
+            <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary/10">
+              <Lightbulb className="h-4 w-4 text-primary" />
+            </div>
+            Key findings
+          </h3>
+          {/* BlurText one-shot: fires on first tab visit per dataset, not on every re-entry */}
+          <AnimatedList
+            items={insights.map((i, idx) => (
+              <div key={idx} className="group rounded-lg border border-border/60 bg-background/30 p-3.5 transition-all duration-200 hover:border-primary/30 hover:bg-primary/[0.02]">
+                <div className="flex items-start gap-3">
+                  <div className="mt-0.5 flex h-7 min-w-[3rem] items-center justify-center rounded-md bg-primary/10 font-mono text-[10px] font-semibold text-primary">
+                    {(i.confidence * 100).toFixed(0)}%
+                  </div>
+                  <div className="flex-1">
+                    <span className="mr-2 rounded-md bg-secondary px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">{i.tag}</span>
+                    <span className="text-sm">
+                      {isFirstRender ? (
+                        <BlurText text={i.text} delay={idx * 60 + 40} animateDuration={450} />
+                      ) : (
+                        <ReactMarkdown components={{ p: ({ children }) => <span>{children}</span> }}>{i.text}</ReactMarkdown>
+                      )}
+                    </span>
+                    {i.why && (
+                      <div className="mt-2 rounded-md bg-background/40 px-2.5 py-1.5 text-xs text-muted-foreground">
+                        <span className="font-semibold text-primary/80">Why this matters: </span>{i.why}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+            itemDelay={90}
+            animateDuration={350}
+          />
+        </div>
+
+        <div className="surface-card p-5">
+          <h3 className="mb-4 flex items-center gap-2 text-sm font-semibold">
+            <div className="flex h-7 w-7 items-center justify-center rounded-md bg-accent/10">
+              <MessageSquare className="h-4 w-4 text-accent" />
+            </div>
+            Suggested questions
+          </h3>
+          <AnimatedList
+            items={profile.suggestedQuestions.map((q) => (
+              <div className="group flex items-center gap-2 rounded-lg border border-border/60 bg-background/30 px-3.5 py-2.5 text-sm transition-all duration-200 hover:border-primary/30 hover:text-primary cursor-pointer">
+                <Sparkles className="h-3 w-3 shrink-0 text-muted-foreground transition-colors group-hover:text-primary" />
+                <span>{q}</span>
+              </div>
+            ))}
+            itemDelay={70}
+          />
+        </div>
+
+        <div className="surface-card p-5 lg:col-span-2">
+          <h3 className="mb-4 flex items-center gap-2 text-sm font-semibold">
+            <div className="flex h-7 w-7 items-center justify-center rounded-md bg-[color:var(--color-success)]/10">
+              <ListChecks className="h-4 w-4 text-[color:var(--color-success)]" />
+            </div>
+            Recommended actions
+          </h3>
+          <AnimatedList
+            items={profile.recommendedActions.map((a) => (
+              <div className="flex items-start gap-2 rounded-lg border border-border/60 bg-background/30 px-3.5 py-2.5 text-sm transition-all duration-200 hover:border-[color:var(--color-success)]/30">
+                <ChevronRight className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[color:var(--color-success)]" />
+                <span>{a}</span>
+              </div>
+            ))}
+            itemDelay={80}
+            itemClassName="col-span-1"
+            className="grid gap-2 md:grid-cols-2"
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Visualizations Tab ─── */
+interface VisualizationsProps {
+  profile: DatasetProfile;
+  sessionId: string;
+}
+
+function Visualizations({ profile, sessionId }: VisualizationsProps) {
+  const [column1, setColumn1] = useState<string>(profile.columns[0]?.name || "");
+  const [column2, setColumn2] = useState<string>("none");
+  const [chartType, setChartType] = useState<string>("");
+  const [chartData, setChartData] = useState<any[]>([]);
+  const [chartKeys, setChartKeys] = useState<string[]>([]);
+  const [insight, setInsight] = useState<string>("");
+  const [correlation, setCorrelation] = useState<number | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const runGetVisualization = useServerFn(getVisualization);
+
+  const isNumeric = (colName: string) => {
+    const col = profile.columns.find((c) => c.name === colName);
+    return col?.type === "numeric";
+  };
+
+  const getValidChartTypes = (col1: string, col2: string) => {
+    if (!col1) return [];
+    const c1Numeric = isNumeric(col1);
+
+    if (col2 === "none") {
+      if (c1Numeric) {
+        return [
+          { id: "histogram", label: "Histogram (Distribution)" },
+          { id: "kde", label: "Kernel Density Estimation (KDE)" },
+          { id: "boxplot", label: "Box Plot (Summary)" },
+        ];
+      }
+      return [];
+    }
+
+    const c2Numeric = isNumeric(col2);
+
+    if (c1Numeric && c2Numeric) {
+      return [
+        { id: "scatter", label: "Scatter Plot (Correlation)" },
+      ];
+    } else if (!c1Numeric && !c2Numeric) {
+      return [
+        { id: "grouped_bar", label: "Grouped Bar (Frequency)" },
+        { id: "heatmap", label: "Heatmap (Crosstab)" },
+      ];
+    } else {
+      return [
+        { id: "bar", label: "Bar Chart (Average)" },
+        { id: "boxplot", label: "Box Plot (Grouped)" },
+      ];
+    }
+  };
+
+  const validChartTypes = useMemo(() => {
+    return getValidChartTypes(column1, column2);
+  }, [column1, column2]);
+
+  // Automatically select first valid chart type when valid list changes
+  useEffect(() => {
+    if (validChartTypes.length > 0) {
+      if (!validChartTypes.some((v) => v.id === chartType)) {
+        setChartType(validChartTypes[0].id);
+      }
+    } else {
+      setChartType("");
+    }
+  }, [validChartTypes, chartType]);
+
+  const fetchVisualization = async () => {
+    if (!column1 || !chartType) {
+      setChartData([]);
+      setInsight("");
+      setCorrelation(null);
+      setChartKeys([]);
+      return;
+    }
+
+    // Guard: check if the selected chartType is actually valid for the current column types
+    if (!validChartTypes.some((v) => v.id === chartType)) {
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      let apiCol1 = column1;
+      let apiCol2 = column2 === "none" ? null : column2;
+
+      if (apiCol2) {
+        const c1Numeric = isNumeric(column1);
+        const c2Numeric = isNumeric(apiCol2);
+
+        // Swap columns if necessary for backend grouping: col1 = categorical, col2 = numeric
+        if ((chartType === "boxplot" || chartType === "bar") && c1Numeric && !c2Numeric) {
+          apiCol1 = apiCol2;
+          apiCol2 = column1;
+        }
+      }
+
+      const result = await runGetVisualization({
+        data: {
+          session_id: sessionId,
+          column1: apiCol1,
+          column2: apiCol2 || undefined,
+          chart_type: chartType,
+        },
+      });
+
+      setChartData(result.data || []);
+      setInsight(result.insight || "");
+      setCorrelation(result.correlation !== undefined ? result.correlation : null);
+      setChartKeys(result.keys || []);
+    } catch (err: any) {
+      console.error("Error fetching visualization:", err);
+      setError(err.message || "Failed to generate visualization data.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchVisualization();
+  }, [column1, column2, chartType, sessionId]);
+
+  const sortedData = useMemo(() => {
+    if (chartType === "scatter" && chartData.length > 0) {
+      return [...chartData].sort((a, b) => {
+        const valA = Number(a[column1]);
+        const valB = Number(b[column1]);
+        if (isNaN(valA) || isNaN(valB)) return 0;
+        return valA - valB;
+      });
+    }
+    return chartData;
+  }, [chartData, chartType, column1]);
+
+  const boxPlotData = useMemo(() => {
+    if (chartType !== "boxplot") return [];
+    return chartData.map((item) => {
+      const minVal = item.min ?? 0;
+      const q1Val = item.q1 ?? 0;
+      const medianVal = item.median ?? 0;
+      const q3Val = item.q3 ?? 0;
+      const maxVal = item.max ?? 0;
+
+      return {
+        name: item.group || item.name || "Dataset",
+        min: minVal,
+        lowerWhisker: q1Val - minVal,
+        lowerBox: medianVal - q1Val,
+        upperBox: q3Val - medianVal,
+        upperWhisker: maxVal - q3Val,
+        origMin: minVal,
+        origQ1: q1Val,
+        origMedian: medianVal,
+        origQ3: q3Val,
+        origMax: maxVal,
+      };
+    });
+  }, [chartData, chartType]);
+
+  const heatmapInfo = useMemo(() => {
+    if (chartType !== "heatmap" || chartData.length === 0) return null;
+
+    const xKeys = Array.from(new Set(chartData.map((d) => d.x))).sort();
+    const yKeys = Array.from(new Set(chartData.map((d) => d.y))).sort();
+    const maxCount = Math.max(...chartData.map((d) => d.count), 1);
+
+    const countMap: Record<string, number> = {};
+    chartData.forEach((d) => {
+      countMap[`${d.x}_${d.y}`] = d.count;
+    });
+
+    return { xKeys, yKeys, maxCount, countMap };
+  }, [chartData, chartType]);
+
+  const renderChart = () => {
+    if (loading) {
+      return (
+        <div className="flex flex-col items-center justify-center space-y-4">
+          <Loader2 className="h-8 w-8 text-primary animate-spin" />
+          <p className="text-xs text-muted-foreground font-mono">Computing aggregation and statistics...</p>
+        </div>
+      );
+    }
+
+    if (error) {
+      return (
+        <div className="flex flex-col items-center justify-center space-y-3 max-w-md text-center p-6">
+          <AlertTriangle className="h-10 w-10 text-[color:var(--color-warning)] animate-pulse" />
+          <p className="text-sm font-semibold text-foreground">Visualization Error</p>
+          <p className="text-xs text-muted-foreground leading-relaxed">{error}</p>
+          <button
+            onClick={fetchVisualization}
+            className="mt-2 inline-flex items-center gap-1.5 rounded-lg border border-border bg-secondary/40 px-3.5 py-2 text-xs font-semibold hover:border-primary hover:bg-primary/5 transition-all"
+          >
+            Retry Analysis
+          </button>
+        </div>
+      );
+    }
+
+    if (!column1) {
+      return (
+        <p className="text-xs text-muted-foreground font-mono">Select a column to get started.</p>
+      );
+    }
+
+    if (validChartTypes.length === 0) {
+      return (
+        <div className="flex flex-col items-center justify-center max-w-sm text-center p-6 space-y-2">
+          <p className="text-sm font-semibold text-foreground">No single-column visualization available</p>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            Categorical columns cannot be plotted alone. Please select a second numeric/categorical column to compare, or choose a numeric Column 1.
+          </p>
+        </div>
+      );
+    }
+
+    if (chartData.length === 0) {
+      return (
+        <p className="text-xs text-muted-foreground font-mono">No data returned from backend.</p>
+      );
+    }
+
+    let chartElement: React.ReactElement | null = null;
+
+    if (chartType === "scatter") {
+      chartElement = (
+        <ComposedChart data={sortedData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+          <XAxis
+            type="number"
+            dataKey={column1}
+            name={column1}
+            stroke="rgba(255,255,255,0.4)"
+            fontSize={10}
+            domain={['auto', 'auto']}
+            tickLine={false}
+          />
+          <YAxis
+            type="number"
+            dataKey={column2}
+            name={column2}
+            stroke="rgba(255,255,255,0.4)"
+            fontSize={10}
+            domain={['auto', 'auto']}
+            tickLine={false}
+          />
+          <RechartsTooltip
+            cursor={{ strokeDasharray: '3 3' }}
+            contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.95)', borderColor: 'rgba(255, 255, 255, 0.1)', borderRadius: '8px' }}
+          />
+          <Legend wrapperStyle={{ fontSize: 10 }} />
+          <Scatter name="Data Points" dataKey={column2} fill="var(--color-primary)" opacity={0.6} />
+          {sortedData[0] && "trend" in sortedData[0] && (
+            <Line
+              name="Trend Line"
+              dataKey="trend"
+              stroke="var(--color-accent)"
+              dot={false}
+              activeDot={false}
+              strokeWidth={2}
+            />
+          )}
+        </ComposedChart>
+      );
+    } else if (chartType === "histogram") {
+      chartElement = (
+        <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+          <XAxis dataKey="bin" stroke="rgba(255,255,255,0.4)" fontSize={10} tickLine={false} />
+          <YAxis stroke="rgba(255,255,255,0.4)" fontSize={10} tickLine={false} />
+          <RechartsTooltip
+            contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.95)', borderColor: 'rgba(255, 255, 255, 0.1)', borderRadius: '8px' }}
+          />
+          <Bar dataKey="count" fill="var(--color-primary)" radius={[4, 4, 0, 0]} />
+        </BarChart>
+      );
+    } else if (chartType === "boxplot") {
+      chartElement = (
+        <BarChart data={boxPlotData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+          <XAxis dataKey="name" stroke="rgba(255,255,255,0.4)" fontSize={10} tickLine={false} />
+          <YAxis stroke="rgba(255,255,255,0.4)" fontSize={10} tickLine={false} />
+          <RechartsTooltip
+            content={({ active, payload }) => {
+              if (active && payload && payload.length) {
+                const data = payload[0].payload;
+                return (
+                  <div className="rounded-lg border border-border bg-slate-900/95 p-3 text-xs shadow-md backdrop-blur-md">
+                    <p className="font-semibold text-primary mb-1.5">{data.name}</p>
+                    <div className="space-y-1 font-mono text-[10px]">
+                      <div className="flex justify-between gap-4">
+                        <span className="text-muted-foreground">Max:</span>
+                        <span className="text-foreground font-semibold">{data.origMax.toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between gap-4">
+                        <span className="text-muted-foreground">Q3 (75%):</span>
+                        <span className="text-foreground font-semibold">{data.origQ3.toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between gap-4">
+                        <span className="text-muted-foreground">Median:</span>
+                        <span className="text-foreground font-semibold">{data.origMedian.toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between gap-4">
+                        <span className="text-muted-foreground">Q1 (25%):</span>
+                        <span className="text-foreground font-semibold">{data.origQ1.toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between gap-4">
+                        <span className="text-foreground font-semibold">{data.origMin.toFixed(2)}</span>
+                        <span className="text-muted-foreground">Min:</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
+              return null;
+            }}
+          />
+          <Bar dataKey="min" stackId="box" fill="transparent" />
+          <Bar dataKey="lowerWhisker" stackId="box" fill="transparent" stroke="rgba(255,255,255,0.3)" strokeDasharray="3 3" />
+          <Bar dataKey="lowerBox" stackId="box" fill="rgba(6, 182, 212, 0.2)" stroke="var(--color-primary)" strokeWidth={1} />
+          <Bar dataKey="upperBox" stackId="box" fill="rgba(6, 182, 212, 0.4)" stroke="var(--color-primary)" strokeWidth={1} />
+          <Bar dataKey="upperWhisker" stackId="box" fill="transparent" stroke="rgba(255,255,255,0.3)" strokeDasharray="3 3" />
+        </BarChart>
+      );
+    } else if (chartType === "kde") {
+      chartElement = (
+        <AreaChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+          <defs>
+            <linearGradient id="kdeGradient" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor="var(--color-primary)" stopOpacity={0.4} />
+              <stop offset="95%" stopColor="var(--color-primary)" stopOpacity={0} />
+            </linearGradient>
+          </defs>
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+          <XAxis
+            dataKey="x"
+            type="number"
+            domain={['auto', 'auto']}
+            stroke="rgba(255,255,255,0.4)"
+            fontSize={10}
+            tickLine={false}
+            tickFormatter={(v) => Number(v).toFixed(2)}
+          />
+          <YAxis stroke="rgba(255,255,255,0.4)" fontSize={10} tickLine={false} />
+          <RechartsTooltip
+            contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.95)', borderColor: 'rgba(255, 255, 255, 0.1)', borderRadius: '8px' }}
+            labelFormatter={(label) => `Value: ${Number(label).toFixed(2)}`}
+          />
+          <Area type="monotone" dataKey="density" fill="url(#kdeGradient)" stroke="var(--color-primary)" strokeWidth={2} />
+        </AreaChart>
+      );
+    } else if (chartType === "bar") {
+      chartElement = (
+        <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+          <XAxis dataKey="category" stroke="rgba(255,255,255,0.4)" fontSize={10} tickLine={false} />
+          <YAxis stroke="rgba(255,255,255,0.4)" fontSize={10} tickLine={false} />
+          <RechartsTooltip
+            contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.95)', borderColor: 'rgba(255, 255, 255, 0.1)', borderRadius: '8px' }}
+          />
+          <Bar dataKey="value" fill="var(--color-primary)" radius={[4, 4, 0, 0]} />
+        </BarChart>
+      );
+    } else if (chartType === "grouped_bar") {
+      chartElement = (
+        <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+          <XAxis dataKey="name" stroke="rgba(255,255,255,0.4)" fontSize={10} tickLine={false} />
+          <YAxis stroke="rgba(255,255,255,0.4)" fontSize={10} tickLine={false} />
+          <RechartsTooltip
+            contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.95)', borderColor: 'rgba(255, 255, 255, 0.1)', borderRadius: '8px' }}
+          />
+          <Legend wrapperStyle={{ fontSize: 10 }} />
+          {chartKeys.map((key, idx) => {
+            const colors = [
+              "var(--color-primary)",
+              "var(--color-accent)",
+              "#10b981",
+              "#f59e0b",
+              "#f43f5e",
+              "#0ea5e9",
+              "#84cc16",
+            ];
+            const color = colors[idx % colors.length];
+            return <Bar key={key} dataKey={key} fill={color} radius={[4, 4, 0, 0]} />;
+          })}
+        </BarChart>
+      );
+    } else if (chartType === "heatmap" && heatmapInfo) {
+      chartElement = (
+        <div className="w-full h-full overflow-auto flex items-center justify-center p-4">
+          <table className="border-collapse text-[10px] text-muted-foreground">
+            <thead>
+              <tr>
+                {[
+                  <th key="header-label" className="p-2 border border-border/40 font-mono text-[9px] uppercase tracking-wider text-right pr-4 bg-secondary/20">
+                    {column2} \ {column1}
+                  </th>,
+                  ...heatmapInfo.xKeys.map((x) => (
+                    <th key={x} className="p-2 border border-border/40 font-semibold text-center min-w-[70px] max-w-[120px] truncate bg-secondary/15">
+                      {x}
+                    </th>
+                  ))
+                ]}
+              </tr>
+            </thead>
+            <tbody>
+              {heatmapInfo.yKeys.map((y) => (
+                <tr key={y}>
+                  {[
+                    <td key="row-label" className="p-2 border border-border/40 font-semibold text-right pr-4 bg-secondary/15 font-mono text-[9px] uppercase tracking-wider min-w-[80px]">
+                      {y}
+                    </td>,
+                    ...heatmapInfo.xKeys.map((x) => {
+                      const count = heatmapInfo.countMap[`${x}_${y}`] ?? 0;
+                      const intensity = count / heatmapInfo.maxCount;
+                      const bgColor = `rgba(6, 182, 212, ${0.05 + intensity * 0.75})`;
+                      const textColor = intensity > 0.4 ? "text-slate-950 font-bold" : "text-foreground";
+
+                      return (
+                        <td
+                          key={x}
+                          style={{ backgroundColor: bgColor }}
+                          className={`p-3 border border-border/40 text-center transition-all hover:scale-105 hover:shadow-lg ${textColor}`}
+                          title={`${column1}: ${x}\n${column2}: ${y}\nCount: ${count}`}
+                        >
+                          <span className="font-mono text-xs font-semibold">{count}</span>
+                        </td>
+                      );
+                    })
+                  ]}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      );
+    }
+
+    if (!chartElement) return null;
+
+    if (chartType === "heatmap") {
+      return chartElement;
+    }
+
+    return (
+      <ResponsiveContainer width="100%" height="100%">
+        {chartElement}
+      </ResponsiveContainer>
+    );
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Selector controls card */}
+      <div className="surface-card p-5">
+        <div className="flex flex-col md:flex-row gap-4 items-end">
+          <div className="flex-1 w-full space-y-1.5">
+            <label className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Column 1</label>
+            <select
+              value={column1}
+              onChange={(e) => setColumn1(e.target.value)}
+              className="w-full rounded-lg border border-input bg-background/60 px-3 py-2 text-xs backdrop-blur-sm transition-colors focus:border-primary focus:outline-none"
+            >
+              {profile.columns.map((c) => (
+                <option key={c.name} value={c.name}>
+                  {c.name} ({c.type})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex-1 w-full space-y-1.5">
+            <label className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Column 2 (Optional)</label>
+            <select
+              value={column2}
+              onChange={(e) => setColumn2(e.target.value)}
+              className="w-full rounded-lg border border-input bg-background/60 px-3 py-2 text-xs backdrop-blur-sm transition-colors focus:border-primary focus:outline-none"
+            >
+              {[
+                <option key="none-option" value="none">None (Single Column)</option>,
+                ...profile.columns.map((c) => (
+                  <option key={c.name} value={c.name}>
+                    {c.name} ({c.type})
+                  </option>
+                ))
+              ]}
+            </select>
+          </div>
+
+          <div className="flex-1 w-full space-y-1.5">
+            <label className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Chart Type</label>
+            <select
+              value={chartType}
+              onChange={(e) => setChartType(e.target.value)}
+              disabled={validChartTypes.length === 0}
+              className="w-full rounded-lg border border-input bg-background/60 px-3 py-2 text-xs backdrop-blur-sm transition-colors focus:border-primary focus:outline-none disabled:opacity-40"
+            >
+              {validChartTypes.length === 0 ? (
+                <option value="">Invalid column combo</option>
+              ) : (
+                validChartTypes.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.label}
+                  </option>
+                ))
+              )}
+            </select>
+          </div>
+        </div>
+      </div>
+
+      {/* Chart Display Area */}
+      <div className="surface-card p-6 h-[450px] flex items-center justify-center relative overflow-hidden">
+        <div className="absolute inset-0 bg-grid opacity-5 pointer-events-none" />
+        {renderChart()}
+      </div>
+
+      {/* Analytical Insights Card */}
+      {insight && !loading && !error && (
+        <div className="surface-card relative overflow-hidden p-5">
+          <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-accent/5 pointer-events-none" />
+          <div className="relative flex flex-col md:flex-row md:items-start gap-4">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 border border-primary/20">
+              <Lightbulb className="h-4.5 w-4.5 text-primary" />
+            </div>
+            <div className="space-y-1.5">
+              <h4 className="text-xs font-mono uppercase tracking-wider text-muted-foreground">Analytical Insights</h4>
+              <p className="text-sm leading-relaxed text-foreground">{insight}</p>
+              {correlation !== null && (
+                <div className="inline-flex items-center gap-1.5 mt-1 rounded-full bg-accent/10 border border-accent/20 px-2.5 py-0.5 text-xs text-accent">
+                  <Activity className="h-3 w-3" />
+                  <span>Correlation Coefficient: <strong className="font-mono">{correlation.toFixed(3)}</strong></span>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       )}
     </div>
