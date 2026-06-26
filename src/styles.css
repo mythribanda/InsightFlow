@@ -186,4 +186,35 @@
     50% { transform: translateY(-6px); }
   }
   .animate-float { animation: float 6s ease-in-out infinite; }
+
+  /* 3D and Orbiting Animations */
+  @keyframes spin-slow {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+  .animate-spin-slow { animation: spin-slow 20s linear infinite; }
+  
+  @keyframes spin-reverse-slow {
+    0% { transform: rotate(360deg); }
+    100% { transform: rotate(0deg); }
+  }
+  .animate-spin-reverse-slow { animation: spin-reverse-slow 25s linear infinite; }
+
+  @keyframes float-3d {
+    0%, 100% { transform: translateY(0px) rotateY(-15deg) rotateX(15deg); }
+    50% { transform: translateY(-8px) rotateY(-10deg) rotateX(12deg); }
+  }
+  .animate-float-3d { animation: float-3d 6s ease-in-out infinite; }
+
+  @keyframes orbit-particle {
+    0% { transform: rotate(0deg) translateX(130px) rotate(0deg); }
+    100% { transform: rotate(360deg) translateX(130px) rotate(-360deg); }
+  }
+  .animate-orbit-particle { animation: orbit-particle 12s linear infinite; }
+
+  @keyframes orbit-particle-inner {
+    0% { transform: rotate(360deg) translateX(100px) rotate(-360deg); }
+    100% { transform: rotate(0deg) translateX(100px) rotate(0deg); }
+  }
+  .animate-orbit-particle-inner { animation: orbit-particle-inner 8s linear infinite; }
 }

@@ -32,7 +32,8 @@ import {
   Activity, AlertTriangle, BarChart3, Brain, Database, Download, FileWarning,
   Lightbulb, ListChecks, MessageSquare, Sparkles, Wand2, GitCompareArrows,
   LayoutDashboard, ShieldCheck, ShieldAlert, ShieldX, ChevronLeft, ChevronRight,
-  Zap, Eye, Target, TrendingUp, Zap as ZapIcon, Loader2, Code, Info
+  Zap, Eye, Target, TrendingUp, Zap as ZapIcon, Loader2, Code, Info,
+  ArrowRight, Lock, ChevronDown, CloudUpload
 } from "lucide-react";
 import { toPng } from "html-to-image";
 import { supabase } from "@/integrations/supabase/client";
@@ -268,55 +269,219 @@ function Home() {
 
   if (!profile) {
     return (
-      <div className="min-h-screen">
+      <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col relative overflow-hidden font-sans">
+        {/* Soft background glows */}
+        <div className="absolute top-[10%] left-[20%] w-[500px] h-[500px] rounded-full pointer-events-none z-0"
+          style={{ background: "radial-gradient(circle, rgba(14,165,233,0.05), transparent 70%)" }} />
+        <div className="absolute bottom-[10%] right-[10%] w-[600px] h-[600px] rounded-full pointer-events-none z-0"
+          style={{ background: "radial-gradient(circle, rgba(168,85,247,0.04), transparent 70%)" }} />
+        
+        {/* Landing TopBar Navigation */}
         <TopBar persona={persona} setPersona={setPersona} hidePersona />
-        <main className="mx-auto max-w-7xl px-6 py-8">
-          <section className="relative">
-            <div className="absolute inset-0 -z-10 bg-grid opacity-20 [mask-image:radial-gradient(ellipse_at_top,black,transparent_70%)]" />
-            <div className="mx-auto max-w-3xl py-12 text-center">
-              <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-4 py-1.5 font-mono text-[10px] uppercase tracking-wider text-primary">
-                <Sparkles className="h-3.5 w-3.5 animate-pulse-glow text-primary" /> analyst-grade · explainable · local-first
+
+        <main className="flex-1 max-w-[1400px] mx-auto w-full px-6 py-12 flex items-center z-10">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center w-full">
+            {/* Left Pane (7 columns) */}
+            <div className="lg:col-span-7 flex flex-col space-y-8">
+              <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-4 py-1.5 font-mono text-[10px] uppercase tracking-wider text-cyan-400 w-fit select-none">
+                <Sparkles className="h-3.5 w-3.5 animate-pulse text-cyan-400" />
+                AI-POWERED • ANALYST-GRADE • TRUSTED
               </div>
-              <h2 className="mt-6 text-4xl font-bold tracking-tight md:text-6xl">
-                Turn raw data into{" "}
-                <span className="text-gradient">decisions</span>.
+
+              <h2 className="text-4xl font-extrabold tracking-tight md:text-[54px] text-white leading-[1.1]">
+                Turn raw data<br />
+                into <span className="text-gradient">decisions</span>.
               </h2>
-              <p className="mx-auto mt-5 max-w-xl text-sm leading-relaxed text-muted-foreground">
-                Drop a CSV or Excel file. Get a trust score, behavior narrative, automated visualizations
-                with reasoning, risks, contradictions, suggested questions, and a chat that knows your data.
+
+              <p className="max-w-xl text-base leading-relaxed text-slate-400">
+                Upload your CSV or Excel file and get instant trust scores,
+                risk analysis, behavioral insights, and AI-powered explanations.
               </p>
-            </div>
-            <div className="mx-auto max-w-2xl">
-              <FileDrop onFile={handleFile} busy={busy} />
-            </div>
-            <div className="mx-auto mt-12 grid max-w-4xl gap-4 md:grid-cols-3">
-              {[
-                { i: Activity, t: "Profiling Engine", d: "Types, missingness, duplicates, outliers, cardinality — all computed instantly in the browser.", accent: "primary" },
-                { i: AlertTriangle, t: "Trust & Risk", d: "Weighted trust score with contradictions and human-error signals. Know your data quality at a glance.", accent: "warning" },
-                { i: Wand2, t: "AI Reasoning", d: "Behavior narrative, persona-aware insights, data story, and a chat that truly understands your dataset.", accent: "accent" },
-              ].map(({ i: Icon, t, d, accent }) => (
-                <div key={t} className="surface-card group relative overflow-hidden p-5 transition-all duration-300 hover:neon-border hover:scale-[1.02]">
-                  <div className="absolute inset-0 bg-gradient-to-br from-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100"
-                    style={{ background: `linear-gradient(135deg, color-mix(in oklab, var(--color-${accent}) 5%, transparent), transparent)` }} />
-                  <div className="relative">
-                    <div className={cn("inline-flex h-10 w-10 items-center justify-center rounded-lg",
-                      accent === "primary" && "bg-primary/10",
-                      accent === "warning" && "bg-[color:var(--color-warning)]/10",
-                      accent === "accent" && "bg-accent/10",
-                    )}>
-                      <Icon className={cn("h-5 w-5",
-                        accent === "primary" && "text-primary",
-                        accent === "warning" && "text-[color:var(--color-warning)]",
-                        accent === "accent" && "text-accent",
-                      )} />
+
+              {/* What you get section */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <div className="h-5 w-1 bg-cyan-400 rounded-full" />
+                  <h3 className="text-sm font-bold uppercase tracking-wider text-slate-300">What you get</h3>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {/* Card 1: Profiling Engine */}
+                  <div className="rounded-2xl p-5 border border-slate-800/80 bg-slate-900/30 backdrop-blur-md flex flex-col justify-between group transition-all duration-300 hover:border-cyan-500/30 hover:bg-slate-900/50">
+                    <div>
+                      <div className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-cyan-500/10 text-cyan-400 mb-4">
+                        <Activity className="h-5 w-5" />
+                      </div>
+                      <h4 className="text-sm font-bold text-white mb-2">Profiling Engine</h4>
+                      <p className="text-xs leading-relaxed text-slate-400">
+                        Detect types, missing values, duplicates, outliers, and more — all computed instantly in your browser.
+                      </p>
                     </div>
-                    <div className="mt-3 text-sm font-semibold">{t}</div>
-                    <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">{d}</p>
+                    <div className="mt-5 flex items-center gap-1 text-[11px] font-bold text-cyan-400 group-hover:text-cyan-300 transition-colors cursor-pointer select-none">
+                      Data Profiling <ArrowRight className="h-3 w-3 group-hover:translate-x-0.5 transition-transform" />
+                    </div>
+                  </div>
+
+                  {/* Card 2: Trust & Risk */}
+                  <div className="rounded-2xl p-5 border border-slate-800/80 bg-slate-900/30 backdrop-blur-md flex flex-col justify-between group transition-all duration-300 hover:border-purple-500/30 hover:bg-slate-900/50">
+                    <div>
+                      <div className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-purple-500/10 text-purple-400 mb-4">
+                        <ShieldCheck className="h-5 w-5" />
+                      </div>
+                      <h4 className="text-sm font-bold text-white mb-2">Trust & Risk</h4>
+                      <p className="text-xs leading-relaxed text-slate-400">
+                        Get a weighted trust score with contradictions, anomalies, and human-error signals highlighted.
+                      </p>
+                    </div>
+                    <div className="mt-5 flex items-center gap-1 text-[11px] font-bold text-purple-400 group-hover:text-purple-300 transition-colors cursor-pointer select-none">
+                      Risk Analysis <ArrowRight className="h-3 w-3 group-hover:translate-x-0.5 transition-transform" />
+                    </div>
+                  </div>
+
+                  {/* Card 3: AI Reasoning */}
+                  <div className="rounded-2xl p-5 border border-slate-800/80 bg-slate-900/30 backdrop-blur-md flex flex-col justify-between group transition-all duration-300 hover:border-cyan-500/30 hover:bg-slate-900/50">
+                    <div>
+                      <div className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-cyan-500/10 text-cyan-400 mb-4">
+                        <Brain className="h-5 w-5" />
+                      </div>
+                      <h4 className="text-sm font-bold text-white mb-2">AI Reasoning</h4>
+                      <p className="text-xs leading-relaxed text-slate-400">
+                        AI interprets your data with behavioral narratives, insights, and answers your questions.
+                      </p>
+                    </div>
+                    <div className="mt-5 flex items-center gap-1 text-[11px] font-bold text-cyan-400 group-hover:text-cyan-300 transition-colors cursor-pointer select-none">
+                      Smart Insights <ArrowRight className="h-3 w-3 group-hover:translate-x-0.5 transition-transform" />
+                    </div>
                   </div>
                 </div>
-              ))}
+              </div>
+
+              {/* Bottom Privacy Banner */}
+              <div className="rounded-2xl border border-slate-800/85 bg-slate-900/20 backdrop-blur-md p-4 flex flex-col sm:flex-row items-center justify-between gap-4 select-none">
+                <div className="flex items-center gap-3">
+                  <Lock className="h-4.5 w-4.5 text-cyan-400 shrink-0" />
+                  <span className="text-[11px] font-semibold text-slate-300">Your data is private and never leaves your browser.</span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <span className="px-2.5 py-1 rounded-full text-[9px] font-mono font-bold tracking-wide uppercase bg-slate-900/80 border border-cyan-500/15 text-cyan-400 flex items-center gap-1">
+                    <Sparkles className="h-2.5 w-2.5" /> Instant profiling
+                  </span>
+                  <span className="px-2.5 py-1 rounded-full text-[9px] font-mono font-bold tracking-wide uppercase bg-slate-900/80 border border-purple-500/15 text-purple-400 flex items-center gap-1">
+                    <ShieldCheck className="h-2.5 w-2.5" /> Trust & risk analysis
+                  </span>
+                  <span className="px-2.5 py-1 rounded-full text-[9px] font-mono font-bold tracking-wide uppercase bg-slate-900/80 border border-cyan-500/15 text-cyan-400 flex items-center gap-1">
+                    <Brain className="h-2.5 w-2.5" /> AI-generated insights
+                  </span>
+                </div>
+              </div>
             </div>
-          </section>
+
+            {/* Right Pane (5 columns) */}
+            <div className="lg:col-span-5 flex flex-col space-y-6">
+              {/* Main Upload Box */}
+              <div className="rounded-3xl border border-cyan-500/10 bg-slate-950/40 backdrop-blur-md p-8 shadow-2xl flex flex-col items-center relative overflow-hidden"
+                   style={{ boxShadow: "0 20px 50px rgba(0,0,0,0.5), 0 0 100px rgba(14,165,233,0.04)" }}>
+                {/* Dotted border outline accent */}
+                <div className="absolute inset-2 border border-dashed border-cyan-500/5 rounded-2xl pointer-events-none" />
+
+                {/* 3D Orbiting Icon container */}
+                <div className="relative w-full h-44 flex items-center justify-center overflow-visible select-none mb-4">
+                  {/* Orbit rings */}
+                  <svg className="absolute w-full h-full overflow-visible pointer-events-none" viewBox="0 0 400 200">
+                    <defs>
+                      <radialGradient id="orbitGlow" cx="50%" cy="50%" r="50%">
+                        <stop offset="0%" stopColor="#0ea5e9" stopOpacity="0.25" />
+                        <stop offset="100%" stopColor="#0ea5e9" stopOpacity="0" />
+                      </radialGradient>
+                      <linearGradient id="orbitRing" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stopColor="#0ea5e9" stopOpacity="0.5" />
+                        <stop offset="50%" stopColor="#a855f7" stopOpacity="0.1" />
+                        <stop offset="100%" stopColor="#0ea5e9" stopOpacity="0.5" />
+                      </linearGradient>
+                    </defs>
+                    {/* Shadow under the document */}
+                    <ellipse cx="200" cy="125" rx="60" ry="14" fill="url(#orbitGlow)" />
+                    {/* Elliptical Rings */}
+                    <ellipse cx="200" cy="95" rx="130" ry="36" fill="none" stroke="url(#orbitRing)" strokeWidth="1.5" strokeDasharray="6 4" className="animate-spin-slow" style={{ transformOrigin: "200px 95px" }} />
+                    <ellipse cx="200" cy="95" rx="100" ry="26" fill="none" stroke="url(#orbitRing)" strokeWidth="1" strokeDasharray="3 6" className="animate-spin-reverse-slow" style={{ transformOrigin: "200px 95px" }} />
+                  </svg>
+
+                  {/* Floating orbiting dots */}
+                  <div className="absolute w-2.5 h-2.5 rounded-full bg-cyan-400 blur-[0.5px] animate-orbit-particle" style={{ left: 'calc(50% - 5px)', top: 'calc(50% - 5px)' }} />
+                  <div className="absolute w-2 h-2 rounded-full bg-purple-400 blur-[0.5px] animate-orbit-particle-inner" style={{ left: 'calc(50% - 4px)', top: 'calc(50% - 4px)' }} />
+
+                  {/* 3D Document Card */}
+                  <div className="absolute animate-float-3d" style={{ transformStyle: 'preserve-3d', perspective: '1000px' }}>
+                    <div className="relative w-20 h-24 bg-white rounded-xl flex flex-col p-2.5 overflow-hidden shadow-2xl"
+                         style={{
+                           transformStyle: 'preserve-3d',
+                           boxShadow: '20px 20px 40px rgba(0,0,0,0.55), -1px -1px 6px rgba(255,255,255,0.9) inset',
+                         }}>
+                      {/* Dog ear */}
+                      <div className="absolute top-0 right-0 w-5 h-5"
+                           style={{
+                             background: 'linear-gradient(135deg, transparent 50%, #cbd5e1 50%)',
+                             clipPath: 'polygon(0 0, 100% 100%, 0 100%)',
+                             transform: 'translate(1px, -1px) scale(1.02)'
+                           }} />
+                      {/* CSV tag */}
+                      <div className="bg-emerald-500 text-white font-sans font-black text-[9px] px-1.5 py-0.5 rounded w-fit tracking-wide shadow-sm"
+                           style={{ transform: 'translateZ(10px)' }}>
+                        CSV
+                      </div>
+                      {/* Grid representation */}
+                      <div className="mt-2.5 flex-1 flex flex-col gap-1 opacity-70"
+                           style={{ transform: 'translateZ(5px)' }}>
+                        <div className="grid grid-cols-3 gap-0.5">
+                          <div className="h-1.5 bg-slate-300 rounded-sm" />
+                          <div className="h-1.5 bg-slate-300 rounded-sm" />
+                          <div className="h-1.5 bg-slate-300 rounded-sm" />
+                        </div>
+                        <div className="grid grid-cols-3 gap-0.5">
+                          <div className="h-1.5 bg-slate-300 rounded-sm" />
+                          <div className="h-1.5 bg-slate-300 rounded-sm" />
+                          <div className="h-1.5 bg-slate-300 rounded-sm" />
+                        </div>
+                        <div className="grid grid-cols-3 gap-0.5">
+                          <div className="h-1.5 bg-slate-300 rounded-sm" />
+                          <div className="h-1.5 bg-slate-300 rounded-sm" />
+                          <div className="h-1.5 bg-slate-300 rounded-sm" />
+                        </div>
+                        <div className="grid grid-cols-3 gap-0.5">
+                          <div className="h-1.5 bg-slate-300 rounded-sm" />
+                          <div className="h-1.5 bg-slate-300 rounded-sm" />
+                          <div className="h-1.5 bg-slate-300 rounded-sm" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="text-center mb-6 z-10 select-none">
+                  <h3 className="text-base font-bold text-white mb-1">Upload your CSV or Excel file</h3>
+                  <p className="text-[11px] text-slate-400">Drag and drop your file here or <span className="text-cyan-400 font-semibold">browse</span></p>
+                </div>
+
+                {/* Inner dashed dropzone container */}
+                <div className="w-full relative z-10">
+                  <FileDrop onFile={handleFile} busy={busy} />
+                </div>
+
+                <div className="mt-4 text-[10px] text-slate-500 font-medium select-none text-center">
+                  Supported formats: .csv, .tsv, .xlsx, .xls • Max size: 25MB
+                </div>
+
+                {/* Secure bottom indicator */}
+                <div className="w-full mt-6 rounded-2xl bg-slate-900/35 border border-slate-800/80 p-4 flex items-center gap-3 select-none">
+                  <ShieldCheck className="h-6 w-6 text-cyan-400 shrink-0" />
+                  <div className="flex-1">
+                    <h5 className="text-[11px] font-bold text-white">Secure & Private</h5>
+                    <p className="text-[10px] text-slate-400 leading-normal">Your data is processed locally in your browser. We never store or send your files anywhere.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </main>
       </div>
     );
@@ -532,9 +697,32 @@ function Home() {
 /* ─── TopBar ─── */
 function TopBar({ persona, setPersona, hidePersona }: { persona: Persona; setPersona: (p: Persona) => void; hidePersona?: boolean }) {
   const navigate = useNavigate();
+  const { session } = useAuth();
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+
+  // Sign out helper
+  const handleSignOut = async () => {
+    try {
+      await supabase.auth.signOut();
+      toast.success("Signed out successfully");
+      navigate({ to: "/login" });
+    } catch (err) {
+      console.error("Sign out error:", err);
+      toast.error("Failed to sign out");
+    }
+  };
+
+  // Get user initials
+  const email = session?.user?.email || "";
+  const name = session?.user?.user_metadata?.full_name || session?.user?.user_metadata?.name || email;
+  const initials = name
+    ? name.split(" ").map((p: string) => p[0]).join("").substring(0, 2).toUpperCase()
+    : "US";
+
   return (
     <header className="glass-topbar sticky top-0 z-20">
-      <div className="mx-auto flex max-w-[1600px] items-center justify-between gap-4 px-6 py-3">
+      <div className="mx-auto flex max-w-[1600px] items-center justify-between gap-4 px-6 py-2.5">
+        {/* Left Logo Section */}
         <div className="flex items-center gap-3">
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-accent shadow-[0_0_24px_-4px_var(--color-primary)]">
             <Brain className="h-5 w-5 text-primary-foreground" />
@@ -543,42 +731,80 @@ function TopBar({ persona, setPersona, hidePersona }: { persona: Persona; setPer
             <h1 className="text-base font-semibold leading-tight">
               Insight<span className="text-gradient">Flow</span>
             </h1>
-            <p className="text-[10px] text-muted-foreground font-mono uppercase tracking-wider">Upload → Profile → Decide</p>
+            <p className="text-[9px] text-muted-foreground font-mono uppercase tracking-wider">From raw data to real decisions.</p>
           </div>
         </div>
-        <div className="flex items-center gap-3">
-          {!hidePersona && (
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2">
-                <span className="hidden sm:inline font-mono text-[10px] uppercase tracking-wider text-muted-foreground">persona</span>
-                <select
-                  value={persona}
-                  onChange={(e) => setPersona(e.target.value as Persona)}
-                  className="rounded-lg border border-input bg-background/60 px-2.5 py-1.5 text-xs backdrop-blur-sm transition-colors focus:border-primary focus:outline-none"
-                >
-                  <option value="business">Business</option>
-                  <option value="student">Student</option>
-                  <option value="developer">Developer</option>
-                </select>
-              </div>
 
-              <button
-                onClick={async () => {
-                  try {
-                    await supabase.auth.signOut();
-                    toast.success("Signed out successfully");
-                    navigate({ to: "/login" });
-                  } catch (err) {
-                    console.error("Sign out error:", err);
-                    toast.error("Failed to sign out");
-                  }
-                }}
-                className="rounded-lg border border-border bg-secondary/40 px-3 py-1.5 text-xs font-semibold text-muted-foreground transition-all duration-200 hover:border-destructive hover:bg-destructive/15 hover:text-destructive"
-              >
-                Sign out
-              </button>
-            </div>
-          )}
+        {/* Center Section: Navigation Tabs on Landing Page, Persona Selector on App Page */}
+        {hidePersona ? (
+          <nav className="hidden md:flex items-center gap-6 text-[13px] font-semibold">
+            <button className="relative px-3.5 py-1.5 rounded-full text-white bg-slate-900 border border-cyan-500/30 shadow-[0_0_12px_rgba(14,165,233,0.1)] transition-all cursor-pointer">
+              Home
+              <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-7 h-[2px] bg-cyan-400 rounded-full" />
+            </button>
+            <button className="text-slate-400 hover:text-white transition-colors cursor-pointer">Features</button>
+            <button className="text-slate-400 hover:text-white transition-colors cursor-pointer">How it Works</button>
+            <button className="text-slate-400 hover:text-white transition-colors cursor-pointer">Pricing</button>
+            <button className="text-slate-400 hover:text-white transition-colors cursor-pointer">Docs</button>
+          </nav>
+        ) : (
+          <div className="flex items-center gap-2">
+            <span className="hidden sm:inline font-mono text-[10px] uppercase tracking-wider text-muted-foreground">persona</span>
+            <select
+              value={persona}
+              onChange={(e) => setPersona(e.target.value as Persona)}
+              className="rounded-lg border border-input bg-background/60 px-2.5 py-1.5 text-xs backdrop-blur-sm transition-colors focus:border-primary focus:outline-none"
+            >
+              <option value="business">Business</option>
+              <option value="student">Student</option>
+              <option value="developer">Developer</option>
+            </select>
+          </div>
+        )}
+
+        {/* Right Section: Upgrade Button & Profile initials Dropdown */}
+        <div className="flex items-center gap-3">
+          {/* Upgrade Button */}
+          <button className="hidden sm:flex items-center gap-1.5 px-4 py-1.5 rounded-full border border-cyan-500/20 bg-slate-900/40 text-xs font-bold text-cyan-400 hover:border-cyan-500/40 hover:bg-cyan-500/5 transition-all cursor-pointer shadow-[0_0_15px_rgba(14,165,233,0.05)]">
+            <Zap className="h-3.5 w-3.5 fill-cyan-400/20 text-cyan-400" />
+            Upgrade
+          </button>
+
+          {/* Profile Dropdown */}
+          <div className="relative">
+            <button
+              onClick={() => setDropdownOpen(!dropdownOpen)}
+              className="flex items-center gap-1.5 p-1 rounded-full border border-slate-800 bg-slate-900/60 hover:bg-slate-900 hover:border-slate-750 transition-all cursor-pointer select-none"
+            >
+              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-cyan-500 to-purple-500 text-[10px] font-black text-white uppercase tracking-wider">
+                {initials}
+              </div>
+              <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
+            </button>
+
+            {dropdownOpen && (
+              <>
+                <div className="fixed inset-0 z-30" onClick={() => setDropdownOpen(false)} />
+                <div className="absolute right-0 mt-2 w-48 rounded-xl border border-slate-800 bg-slate-950 p-1.5 shadow-2xl z-40 animate-in fade-in slide-in-from-top-2 duration-150">
+                  <div className="px-3 py-2 border-b border-slate-900 text-xs text-slate-400">
+                    Logged in as <span className="font-semibold text-slate-200 block truncate">{email}</span>
+                  </div>
+                  <button
+                    onClick={() => { setDropdownOpen(false); navigate({ to: "/profile" }); }}
+                    className="w-full text-left px-3 py-2 rounded-lg text-xs hover:bg-slate-900 text-slate-300 hover:text-white transition-colors cursor-pointer"
+                  >
+                    My Profile
+                  </button>
+                  <button
+                    onClick={() => { setDropdownOpen(false); handleSignOut(); }}
+                    className="w-full text-left px-3 py-2 rounded-lg text-xs hover:bg-red-500/10 text-red-400 hover:text-red-300 transition-colors cursor-pointer"
+                  >
+                    Sign out
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </div>
     </header>
