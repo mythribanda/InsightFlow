@@ -10,6 +10,8 @@ export interface ColumnProfile {
   uniquePct: number;
   constant: boolean;
   highCardinality: boolean;
+  isFreeText?: boolean;
+  is_free_text?: boolean;
   // numeric
   min?: number;
   max?: number;
@@ -109,6 +111,20 @@ function inferType(values: unknown[]): ColType {
   return unique <= Math.max(20, non.length * 0.1) ? "categorical" : "text";
 }
 
+function isFreeTextColumn(values: unknown[]): boolean {
+  const non = values.filter((v) => v !== null && v !== undefined && v !== "");
+  if (!non.length) return false;
+  const sample = non.slice(0, Math.min(non.length, 200)).map(String);
+  let totalWordCount = 0;
+  for (const s of sample) {
+    totalWordCount += s.split(/\s+/).filter(Boolean).length;
+  }
+  const avgWordCount = totalWordCount / sample.length;
+  const unique = new Set(non.map(String)).size;
+  const uniqueRatio = non.length ? unique / non.length : 0;
+  return avgWordCount >= 4 && uniqueRatio > 0.5;
+}
+
 function profileColumn(name: string, values: unknown[]): ColumnProfile {
   const count = values.length;
   const missing = values.filter((v) => v === null || v === undefined || v === "").length;
@@ -117,6 +133,7 @@ function profileColumn(name: string, values: unknown[]): ColumnProfile {
   const unique = uniqueSet.size;
   const type = inferType(values);
   const sample = values.slice(0, 8).map((v) => (v === undefined ? null : (v as string | number | null)));
+  const is_free = isFreeTextColumn(values);
   const profile: ColumnProfile = {
     name,
     type,
@@ -127,6 +144,8 @@ function profileColumn(name: string, values: unknown[]): ColumnProfile {
     uniquePct: count ? (unique / Math.max(non.length, 1)) * 100 : 0,
     constant: unique <= 1 && non.length > 0,
     highCardinality: unique > 50 && unique / Math.max(non.length, 1) > 0.5,
+    isFreeText: is_free,
+    is_free_text: is_free,
     sample,
   };
 

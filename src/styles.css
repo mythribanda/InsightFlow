@@ -217,4 +217,48 @@
     100% { transform: rotate(0deg) translateX(100px) rotate(0deg); }
   }
   .animate-orbit-particle-inner { animation: orbit-particle-inner 8s linear infinite; }
+
+  @keyframes orbit-card-outer {
+    0% { transform: rotate(0deg) translateX(240px) rotate(0deg); }
+    100% { transform: rotate(360deg) translateX(240px) rotate(-360deg); }
+  }
+  .animate-orbit-card-outer { animation: orbit-card-outer 15s linear infinite; }
+
+  @keyframes orbit-card-inner {
+    0% { transform: rotate(360deg) translateX(195px) rotate(-360deg); }
+    100% { transform: rotate(0deg) translateX(195px) rotate(0deg); }
+  }
+  .animate-orbit-card-inner { animation: orbit-card-inner 10s linear infinite; }
+
+  /* Hologram & 3D Pedestal animations */
+  @keyframes float-hologram {
+    0%, 100% { transform: translate3d(0, -25px, 25px) rotateY(1deg) rotateX(1deg); }
+    50% { transform: translate3d(0, -40px, 40px) rotateY(-1deg) rotateX(-1deg); }
+  }
+  .animate-float-hologram { animation: float-hologram 7s ease-in-out infinite; }
+
+  @keyframes float-widget-bar {
+    0%, 100% { transform: translate3d(-110px, -45px, 35px) rotateY(10deg) rotateX(8deg); }
+    50% { transform: translate3d(-110px, -55px, 50px) rotateY(6deg) rotateX(4deg); }
+  }
+  .animate-float-widget-bar { animation: float-widget-bar 6s ease-in-out infinite; }
+
+  @keyframes float-widget-donut {
+    0%, 100% { transform: translate3d(110px, -55px, 30px) rotateY(-10deg) rotateX(8deg); }
+    50% { transform: translate3d(110px, -65px, 45px) rotateY(-6deg) rotateX(4deg); }
+  }
+  .animate-float-widget-donut { animation: float-widget-donut 5.5s ease-in-out infinite; }
+
+  @keyframes float-widget-list {
+    0%, 100% { transform: translate3d(90px, 30px, 15px) rotateY(-8deg) rotateX(6deg); }
+    50% { transform: translate3d(90px, 20px, 30px) rotateY(-4deg) rotateX(2deg); }
+  }
+  .animate-float-widget-list { animation: float-widget-list 6.5s ease-in-out infinite; }
+
+  @keyframes pedestal-glow-pulse {
+    0%, 100% { opacity: 0.55; box-shadow: 0 0 35px 5px rgba(14,165,233,0.25), inset 0 0 15px rgba(14,165,233,0.15); }
+    50% { opacity: 0.9; box-shadow: 0 0 55px 15px rgba(14,165,233,0.45), inset 0 0 30px rgba(14,165,233,0.35); }
+  }
+  .animate-pedestal-glow { animation: pedestal-glow-pulse 4s ease-in-out infinite; }
 }
+

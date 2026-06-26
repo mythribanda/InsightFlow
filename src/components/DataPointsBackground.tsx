@@ -1,21 +1,25 @@
 // src/components/DataPointsBackground.tsx
-// Real canvas-based particle system that reacts to cursor movement.
+// Straight 2D dot grid with per-point jitter to eliminate moire diagonal banding.
+//
+// WHY THIS CHANGED: a perfectly uniform grid of evenly-spaced, similarly-sized dots
+// produces a moire illusion -- the human eye perceives diagonal streaks across a grid
+// that is mathematically 100% straight. Confirmed via DevTools: canvas transform and
+// parent transform were both "none". The fix is jitter, not a rotation removal.
 
 import { useEffect, useRef } from "react";
 
-interface Particle {
+interface ProjectedPoint {
   x: number;
   y: number;
-  vx: number;
-  vy: number;
-  baseX: number;
-  baseY: number;
   radius: number;
   color: string;
 }
 
 export function DataPointsBackground() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  // Stable per-point jitter offsets, generated once, not re-randomized every frame
+  // (re-randomizing every frame would make the grid shimmer/vibrate instead of sit still)
+  const jitterRef = useRef<{ jx: number; jy: number }[]>([]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -31,25 +35,17 @@ export function DataPointsBackground() {
 
     const mouse = { x: width / 2, y: height / 2, active: false };
 
-    // Particle count scales with screen size, capped for perf
-    const count = Math.min(70, Math.floor((width * height) / 18000));
-    const particles: Particle[] = [];
+    const cols = 65;
+    const rows = 35;
+    const totalPoints = cols * rows;
 
-    const colors = ["#0ea5e9", "#a855f7", "#22d3ee"];
-
-    for (let i = 0; i < count; i++) {
-      const x = Math.random() * width;
-      const y = Math.random() * height;
-      particles.push({
-        x,
-        y,
-        baseX: x,
-        baseY: y,
-        vx: 0,
-        vy: 0,
-        radius: Math.random() * 1.8 + 1.2,
-        color: colors[Math.floor(Math.random() * colors.length)],
-      });
+    // Generate stable jitter once. Magnitude is intentionally small (max ~4px)
+    // so the grid still reads as organized, just not perfectly periodic.
+    if (jitterRef.current.length !== totalPoints) {
+      jitterRef.current = Array.from({ length: totalPoints }, () => ({
+        jx: (Math.random() - 0.5) * 8,
+        jy: (Math.random() - 0.5) * 8,
+      }));
     }
 
     function handleResize() {
@@ -78,68 +74,55 @@ export function DataPointsBackground() {
     function animate() {
       ctx!.clearRect(0, 0, width, height);
 
-      for (const p of particles) {
-        // Attraction toward cursor within radius
-        const attractRadius = 160;
-        const dx = mouse.x - p.x;
-        const dy = mouse.y - p.y;
-        const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+      const projectedPoints: ProjectedPoint[] = [];
+      let idx = 0;
 
-        if (mouse.active && dist < attractRadius) {
-          const force = (1 - dist / attractRadius) * 0.6;
-          p.vx += (dx / dist) * force;
-          p.vy += (dy / dist) * force;
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          const gridX = (width / (cols - 1)) * c;
+          const gridY = (height / (rows - 1)) * r;
+
+          const { jx, jy } = jitterRef.current[idx];
+          let drawX = gridX + jx;
+          let drawY = gridY + jy;
+          idx++;
+
+          const colRatio = c / (cols - 1);
+          const h = 195 + colRatio * 110;
+          let l = 45;
+
+          let radiusMultiplier = 1.0;
+          let alphaBoost = 0.0;
+
+          if (mouse.active) {
+            const dx = mouse.x - drawX;
+            const dy = mouse.y - drawY;
+            const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+
+            if (dist < 180) {
+              const force = 1 - dist / 180;
+              drawX += (mouse.x - drawX) * force * 0.38;
+              drawY += (mouse.y - drawY) * force * 0.38;
+
+              l += force * 15;
+              radiusMultiplier = 1.0 + force * 0.6;
+              alphaBoost = force * 0.32;
+            }
+          }
+
+          const alpha = 0.22 + alphaBoost;
+          const color = `hsla(${h.toFixed(1)}, 95%, ${l.toFixed(0)}%, ${alpha.toFixed(3)})`;
+          const radius = Math.max(0.6, 1.4 * radiusMultiplier);
+
+          projectedPoints.push({ x: drawX, y: drawY, radius, color });
         }
-
-        // Gentle pull back toward original wandering position
-        const homeDx = p.baseX - p.x;
-        const homeDy = p.baseY - p.y;
-        p.vx += homeDx * 0.0015;
-        p.vy += homeDy * 0.0015;
-
-        // Slow ambient drift of the base position
-        p.baseX += (Math.random() - 0.5) * 0.15;
-        p.baseY += (Math.random() - 0.5) * 0.15;
-
-        // Damping
-        p.vx *= 0.92;
-        p.vy *= 0.92;
-
-        p.x += p.vx;
-        p.y += p.vy;
-
-        // Wrap edges
-        if (p.x < -10) p.x = width + 10;
-        if (p.x > width + 10) p.x = -10;
-        if (p.y < -10) p.y = height + 10;
-        if (p.y > height + 10) p.y = -10;
-
-        ctx!.beginPath();
-        ctx!.fillStyle = p.color;
-        ctx!.globalAlpha = 0.75;
-        ctx!.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
-        ctx!.fill();
       }
 
-      // Draw connecting lines between nearby particles for a "network" feel
-      ctx!.globalAlpha = 1;
-      for (let i = 0; i < particles.length; i++) {
-        for (let j = i + 1; j < particles.length; j++) {
-          const a = particles[i];
-          const b = particles[j];
-          const dx = a.x - b.x;
-          const dy = a.y - b.y;
-          const dist = Math.sqrt(dx * dx + dy * dy);
-          if (dist < 90) {
-            ctx!.strokeStyle = "#0ea5e9";
-            ctx!.globalAlpha = (1 - dist / 90) * 0.15;
-            ctx!.lineWidth = 1;
-            ctx!.beginPath();
-            ctx!.moveTo(a.x, a.y);
-            ctx!.lineTo(b.x, b.y);
-            ctx!.stroke();
-          }
-        }
+      for (const pt of projectedPoints) {
+        ctx!.beginPath();
+        ctx!.fillStyle = pt.color;
+        ctx!.arc(pt.x, pt.y, pt.radius, 0, Math.PI * 2);
+        ctx!.fill();
       }
 
       rafId = requestAnimationFrame(animate);
@@ -159,7 +142,7 @@ export function DataPointsBackground() {
     <canvas
       ref={canvasRef}
       className="fixed inset-0 pointer-events-none z-0"
-      style={{ opacity: 0.9 }}
+      style={{ opacity: 0.95 }}
     />
   );
 }

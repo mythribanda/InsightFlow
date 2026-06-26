@@ -77,6 +77,16 @@ def infer_column_type(series: pd.Series) -> str:
         return "categorical"
     return "text"
 
+def is_free_text_column(series: pd.Series, sample_size: int = 200) -> bool:
+    non_null = series.dropna().astype(str)
+    if len(non_null) == 0:
+        return False
+    sample = non_null.head(sample_size)
+    avg_word_count = sample.str.split().str.len().mean()
+    unique_ratio = series.nunique() / len(series) if len(series) > 0 else 0
+    # Free text: meaningfully long values AND high uniqueness (not a small fixed category set)
+    return avg_word_count >= 4 and unique_ratio > 0.5
+
 def profile_column(name: str, series: pd.Series) -> Dict[str, Any]:
     count = len(series)
     missing = int(series.isna().sum()) + int((series == "").sum())
@@ -99,6 +109,8 @@ def profile_column(name: str, series: pd.Series) -> Dict[str, Any]:
         "uniquePct": unique_pct,
         "constant": n_unique <= 1 and not non_null_series.empty,
         "highCardinality": n_unique > 50 and unique_pct > 50.0,
+        "isFreeText": bool(is_free_text_column(series)),
+        "is_free_text": bool(is_free_text_column(series)),
     }
     
     if dtype == "numeric":

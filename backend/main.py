@@ -10,6 +10,13 @@ from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
+import re
+from sklearn.cluster import KMeans, DBSCAN
+from sklearn.preprocessing import StandardScaler
+from sklearn.decomposition import PCA
+from sklearn.metrics import silhouette_score
+from sklearn.feature_extraction.text import TfidfVectorizer
+import duckdb
 import pandas as pd
 import io
 import json
@@ -197,6 +204,18 @@ class VisualizationRequest(BaseModel):
 class QueryRequest(BaseModel):
     """Request for NL query endpoint."""
     question: str
+
+
+class SQLQueryRequest(BaseModel):
+    query: str
+
+
+class ClusterRequest(BaseModel):
+    columns: List[str]
+    method: str  # "kmeans" or "dbscan"
+    n_clusters: Optional[int] = 3  # for kmeans
+    eps: Optional[float] = 0.5  # for dbscan
+    min_samples: Optional[int] = 5  # for dbscan
 
 
 class CalcColumnRequest(BaseModel):
@@ -1450,6 +1469,194 @@ async def query_dataset(session_id: str, request: QueryRequest):
     except Exception as e:
         logger.error(f"[{session_id}] Query execution failed: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Query failed: {str(e)}")
+
+
+FORBIDDEN_SQL_KEYWORDS = re.compile(
+    r"\b(INSERT|UPDATE|DELETE|DROP|ALTER|CREATE|TRUNCATE|ATTACH|COPY|EXPORT|IMPORT|PRAGMA|CALL)\b",
+    re.IGNORECASE,
+)
+
+@app.post("/sql-query/{session_id}")
+async def run_sql_query(session_id: str, request: SQLQueryRequest):
+    """
+    POST /sql-query/{session_id} -> runs a read-only SQL SELECT against the
+    uploaded dataset using DuckDB, with the dataframe exposed as table 'dataset'.
+    """
+    try:
+        df = session_data_store.get(session_id)
+        if df is None:
+            raise HTTPException(status_code=404, detail=f"No dataset found for session '{session_id}'.")
+
+        query = request.query.strip()
+        if not query:
+            raise HTTPException(status_code=400, detail="Query cannot be empty.")
+
+        if FORBIDDEN_SQL_KEYWORDS.search(query):
+            raise HTTPException(
+                status_code=400,
+                detail="Only SELECT queries are allowed. DDL/DML statements (INSERT, UPDATE, DELETE, DROP, etc.) are blocked."
+            )
+
+        if not query.strip().upper().startswith("SELECT") and not query.strip().upper().startswith("WITH"):
+            raise HTTPException(
+                status_code=400,
+                detail="Query must start with SELECT (or WITH for CTEs)."
+            )
+
+        logger.info(f"[{session_id}] SQL query: {query}")
+
+        con = duckdb.connect()
+        con.register("dataset", df)
+
+        try:
+            result_df = con.execute(query).fetchdf()
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"SQL error: {str(e)}")
+        finally:
+            con.close()
+
+        # Cap rows returned to the frontend
+        truncated = len(result_df) > 1000
+        if truncated:
+            result_df = result_df.head(1000)
+
+        # Safe convert to JSON friendly structures
+        result_df = result_df.replace({np.nan: None, np.inf: None, -np.inf: None})
+        for c in result_df.columns:
+            if pd.api.types.is_datetime64_any_dtype(result_df[c]):
+                result_df[c] = result_df[c].astype(str).replace("NaT", None)
+
+        return {
+            "columns": result_df.columns.tolist(),
+            "rows": result_df.to_dict("records"),
+            "row_count": len(result_df),
+            "truncated": truncated,
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"[{session_id}] SQL query failed: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Query failed: {str(e)}")
+
+
+@app.post("/cluster/{session_id}")
+async def run_clustering(session_id: str, request: ClusterRequest):
+    """
+    POST /cluster/{session_id} -> runs KMeans or DBSCAN on the selected numeric
+    columns, returns 2D PCA-projected points with cluster labels for visualization.
+    """
+    try:
+        df = session_data_store.get(session_id)
+        if df is None:
+            raise HTTPException(status_code=404, detail=f"No dataset found for session '{session_id}'.")
+
+        if len(request.columns) < 2:
+            raise HTTPException(status_code=400, detail="Select at least 2 numeric columns for clustering.")
+
+        df_sub = df[request.columns].apply(pd.to_numeric, errors="coerce").dropna()
+        if len(df_sub) < 10:
+            raise HTTPException(status_code=400, detail="Not enough complete numeric rows to cluster (need at least 10).")
+
+        scaler = StandardScaler()
+        X_scaled = scaler.fit_transform(df_sub)
+
+        if request.method == "kmeans":
+            if request.n_clusters < 2 or request.n_clusters > 20:
+                raise HTTPException(status_code=400, detail="n_clusters must be between 2 and 20.")
+            model = KMeans(n_clusters=request.n_clusters, random_state=42, n_init=10)
+            labels = model.fit_predict(X_scaled)
+        elif request.method == "dbscan":
+            model = DBSCAN(eps=request.eps, min_samples=request.min_samples)
+            labels = model.fit_predict(X_scaled)
+        else:
+            raise HTTPException(status_code=400, detail=f"Unknown clustering method '{request.method}'. Use 'kmeans' or 'dbscan'.")
+
+        n_clusters_found = len(set(labels)) - (1 if -1 in labels else 0)
+        noise_count = int((labels == -1).sum()) if request.method == "dbscan" else 0
+
+        # Silhouette score needs at least 2 clusters and no single-cluster degenerate case
+        sil_score = None
+        if n_clusters_found >= 2:
+            mask = labels != -1  # exclude DBSCAN noise points from scoring
+            if mask.sum() > 1 and len(set(labels[mask])) >= 2:
+                try:
+                    sil_score = float(silhouette_score(X_scaled[mask], labels[mask]))
+                except:
+                    sil_score = None
+
+        # Project to 2D for visualization regardless of how many columns were selected
+        if X_scaled.shape[1] > 2:
+            pca = PCA(n_components=2, random_state=42)
+            coords = pca.fit_transform(X_scaled)
+            variance_explained = float(pca.explained_variance_ratio_.sum())
+        else:
+            coords = X_scaled
+            variance_explained = 1.0
+
+        data = [
+            {"x": float(coords[i, 0]), "y": float(coords[i, 1]), "cluster": int(labels[i])}
+            for i in range(len(labels))
+        ]
+
+        insight = f"Found {n_clusters_found} cluster(s) using {request.method}."
+        if request.method == "dbscan" and noise_count > 0:
+            insight += f" {noise_count} points classified as noise (not in any cluster)."
+        if sil_score is not None:
+            quality = "well-separated" if sil_score > 0.5 else "weakly separated" if sil_score > 0.25 else "poorly separated"
+            insight += f" Silhouette score {round(sil_score, 2)} ({quality})."
+        if X_scaled.shape[1] > 2:
+            insight += f" 2D projection (PCA) explains {round(variance_explained * 100, 1)}% of variance — some structure is lost in this view."
+
+        return {
+            "data": data,
+            "n_clusters_found": n_clusters_found,
+            "noise_count": noise_count,
+            "silhouette_score": sil_score,
+            "variance_explained": variance_explained,
+            "insight": insight,
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"[{session_id}] Clustering failed: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Clustering failed: {str(e)}")
+
+
+@app.get("/text-analysis/{session_id}/{column}")
+async def analyze_text_column(session_id: str, column: str):
+    """
+    GET /text-analysis/{session_id}/{column} -> TF-IDF top terms for a free-text column.
+    """
+    try:
+        df = session_data_store.get(session_id)
+        if df is None:
+            raise HTTPException(status_code=404, detail=f"No dataset found for session '{session_id}'.")
+        if column not in df.columns:
+            raise HTTPException(status_code=404, detail=f"Column '{column}' not found.")
+
+        texts = df[column].dropna().astype(str)
+        if len(texts) < 5:
+            raise HTTPException(status_code=400, detail="Not enough non-null text values to analyze.")
+
+        vectorizer = TfidfVectorizer(max_features=30, stop_words="english", ngram_range=(1, 2))
+        tfidf_matrix = vectorizer.fit_transform(texts)
+        scores = tfidf_matrix.sum(axis=0).A1
+        terms = vectorizer.get_feature_names_out()
+
+        top_terms = sorted(zip(terms, scores), key=lambda x: -x[1])[:20]
+
+        avg_length = float(texts.str.split().str.len().mean())
+
+        return {
+            "top_terms": [{"term": t, "score": round(float(s), 3)} for t, s in top_terms],
+            "avg_word_count": round(avg_length, 1),
+            "sample_count": len(texts),
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"[{session_id}] Text analysis failed: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Text analysis failed: {str(e)}")
 
 
 @app.post("/calc-column/{session_id}", response_model=CalcColumnResponse)

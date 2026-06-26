@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect, useRef } from "react";
+import React, { useMemo, useState, useEffect, useRef, Fragment } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
@@ -33,7 +33,7 @@ import {
   Lightbulb, ListChecks, MessageSquare, Sparkles, Wand2, GitCompareArrows,
   LayoutDashboard, ShieldCheck, ShieldAlert, ShieldX, ChevronLeft, ChevronRight,
   Zap, Eye, Target, TrendingUp, Zap as ZapIcon, Loader2, Code, Info,
-  ArrowRight, Lock, ChevronDown, CloudUpload
+  ArrowRight, Lock, ChevronDown, CloudUpload, Layers
 } from "lucide-react";
 import { toPng } from "html-to-image";
 import { supabase } from "@/integrations/supabase/client";
@@ -57,6 +57,8 @@ import { DependencyHeatmaps } from "@/components/DependencyHeatmaps";
 import { AnomalyPanel } from "@/components/AnomalyPanel";
 import { QueryBox } from "@/components/QueryBox";
 import { CalcColumnPanel } from "@/components/CalcColumnPanel";
+import { ClusteringPanel } from "@/components/ClusteringPanel";
+import { getTextAnalysis } from "@/server/textAnalysis";
 import { Calculator } from "lucide-react";
 import { CountUp } from "@/components/reactbits/CountUp";
 import { BlurText } from "@/components/reactbits/BlurText";
@@ -78,7 +80,7 @@ export const Route = createFileRoute("/")(  {
 });
 
 type Persona = "business" | "student" | "developer";
-type Tab = "dashboard" | "overview" | "charts" | "visualizations" | "insights" | "chat" | "modeling" | "report" | "anomaly" | "calc";
+type Tab = "dashboard" | "overview" | "charts" | "visualizations" | "insights" | "chat" | "modeling" | "report" | "anomaly" | "calc" | "clustering";
 
 function Home() {
   const navigate = useNavigate();
@@ -248,6 +250,7 @@ function Home() {
     { id: "insights", label: "Insights", icon: Lightbulb, desc: "Key findings" },
     { id: "modeling", label: "ML Models", icon: ZapIcon, desc: "Train & evaluate" },
     { id: "anomaly", label: "Anomalies", icon: ShieldAlert, desc: "Outlier detection" },
+    { id: "clustering", label: "Clustering", icon: Target, desc: "K-Means & DBSCAN" },
     { id: "calc", label: "Calculated Cols", icon: Calculator, desc: "Create new columns" },
     { id: "chat", label: "Ask your data", icon: MessageSquare, desc: "AI chat" },
     { id: "visualizations", label: "Visualizations", icon: BarChart3, desc: "Custom exploration" },
@@ -518,7 +521,7 @@ function Home() {
                 onClick={() => setTab(t.id)}
                 title={sidebarCollapsed ? t.label : undefined}
                 className={cn(
-                  "group flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-left text-xs font-medium transition-all duration-200",
+                  "group flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-left text-xs font-medium transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]",
                   tab === t.id
                     ? "bg-gradient-to-r from-primary/15 to-accent/10 text-foreground shadow-[inset_0_0_0_1px_var(--color-primary)] glow-sm"
                     : "text-muted-foreground hover:bg-secondary/60 hover:text-foreground",
@@ -541,7 +544,7 @@ function Home() {
             <button
               onClick={() => { setProfile(null); setRows([]); setFileName(""); setTab("dashboard"); }}
               className={cn(
-                "w-full rounded-lg border border-border bg-secondary/40 text-xs transition-all duration-200 hover:border-primary hover:bg-primary/5",
+                "w-full rounded-lg border border-border bg-secondary/40 text-xs transition-all duration-200 hover:border-primary hover:bg-primary/5 hover:scale-[1.02] active:scale-[0.98]",
                 sidebarCollapsed ? "p-2.5 flex justify-center" : "px-3 py-2",
               )}
             >
@@ -549,7 +552,7 @@ function Home() {
             </button>
             <button
               onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-              className="flex w-full items-center justify-center rounded-lg border border-border bg-secondary/20 p-1.5 text-muted-foreground transition-colors hover:bg-secondary/50 hover:text-foreground"
+              className="flex w-full items-center justify-center rounded-lg border border-border bg-secondary/20 p-1.5 text-muted-foreground transition-all hover:bg-secondary/50 hover:text-foreground active:scale-95"
             >
               {sidebarCollapsed ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronLeft className="h-3.5 w-3.5" />}
             </button>
@@ -564,7 +567,7 @@ function Home() {
                 key={t.id}
                 onClick={() => setTab(t.id)}
                 className={cn(
-                  "inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium transition-all duration-200",
+                  "inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]",
                   tab === t.id ? "bg-primary text-primary-foreground shadow-md" : "text-muted-foreground hover:bg-secondary",
                 )}
               >
@@ -572,6 +575,7 @@ function Home() {
               </button>
             ))}
           </nav>
+
 
           <AnimatedContent key={tab} animation="slide-up" duration={320}>
             {tab === "dashboard" && profile && risk && (
@@ -659,6 +663,9 @@ function Home() {
             {tab === "insights" && <Insights insights={insights} profile={profile} hasBlurredRef={blurSeenForFingerprintRef} />}
             {tab === "modeling" && <ModelingPanel data={rows} columns={profile?.columns.map(c => c.name) || []} sessionId={sessionId} />}
             {tab === "anomaly" && <AnomalyPanel sessionId={sessionId} />}
+            {tab === "clustering" && profile && (
+              <ClusteringPanel sessionId={sessionId} profile={profile} />
+            )}
             {tab === "calc" && (
               <CalcColumnPanel
                 sessionId={sessionId}
@@ -735,19 +742,8 @@ function TopBar({ persona, setPersona, hidePersona }: { persona: Persona; setPer
           </div>
         </div>
 
-        {/* Center Section: Navigation Tabs on Landing Page, Persona Selector on App Page */}
-        {hidePersona ? (
-          <nav className="hidden md:flex items-center gap-6 text-[13px] font-semibold">
-            <button className="relative px-3.5 py-1.5 rounded-full text-white bg-slate-900 border border-cyan-500/30 shadow-[0_0_12px_rgba(14,165,233,0.1)] transition-all cursor-pointer">
-              Home
-              <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-7 h-[2px] bg-cyan-400 rounded-full" />
-            </button>
-            <button className="text-slate-400 hover:text-white transition-colors cursor-pointer">Features</button>
-            <button className="text-slate-400 hover:text-white transition-colors cursor-pointer">How it Works</button>
-            <button className="text-slate-400 hover:text-white transition-colors cursor-pointer">Pricing</button>
-            <button className="text-slate-400 hover:text-white transition-colors cursor-pointer">Docs</button>
-          </nav>
-        ) : (
+        {/* Center Section: Persona Selector on App Page only */}
+        {!hidePersona && (
           <div className="flex items-center gap-2">
             <span className="hidden sm:inline font-mono text-[10px] uppercase tracking-wider text-muted-foreground">persona</span>
             <select
@@ -762,13 +758,8 @@ function TopBar({ persona, setPersona, hidePersona }: { persona: Persona; setPer
           </div>
         )}
 
-        {/* Right Section: Upgrade Button & Profile initials Dropdown */}
+        {/* Right Section: Profile initials Dropdown */}
         <div className="flex items-center gap-3">
-          {/* Upgrade Button */}
-          <button className="hidden sm:flex items-center gap-1.5 px-4 py-1.5 rounded-full border border-cyan-500/20 bg-slate-900/40 text-xs font-bold text-cyan-400 hover:border-cyan-500/40 hover:bg-cyan-500/5 transition-all cursor-pointer shadow-[0_0_15px_rgba(14,165,233,0.05)]">
-            <Zap className="h-3.5 w-3.5 fill-cyan-400/20 text-cyan-400" />
-            Upgrade
-          </button>
 
           {/* Profile Dropdown */}
           <div className="relative">
@@ -1059,7 +1050,7 @@ function Profiling({
         </div>
       </div>
 
-      <ColumnTable profile={profile} />
+      <ColumnTable profile={profile} sessionId={sessionId} />
       <PreviewTable profile={profile} />
 
       {/* Export Clean Dataset Card */}
@@ -1100,7 +1091,33 @@ function Profiling({
 }
 
 /* ─── Column Table ─── */
-function ColumnTable({ profile }: { profile: DatasetProfile }) {
+function ColumnTable({ profile, sessionId }: { profile: DatasetProfile; sessionId: string }) {
+  const fetchTextAnalysis = useServerFn(getTextAnalysis);
+  const [expandedCols, setExpandedCols] = useState<Record<string, boolean>>({});
+  const [textAnalysisData, setTextAnalysisData] = useState<Record<string, any>>({});
+  const [loadingTextCols, setLoadingTextCols] = useState<Record<string, boolean>>({});
+
+  const loadTextAnalysis = async (colName: string) => {
+    if (expandedCols[colName]) {
+      setExpandedCols((prev) => ({ ...prev, [colName]: false }));
+      return;
+    }
+    setExpandedCols((prev) => ({ ...prev, [colName]: true }));
+
+    if (textAnalysisData[colName]) return;
+
+    setLoadingTextCols((prev) => ({ ...prev, [colName]: true }));
+    try {
+      const res = await fetchTextAnalysis({ data: { session_id: sessionId, column: colName } });
+      setTextAnalysisData((prev) => ({ ...prev, [colName]: res }));
+    } catch (err) {
+      console.error("Text analysis error:", err);
+      toast.error(`Text analysis failed: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      setLoadingTextCols((prev) => ({ ...prev, [colName]: false }));
+    }
+  };
+
   return (
     <div className="surface-card overflow-hidden">
       <div className="border-b border-border/60 px-5 py-3.5 text-sm font-semibold flex items-center gap-2">
@@ -1118,27 +1135,115 @@ function ColumnTable({ profile }: { profile: DatasetProfile }) {
           </thead>
           <tbody>
             {profile.columns.map((c) => (
-              <tr key={c.name} className="border-t border-border/40 transition-colors hover:bg-primary/[0.03]">
-                <td className="px-3 py-2.5 font-medium">{c.name}</td>
-                <td className="px-3 py-2.5"><TypePill type={c.type} /></td>
-                <td className="px-3 py-2.5 tabular-nums">
-                  <div className="flex items-center gap-2">
-                    <div className="h-1.5 w-16 overflow-hidden rounded-full bg-secondary">
-                      <div className="h-full rounded-full bg-[color:var(--color-warning)] transition-all duration-500" style={{ width: `${Math.min(100, c.missingPct)}%` }} />
+              <React.Fragment key={c.name}>
+                <tr className="border-t border-border/40 transition-colors hover:bg-primary/[0.03]">
+                  <td className="px-3 py-2.5 font-medium">{c.name}</td>
+                  <td className="px-3 py-2.5"><TypePill type={c.type} /></td>
+                  <td className="px-3 py-2.5 tabular-nums">
+                    <div className="flex items-center gap-2">
+                      <div className="h-1.5 w-16 overflow-hidden rounded-full bg-secondary">
+                        <div className="h-full rounded-full bg-[color:var(--color-warning)] transition-all duration-500" style={{ width: `${Math.min(100, c.missingPct)}%` }} />
+                      </div>
+                      <span className={cn(c.missingPct > 20 && "text-[color:var(--color-warning)] font-semibold")}>{c.missingPct.toFixed(1)}%</span>
                     </div>
-                    <span className={cn(c.missingPct > 20 && "text-[color:var(--color-warning)] font-semibold")}>{c.missingPct.toFixed(1)}%</span>
-                  </div>
-                </td>
-                <td className="px-3 py-2.5 tabular-nums">{c.unique}</td>
-                <td className="px-3 py-2.5 tabular-nums">{c.min !== undefined ? c.min.toFixed(2) : "—"}</td>
-                <td className="px-3 py-2.5 tabular-nums">{c.max !== undefined ? c.max.toFixed(2) : "—"}</td>
-                <td className="px-3 py-2.5 tabular-nums">{c.mean !== undefined ? c.mean.toFixed(2) : "—"}</td>
-                <td className="px-3 py-2.5 text-muted-foreground">
-                  {c.constant && <span className="mr-1 rounded-md bg-destructive/15 px-1.5 py-0.5 text-[10px] font-semibold text-destructive">constant</span>}
-                  {c.highCardinality && <span className="mr-1 rounded-md bg-accent/15 px-1.5 py-0.5 text-[10px] font-semibold text-accent">high-card</span>}
-                  {(c.outliers ?? 0) > 0 && <span className="mr-1 rounded-md bg-[color:var(--color-warning)]/15 px-1.5 py-0.5 text-[10px] font-semibold text-[color:var(--color-warning)]">{c.outliers} outliers</span>}
-                </td>
-              </tr>
+                  </td>
+                  <td className="px-3 py-2.5 tabular-nums">{c.unique}</td>
+                  <td className="px-3 py-2.5 tabular-nums">{c.min !== undefined ? c.min.toFixed(2) : "—"}</td>
+                  <td className="px-3 py-2.5 tabular-nums">{c.max !== undefined ? c.max.toFixed(2) : "—"}</td>
+                  <td className="px-3 py-2.5 tabular-nums">{c.mean !== undefined ? c.mean.toFixed(2) : "—"}</td>
+                  <td className="px-3 py-2.5 text-muted-foreground">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      {c.constant && <span className="rounded-md bg-destructive/15 px-1.5 py-0.5 text-[10px] font-semibold text-destructive">constant</span>}
+                      {c.highCardinality && <span className="rounded-md bg-accent/15 px-1.5 py-0.5 text-[10px] font-semibold text-accent">high-card</span>}
+                      {(c.outliers ?? 0) > 0 && <span className="rounded-md bg-[color:var(--color-warning)]/15 px-1.5 py-0.5 text-[10px] font-semibold text-[color:var(--color-warning)]">{c.outliers} outliers</span>}
+                      {(c.isFreeText || c.is_free_text) && (
+                        <button
+                          type="button"
+                          onClick={() => loadTextAnalysis(c.name)}
+                          className="rounded-md bg-primary/15 border border-primary/30 hover:bg-primary/25 px-2 py-0.5 text-[10px] font-bold text-primary transition-all active:scale-95 cursor-pointer"
+                        >
+                          {expandedCols[c.name] ? "Hide Terms" : "View Top Terms"}
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+                {expandedCols[c.name] && (
+                  <tr className="bg-muted/10">
+                    <td colSpan={8} className="p-5 border-t border-b border-border/60">
+                      <div className="space-y-4">
+                        <h4 className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+                          <Layers className="h-4 w-4 text-primary" />
+                          Text / NLP Analytics: {c.name}
+                        </h4>
+
+                        {loadingTextCols[c.name] ? (
+                          <div className="flex items-center gap-2 py-4 text-muted-foreground">
+                            <span className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                            <span className="font-mono text-xs">Running TF-IDF top term analysis...</span>
+                          </div>
+                        ) : textAnalysisData[c.name] ? (
+                          <div className="grid gap-6 md:grid-cols-2">
+                            {/* TF-IDF Bar List */}
+                            <div className="space-y-3">
+                              <h5 className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+                                Top Terms by TF-IDF Score
+                              </h5>
+                              <div className="space-y-2.5 max-h-[220px] overflow-y-auto pr-2 scrollbar-thin">
+                                {textAnalysisData[c.name].top_terms.length === 0 ? (
+                                  <p className="text-xs text-muted-foreground">No terms extracted.</p>
+                                ) : (
+                                  textAnalysisData[c.name].top_terms.map((t: any) => {
+                                    const maxScore = textAnalysisData[c.name].top_terms[0]?.score || 1;
+                                    const pct = Math.min(100, (t.score / maxScore) * 100);
+                                    return (
+                                      <div key={t.term} className="space-y-1">
+                                        <div className="flex justify-between text-xs font-mono">
+                                          <span className="text-slate-200 font-medium">{t.term}</span>
+                                          <span className="text-muted-foreground">{t.score.toFixed(3)}</span>
+                                        </div>
+                                        <div className="h-1.5 overflow-hidden rounded-full bg-secondary">
+                                          <div className="h-full bg-gradient-to-r from-primary/80 to-accent/70 transition-all duration-300" style={{ width: `${pct}%` }} />
+                                        </div>
+                                      </div>
+                                    );
+                                  })
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Descriptive Stats */}
+                            <div className="space-y-4 p-4 rounded-xl border border-border/80 bg-card/45">
+                              <h5 className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+                                Descriptive Text Statistics
+                              </h5>
+                              <div className="space-y-2">
+                                <div className="flex justify-between text-xs py-1 border-b border-border/30">
+                                  <span className="text-muted-foreground font-medium">Analyzed Samples</span>
+                                  <span className="font-mono text-white font-medium">
+                                    {textAnalysisData[c.name].sample_count} rows
+                                  </span>
+                                </div>
+                                <div className="flex justify-between text-xs py-1 border-b border-border/30">
+                                  <span className="text-muted-foreground font-medium">Average Word Count</span>
+                                  <span className="font-mono text-white font-medium">
+                                    {textAnalysisData[c.name].avg_word_count} words
+                                  </span>
+                                </div>
+                              </div>
+                              <p className="text-[11px] text-muted-foreground leading-relaxed">
+                                Top terms are extracted using **TF-IDF Vectorization** (Term Frequency - Inverse Document Frequency), which ranks words by how unique and informative they are to individual rows relative to the whole column. Common English stop words are excluded.
+                              </p>
+                            </div>
+                          </div>
+                        ) : (
+                          <p className="text-xs text-red-400">Failed to load text analysis.</p>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                )}
+              </React.Fragment>
             ))}
           </tbody>
         </table>
