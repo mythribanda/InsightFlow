@@ -14,6 +14,11 @@ def compute_dependency_matrices(df: pd.DataFrame, numeric_cols: List[str]) -> Di
         
     df_num = df[numeric_cols].copy()
     
+    # Columns are classified "numeric" by sampling (see profile.py infer_column_type),
+    # which tolerates a minority of non-numeric placeholder strings like "NA".
+    # Coerce here before any math, or .corr() crashes on leftover string values.
+    df_num = df_num.apply(pd.to_numeric, errors="coerce")
+    
     # Pearson
     pearson_df = df_num.corr(method="pearson").fillna(0.0)
     

@@ -80,7 +80,7 @@ export const Route = createFileRoute("/")(  {
 });
 
 type Persona = "business" | "student" | "developer";
-type Tab = "dashboard" | "overview" | "charts" | "visualizations" | "insights" | "chat" | "modeling" | "report" | "anomaly" | "calc" | "clustering";
+type Tab = "dashboard" | "overview" | "visualizations" | "insights" | "chat" | "modeling" | "report" | "anomaly" | "calc" | "clustering";
 
 function Home() {
   const navigate = useNavigate();
@@ -246,14 +246,13 @@ function Home() {
   const tabs: { id: Tab; label: string; icon: typeof Database; desc: string }[] = [
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, desc: "Overview" },
     { id: "overview", label: "Profiling", icon: Database, desc: "Column analysis" },
-    { id: "charts", label: "Auto-Charts", icon: Sparkles, desc: "Auto-generated charts" },
     { id: "insights", label: "Insights", icon: Lightbulb, desc: "Key findings" },
     { id: "modeling", label: "ML Models", icon: ZapIcon, desc: "Train & evaluate" },
     { id: "anomaly", label: "Anomalies", icon: ShieldAlert, desc: "Outlier detection" },
     { id: "clustering", label: "Clustering", icon: Target, desc: "K-Means & DBSCAN" },
     { id: "calc", label: "Calculated Cols", icon: Calculator, desc: "Create new columns" },
     { id: "chat", label: "Ask your data", icon: MessageSquare, desc: "AI chat" },
-    { id: "visualizations", label: "Visualizations", icon: BarChart3, desc: "Custom exploration" },
+    { id: "visualizations", label: "Visualizations", icon: BarChart3, desc: "Auto and custom charts" },
     { id: "report", label: "Report", icon: Download, desc: "Export PDF" },
   ];
 
@@ -659,7 +658,6 @@ function Home() {
                 sessionId={sessionId}
               />
             )}
-            {tab === "charts" && <AutoCharts profile={profile} rows={rows} />}
             {tab === "insights" && <Insights insights={insights} profile={profile} hasBlurredRef={blurSeenForFingerprintRef} />}
             {tab === "modeling" && <ModelingPanel data={rows} columns={profile?.columns.map(c => c.name) || []} sessionId={sessionId} />}
             {tab === "anomaly" && <AnomalyPanel sessionId={sessionId} />}
@@ -681,7 +679,7 @@ function Home() {
               </div>
             )}
             {tab === "visualizations" && profile && (
-              <Visualizations profile={profile} sessionId={sessionId} />
+              <Visualizations profile={profile} sessionId={sessionId} rows={rows} />
             )}
             {tab === "report" && (
               <ReportTab
@@ -932,7 +930,7 @@ function Dashboard({
               </div>
               Quick chart
             </h3>
-            <button onClick={() => onJump("charts")} className="inline-flex items-center gap-1 rounded-md border border-border px-2.5 py-1 text-[10px] font-mono uppercase tracking-wider text-muted-foreground transition-colors hover:border-primary hover:text-primary">
+            <button onClick={() => onJump("visualizations")} className="inline-flex items-center gap-1 rounded-md border border-border px-2.5 py-1 text-[10px] font-mono uppercase tracking-wider text-muted-foreground transition-colors hover:border-primary hover:text-primary">
               all charts <ChevronRight className="h-3 w-3" />
             </button>
           </div>
@@ -1544,9 +1542,11 @@ function Insights({
 interface VisualizationsProps {
   profile: DatasetProfile;
   sessionId: string;
+  rows: Record<string, unknown>[];
 }
 
-function Visualizations({ profile, sessionId }: VisualizationsProps) {
+function Visualizations({ profile, sessionId, rows }: VisualizationsProps) {
+  const [vizMode, setVizMode] = useState<"auto" | "custom">("auto");
   const [column1, setColumn1] = useState<string>(profile.columns[0]?.name || "");
   const [column2, setColumn2] = useState<string>("none");
   const [chartType, setChartType] = useState<string>("");
@@ -2342,126 +2342,156 @@ function Visualizations({ profile, sessionId }: VisualizationsProps) {
 
   return (
     <div className="space-y-6">
-      {/* Selector controls card */}
-      <div className="surface-card p-5">
-        <div className="flex flex-col md:flex-row gap-4 items-end">
-          <div className="flex-1 w-full space-y-1.5">
-            <label className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Column 1</label>
-            <select
-              value={column1}
-              onChange={(e) => setColumn1(e.target.value)}
-              className="w-full rounded-lg border border-input bg-background/60 px-3 py-2 text-xs backdrop-blur-sm transition-colors focus:border-primary focus:outline-none"
-            >
-              {profile.columns.map((c) => (
-                <option key={c.name} value={c.name}>
-                  {c.name} ({c.type})
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="flex-1 w-full space-y-1.5">
-            <label className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Column 2 (Optional)</label>
-            <select
-              value={column2}
-              onChange={(e) => setColumn2(e.target.value)}
-              className="w-full rounded-lg border border-input bg-background/60 px-3 py-2 text-xs backdrop-blur-sm transition-colors focus:border-primary focus:outline-none"
-            >
-              {[
-                <option key="none-option" value="none">None (Single Column)</option>,
-                ...profile.columns.map((c) => (
-                  <option key={c.name} value={c.name}>
-                    {c.name} ({c.type})
-                  </option>
-                ))
-              ]}
-            </select>
-          </div>
-
-          <div className="flex-1 w-full space-y-1.5">
-            <label className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Chart Type</label>
-            <select
-              value={chartType}
-              onChange={(e) => setChartType(e.target.value)}
-              disabled={validChartTypes.length === 0}
-              className="w-full rounded-lg border border-input bg-background/60 px-3 py-2 text-xs backdrop-blur-sm transition-colors focus:border-primary focus:outline-none disabled:opacity-40"
-            >
-              {validChartTypes.length === 0 ? (
-                <option value="">Invalid column combo</option>
-              ) : (
-                validChartTypes.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.label}
-                  </option>
-                ))
-              )}
-            </select>
-          </div>
-        </div>
-      </div>
-
-      {chartType === 'funnel' && (
-        <div className="bg-amber-500/5 border border-amber-500/20 text-amber-400 rounded-lg p-3 text-xs flex items-start gap-2">
-          <Info className="h-4 w-4 shrink-0 mt-0.5" />
-          <p>
-            ⚠️ Approximated from category frequency — not a true sequential funnel unless your data has explicit stage ordering.
-          </p>
-        </div>
-      )}
-
-      {/* Chart Display Area with Toolbar */}
-      <div className="space-y-3">
-        <div className="flex justify-between items-center px-1">
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground font-mono">
-            Visualization View
-          </span>
-          <div className="flex gap-2">
-            <button
-              onClick={handleDownloadImage}
-              disabled={loading || !column1}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-input bg-background/60 hover:bg-secondary/80 px-3 py-1.5 text-xs transition-colors cursor-pointer text-foreground disabled:opacity-40 disabled:pointer-events-none"
-            >
-              <Download className="h-3.5 w-3.5" /> Download Image
-            </button>
-            <button
-              onClick={handleDownloadCode}
-              disabled={loading || !column1}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-input bg-background/60 hover:bg-secondary/80 px-3 py-1.5 text-xs transition-colors cursor-pointer text-foreground disabled:opacity-40 disabled:pointer-events-none"
-            >
-              <Code className="h-3.5 w-3.5" /> Download Code
-            </button>
-          </div>
-        </div>
-
-        <div 
-          ref={chartContainerRef}
-          className="surface-card p-6 h-[450px] flex items-center justify-center relative overflow-hidden"
+      {/* Mode toggle */}
+      <div className="flex rounded-lg bg-secondary/50 p-0.5 border border-border w-fit">
+        <button
+          onClick={() => setVizMode("auto")}
+          className={`rounded-md px-3 py-1 text-[10px] font-medium transition-colors cursor-pointer ${
+            vizMode === "auto"
+              ? "bg-primary text-primary-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
         >
-          <div className="absolute inset-0 bg-grid opacity-5 pointer-events-none" />
-          {renderChart()}
-        </div>
+          Auto Charts
+        </button>
+        <button
+          onClick={() => setVizMode("custom")}
+          className={`rounded-md px-3 py-1 text-[10px] font-medium transition-colors cursor-pointer ${
+            vizMode === "custom"
+              ? "bg-primary text-primary-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          Custom Builder
+        </button>
       </div>
 
-      {/* Analytical Insights Card */}
-      {insight && !loading && !error && (
-        <div className="surface-card relative overflow-hidden p-5">
-          <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-accent/5 pointer-events-none" />
-          <div className="relative flex flex-col md:flex-row md:items-start gap-4">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 border border-primary/20">
-              <Lightbulb className="h-4.5 w-4.5 text-primary" />
-            </div>
-            <div className="space-y-1.5">
-              <h4 className="text-xs font-mono uppercase tracking-wider text-muted-foreground">Analytical Insights</h4>
-              <p className="text-sm leading-relaxed text-foreground">{insight}</p>
-              {correlation !== null && (
-                <div className="inline-flex items-center gap-1.5 mt-1 rounded-full bg-accent/10 border border-accent/20 px-2.5 py-0.5 text-xs text-accent">
-                  <Activity className="h-3 w-3" />
-                  <span>Correlation Coefficient: <strong className="font-mono">{correlation.toFixed(3)}</strong></span>
-                </div>
-              )}
+      {vizMode === "auto" ? (
+        <AutoCharts profile={profile} rows={rows} />
+      ) : (
+        <>
+          {/* Selector controls card */}
+          <div className="surface-card p-5">
+            <div className="flex flex-col md:flex-row gap-4 items-end">
+              <div className="flex-1 w-full space-y-1.5">
+                <label className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Column 1</label>
+                <select
+                  value={column1}
+                  onChange={(e) => setColumn1(e.target.value)}
+                  className="w-full rounded-lg border border-input bg-background/60 px-3 py-2 text-xs backdrop-blur-sm transition-colors focus:border-primary focus:outline-none"
+                >
+                  {profile.columns.map((c) => (
+                    <option key={c.name} value={c.name}>
+                      {c.name} ({c.type})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex-1 w-full space-y-1.5">
+                <label className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Column 2 (Optional)</label>
+                <select
+                  value={column2}
+                  onChange={(e) => setColumn2(e.target.value)}
+                  className="w-full rounded-lg border border-input bg-background/60 px-3 py-2 text-xs backdrop-blur-sm transition-colors focus:border-primary focus:outline-none"
+                >
+                  {[
+                    <option key="none-option" value="none">None (Single Column)</option>,
+                    ...profile.columns.map((c) => (
+                      <option key={c.name} value={c.name}>
+                        {c.name} ({c.type})
+                      </option>
+                    ))
+                  ]}
+                </select>
+              </div>
+
+              <div className="flex-1 w-full space-y-1.5">
+                <label className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Chart Type</label>
+                <select
+                  value={chartType}
+                  onChange={(e) => setChartType(e.target.value)}
+                  disabled={validChartTypes.length === 0}
+                  className="w-full rounded-lg border border-input bg-background/60 px-3 py-2 text-xs backdrop-blur-sm transition-colors focus:border-primary focus:outline-none disabled:opacity-40"
+                >
+                  {validChartTypes.length === 0 ? (
+                    <option value="">Invalid column combo</option>
+                  ) : (
+                    validChartTypes.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.label}
+                      </option>
+                    ))
+                  )}
+                </select>
+              </div>
             </div>
           </div>
-        </div>
+
+          {chartType === 'funnel' && (
+            <div className="bg-amber-500/5 border border-amber-500/20 text-amber-400 rounded-lg p-3 text-xs flex items-start gap-2">
+              <Info className="h-4 w-4 shrink-0 mt-0.5" />
+              <p>
+                ⚠️ Approximated from category frequency — not a true sequential funnel unless your data has explicit stage ordering.
+              </p>
+            </div>
+          )}
+
+          {/* Chart Display Area with Toolbar */}
+          <div className="space-y-3">
+            <div className="flex justify-between items-center px-1">
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground font-mono">
+                Visualization View
+              </span>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleDownloadImage}
+                  disabled={loading || !column1}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-input bg-background/60 hover:bg-secondary/80 px-3 py-1.5 text-xs transition-colors cursor-pointer text-foreground disabled:opacity-40 disabled:pointer-events-none"
+                >
+                  <Download className="h-3.5 w-3.5" /> Download Image
+                </button>
+                <button
+                  onClick={handleDownloadCode}
+                  disabled={loading || !column1}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-input bg-background/60 hover:bg-secondary/80 px-3 py-1.5 text-xs transition-colors cursor-pointer text-foreground disabled:opacity-40 disabled:pointer-events-none"
+                >
+                  <Code className="h-3.5 w-3.5" /> Download Code
+                </button>
+              </div>
+            </div>
+
+            <div 
+              ref={chartContainerRef}
+              className="surface-card p-6 h-[450px] flex items-center justify-center relative overflow-hidden"
+            >
+              <div className="absolute inset-0 bg-grid opacity-5 pointer-events-none" />
+              {renderChart()}
+            </div>
+          </div>
+
+          {/* Analytical Insights Card */}
+          {insight && !loading && !error && (
+            <div className="surface-card relative overflow-hidden p-5">
+              <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-accent/5 pointer-events-none" />
+              <div className="relative flex flex-col md:flex-row md:items-start gap-4">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 border border-primary/20">
+                  <Lightbulb className="h-4.5 w-4.5 text-primary" />
+                </div>
+                <div className="space-y-1.5">
+                  <h4 className="text-xs font-mono uppercase tracking-wider text-muted-foreground">Analytical Insights</h4>
+                  <p className="text-sm leading-relaxed text-foreground">{insight}</p>
+                  {correlation !== null && (
+                    <div className="inline-flex items-center gap-1.5 mt-1 rounded-full bg-accent/10 border border-accent/20 px-2.5 py-0.5 text-xs text-accent">
+                      <Activity className="h-3 w-3" />
+                      <span>Correlation Coefficient: <strong className="font-mono">{correlation.toFixed(3)}</strong></span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
