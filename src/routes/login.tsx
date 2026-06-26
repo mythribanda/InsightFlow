@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { Brain, Loader2, Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { DataPointsBackground } from "@/components/DataPointsBackground";
@@ -25,7 +26,7 @@ function LoginPage() {
 
   // UI states
   const [loading, setLoading] = useState(false);
-  const [checkingSession, setCheckingSession] = useState(true);
+  const { session, loading: checkingSession } = useAuth();
   const [error, setError] = useState<string | null>(null);
 
   // Check if profile is complete
@@ -50,24 +51,18 @@ function LoginPage() {
 
   // Check session on mount
   useEffect(() => {
+    if (checkingSession) return;
+
     async function checkSession() {
-      try {
-        const { data, error: sessionError } = await supabase.auth.getSession();
-        if (sessionError) throw sessionError;
-        if (data.session) {
-          const isComplete = await checkProfileComplete(data.session.user.id);
-          if (isComplete) {
-            navigate({ to: "/" });
-          }
+      if (session) {
+        const isComplete = await checkProfileComplete(session.user.id);
+        if (isComplete) {
+          navigate({ to: "/" });
         }
-      } catch (err) {
-        console.error("Error checking session:", err);
-      } finally {
-        setCheckingSession(false);
       }
     }
     checkSession();
-  }, [navigate]);
+  }, [session, checkingSession, navigate]);
 
   // Handle Continue Button for Password Mode
   async function handleCredentialsSubmit() {

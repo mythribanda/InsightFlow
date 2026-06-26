@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -31,7 +32,7 @@ function ProfilePage() {
   // User & Auth states
   const [userId, setUserId] = useState<string | null>(null);
   const [email, setEmail] = useState("");
-  const [checkingSession, setCheckingSession] = useState(true);
+  const { session, loading: checkingSession } = useAuth();
 
   // Form states
   const [displayName, setDisplayName] = useState("");
@@ -46,21 +47,21 @@ function ProfilePage() {
 
   // Check session and fetch profile data
   useEffect(() => {
-    async function checkAuthAndFetchProfile() {
+    if (checkingSession) return;
+
+    if (!session) {
+      toast.error("You must be signed in to view this page.");
+      navigate({ to: "/login" });
+      return;
+    }
+
+    const user = session.user;
+    setUserId(user.id);
+    setEmail(user.email || "");
+
+    async function fetchProfile() {
       try {
-        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-        if (sessionError) throw sessionError;
-
-        if (!sessionData.session) {
-          toast.error("You must be signed in to view this page.");
-          navigate({ to: "/login" });
-          return;
-        }
-
-        const user = sessionData.session.user;
-        setUserId(user.id);
-        setEmail(user.email || "");
-
+        setError(null);
         // Fetch profile
         const { data: profileData, error: profileError } = await supabase
           .from("profiles")
@@ -69,7 +70,6 @@ function ProfilePage() {
           .single();
 
         if (profileError) {
-          // If no profile row exists, we might need to handle it, but it should exist due to trigger
           console.warn("Profile fetch error:", profileError.message);
         } else if (profileData) {
           setDisplayName(profileData.display_name || "");
@@ -79,13 +79,11 @@ function ProfilePage() {
       } catch (err) {
         console.error("Initialization error:", err);
         setError("Failed to load user profile. Please try again.");
-      } finally {
-        setCheckingSession(false);
       }
     }
 
-    checkAuthAndFetchProfile();
-  }, [navigate]);
+    fetchProfile();
+  }, [session, checkingSession, navigate]);
 
   // Handle Avatar File Upload
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {

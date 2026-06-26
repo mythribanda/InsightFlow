@@ -6,7 +6,20 @@ import { supabase } from './client'
 
 export const requireSupabaseAuth = createMiddleware({ type: 'function' })
   .client(async ({ next }: { next: any }) => {
-    const { data } = await supabase.auth.getSession();
+    let { data } = await supabase.auth.getSession();
+
+    const expiresAt = data.session?.expires_at;
+    const isExpiringSoon = expiresAt && expiresAt * 1000 < Date.now() + 60_000; // within 60s
+
+    if (isExpiringSoon) {
+      try {
+        const { data: refreshed } = await supabase.auth.refreshSession();
+        if (refreshed.session) data = refreshed;
+      } catch (err) {
+        console.error("Proactive refresh failed:", err);
+      }
+    }
+
     const token = data.session?.access_token;
     return next({
       headers: {

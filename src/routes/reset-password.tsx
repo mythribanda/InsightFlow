@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -26,8 +27,8 @@ function ResetPasswordPage() {
   const navigate = useNavigate();
 
   // Auth States
-  const [hasSession, setHasSession] = useState<boolean | null>(null);
-  const [checkingSession, setCheckingSession] = useState(true);
+  const { session, loading: checkingSession } = useAuth();
+  const hasSession = !!session;
 
   // Form States
   const [password, setPassword] = useState("");
@@ -39,28 +40,6 @@ function ResetPasswordPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
-
-  // Check for recovery session on mount
-  useEffect(() => {
-    async function checkRecoverySession() {
-      try {
-        const { data, error: sessionError } = await supabase.auth.getSession();
-        if (sessionError) throw sessionError;
-
-        if (data.session) {
-          setHasSession(true);
-        } else {
-          setHasSession(false);
-        }
-      } catch (err) {
-        console.error("Error retrieving session for recovery:", err);
-        setHasSession(false);
-      } finally {
-        setCheckingSession(false);
-      }
-    }
-    checkRecoverySession();
-  }, []);
 
   // Form validations
   const isPasswordValid = password.length >= 8;

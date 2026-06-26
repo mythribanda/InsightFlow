@@ -36,6 +36,7 @@ import {
 } from "lucide-react";
 import { toPng } from "html-to-image";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { FileDrop } from "@/components/FileDrop";
 import { MetricCard } from "@/components/MetricCard";
 import { TrustGauge } from "@/components/TrustGauge";
@@ -80,36 +81,40 @@ type Tab = "dashboard" | "overview" | "charts" | "visualizations" | "insights" |
 
 function Home() {
   const navigate = useNavigate();
+  const { session, loading: authLoading } = useAuth();
   const [loadingSession, setLoadingSession] = useState(true);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    async function checkAuth() {
-      try {
-        const { data, error } = await supabase.auth.getSession();
-        if (error || !data.session) {
-          navigate({ to: "/login" });
-        } else {
-          // Check if profile is complete
-          const { data: profile, error: profileError } = await supabase
-            .from("profiles")
-            .select("display_name, phone")
-            .eq("id", data.session.user.id)
-            .single();
+    if (authLoading) return;
 
-          if (profileError || !profile?.display_name || !profile?.phone) {
-            navigate({ to: "/complete-profile" });
-          } else {
-            setLoadingSession(false);
-          }
+    if (!session) {
+      navigate({ to: "/login" });
+      return;
+    }
+
+    const userId = session.user.id;
+
+    async function checkProfile() {
+      try {
+        const { data: userProfile, error: profileError } = await supabase
+          .from("profiles")
+          .select("display_name, phone")
+          .eq("id", userId)
+          .single();
+
+        if (profileError || !userProfile?.display_name || !userProfile?.phone) {
+          navigate({ to: "/complete-profile" });
+        } else {
+          setLoadingSession(false);
         }
       } catch (e) {
         console.error("Auth check failed:", e);
         navigate({ to: "/login" });
       }
     }
-    checkAuth();
-  }, [navigate]);
+    checkProfile();
+  }, [session, authLoading, navigate]);
   const [profile, setProfile] = useState<DatasetProfile | null>(null);
   const [rows, setRows] = useState<Record<string, unknown>[]>([]);
   const [fileName, setFileName] = useState("");
