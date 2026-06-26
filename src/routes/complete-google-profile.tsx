@@ -72,15 +72,15 @@ function CompleteGoogleProfile() {
 
       if (!user) throw new Error("Not authenticated");
 
-      // Upsert profile with Google details + mandatory fields
+      // Update profile — trigger already created the row on OAuth signup
       const { error: profileError } = await supabase
         .from("profiles")
-        .upsert({
-          id: user.id,
+        .update({
           display_name: fullName.trim(),
           email: email.trim(),
           phone: mobile.trim(),
-        });
+        })
+        .eq("id", user.id);
 
       if (profileError) throw profileError;
 

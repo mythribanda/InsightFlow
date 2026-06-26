@@ -3,7 +3,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
-import { getVisualization } from "@/server/visualize";
+import { getVisualization, exportVisualizationCode } from "@/server/visualize";
 import {
   ResponsiveContainer,
   ScatterChart,
@@ -18,14 +18,23 @@ import {
   AreaChart,
   Area,
   Line,
-  ComposedChart
+  ComposedChart,
+  LineChart,
+  PieChart,
+  Pie,
+  Cell,
+  Treemap,
+  FunnelChart,
+  Funnel,
+  LabelList
 } from "recharts";
 import {
   Activity, AlertTriangle, BarChart3, Brain, Database, Download, FileWarning,
   Lightbulb, ListChecks, MessageSquare, Sparkles, Wand2, GitCompareArrows,
   LayoutDashboard, ShieldCheck, ShieldAlert, ShieldX, ChevronLeft, ChevronRight,
-  Zap, Eye, Target, TrendingUp, Zap as ZapIcon, Loader2,
+  Zap, Eye, Target, TrendingUp, Zap as ZapIcon, Loader2, Code, Info
 } from "lucide-react";
+import { toPng } from "html-to-image";
 import { supabase } from "@/integrations/supabase/client";
 import { FileDrop } from "@/components/FileDrop";
 import { MetricCard } from "@/components/MetricCard";
@@ -113,8 +122,9 @@ function Home() {
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [sessionId, setSessionId] = useState<string>("");
-  // BlurText one-shot gate: once insights tab is visited with the current dataset, skip replay
-  const insightsSeenRef = useRef<string>("");
+  // BlurText one-shot gate lives here in Home — Insights remounts on every tab switch
+  // (AnimatedContent key={tab} fully unmounts it), so a ref inside Insights would reset every time.
+  const blurSeenForFingerprintRef = useRef<string>("");
   const ask = useServerFn(askDataset);
   const runStartAnalysis = useServerFn(startAnalysis);
   const runGetAnalysisStatus = useServerFn(getAnalysisStatus);
@@ -476,7 +486,7 @@ function Home() {
               />
             )}
             {tab === "charts" && <AutoCharts profile={profile} rows={rows} />}
-            {tab === "insights" && <Insights insights={insights} profile={profile} />}
+            {tab === "insights" && <Insights insights={insights} profile={profile} hasBlurredRef={blurSeenForFingerprintRef} />}
             {tab === "modeling" && <ModelingPanel data={rows} columns={profile?.columns.map(c => c.name) || []} sessionId={sessionId} />}
             {tab === "anomaly" && <AnomalyPanel sessionId={sessionId} />}
             {tab === "calc" && (
@@ -953,14 +963,17 @@ function PreviewTable({ profile }: { profile: DatasetProfile }) {
 
 /* ─── Insights ─── */
 function Insights({
-  insights, profile,
-}: { insights: { text: string; why?: string; confidence: number; tag: string }[]; profile: DatasetProfile }) {
+  insights, profile, hasBlurredRef,
+}: {
+  insights: { text: string; why?: string; confidence: number; tag: string }[];
+  profile: DatasetProfile;
+  hasBlurredRef: React.MutableRefObject<string>;
+}) {
   const trustColor = profile.trustScore >= 80 ? "var(--color-success)" : profile.trustScore >= 50 ? "var(--color-warning)" : "var(--color-destructive)";
-  // BlurText one-shot gate — keyed to the insights fingerprint so it replays on new dataset upload
-  const blurKeyRef = useRef("");
+  // Gate reads from the ref that lives in Home — survives tab switches, resets only on new dataset
   const insightFingerprint = insights.map(i => i.tag).join("-");
-  const isFirstRender = blurKeyRef.current !== insightFingerprint;
-  if (isFirstRender) blurKeyRef.current = insightFingerprint;
+  const isFirstRender = hasBlurredRef.current !== insightFingerprint;
+  if (isFirstRender) hasBlurredRef.current = insightFingerprint;
   
   const hasClassImbalance = profile.risks.some(r => /imbalance|imbalanced|dominated/i.test(r)) ||
     profile.columns.some(c => c.type === "categorical" && c.topValues && c.topValues[0] && (c.topValues[0].count / Math.max(c.count - c.missing, 1) > 0.85));
@@ -1209,44 +1222,80 @@ function Visualizations({ profile, sessionId }: VisualizationsProps) {
   const [error, setError] = useState<string | null>(null);
 
   const runGetVisualization = useServerFn(getVisualization);
+  const runExportVisualizationCode = useServerFn(exportVisualizationCode);
+  const chartContainerRef = useRef<HTMLDivElement>(null);
 
   const isNumeric = (colName: string) => {
     const col = profile.columns.find((c) => c.name === colName);
     return col?.type === "numeric";
   };
 
+  const isNumericOrDate = (colName: string) => {
+    const col = profile.columns.find((c) => c.name === colName);
+    return col?.type === "numeric" || col?.type === "datetime";
+  };
+
+  const isCategorical = (colName: string) => {
+    const col = profile.columns.find((c) => c.name === colName);
+    return col ? col.type !== "numeric" : false;
+  };
+
+  const isLowCardinalityCategorical = (colName: string) => {
+    const col = profile.columns.find((c) => c.name === colName);
+    if (!col) return false;
+    return col.type !== "numeric" && col.unique <= 50;
+  };
+
   const getValidChartTypes = (col1: string, col2: string) => {
     if (!col1) return [];
-    const c1Numeric = isNumeric(col1);
 
+    const list: { id: string; label: string }[] = [];
+
+    // Single Column
     if (col2 === "none") {
-      if (c1Numeric) {
-        return [
-          { id: "histogram", label: "Histogram (Distribution)" },
-          { id: "kde", label: "Kernel Density Estimation (KDE)" },
-          { id: "boxplot", label: "Box Plot (Summary)" },
-        ];
+      if (isNumeric(col1)) {
+        list.push({ id: "histogram", label: "Histogram (Distribution)" });
+        list.push({ id: "kde", label: "Kernel Density Estimation (KDE)" });
+        list.push({ id: "boxplot", label: "Box Plot (Summary)" });
+        list.push({ id: "gauge", label: "Gauge Chart (KPI)" });
+      } else {
+        if (isLowCardinalityCategorical(col1)) {
+          list.push({ id: "pie", label: "Pie Chart" });
+          list.push({ id: "donut", label: "Donut Chart" });
+        }
+        list.push({ id: "treemap", label: "Treemap (Frequency)" });
+        list.push({ id: "funnel", label: "Funnel Chart (Frequency)" });
       }
-      return [];
+      return list;
     }
 
+    // Two Columns
+    const c1Numeric = isNumeric(col1);
     const c2Numeric = isNumeric(col2);
+    const c1NumericOrDate = isNumericOrDate(col1);
+    const c2NumericOrDate = isNumericOrDate(col2);
 
     if (c1Numeric && c2Numeric) {
-      return [
-        { id: "scatter", label: "Scatter Plot (Correlation)" },
-      ];
-    } else if (!c1Numeric && !c2Numeric) {
-      return [
-        { id: "grouped_bar", label: "Grouped Bar (Frequency)" },
-        { id: "heatmap", label: "Heatmap (Crosstab)" },
-      ];
-    } else {
-      return [
-        { id: "bar", label: "Bar Chart (Average)" },
-        { id: "boxplot", label: "Box Plot (Grouped)" },
-      ];
+      list.push({ id: "scatter", label: "Scatter Plot (Correlation)" });
+      list.push({ id: "line", label: "Line Chart" });
+    } else if ((c1NumericOrDate && c2Numeric) || (c2NumericOrDate && c1Numeric)) {
+      list.push({ id: "line", label: "Line Chart" });
     }
+
+    if (!c1Numeric && !c2Numeric) {
+      list.push({ id: "grouped_bar", label: "Grouped Bar (Frequency)" });
+      list.push({ id: "heatmap", label: "Heatmap (Crosstab)" });
+    }
+
+    const hasCategoricalAndNumeric = (isCategorical(col1) && c2Numeric) || (isCategorical(col2) && c1Numeric);
+    if (hasCategoricalAndNumeric) {
+      list.push({ id: "bar", label: "Bar Chart (Average)" });
+      list.push({ id: "boxplot", label: "Box Plot (Grouped)" });
+      list.push({ id: "waterfall", label: "Waterfall Chart" });
+      list.push({ id: "treemap", label: "Treemap (Weighted)" });
+    }
+
+    return list;
   };
 
   const validChartTypes = useMemo(() => {
@@ -1290,7 +1339,17 @@ function Visualizations({ profile, sessionId }: VisualizationsProps) {
         const c2Numeric = isNumeric(apiCol2);
 
         // Swap columns if necessary for backend grouping: col1 = categorical, col2 = numeric
-        if ((chartType === "boxplot" || chartType === "bar") && c1Numeric && !c2Numeric) {
+        if (
+          (chartType === "boxplot" ||
+            chartType === "bar" ||
+            chartType === "waterfall" ||
+            chartType === "treemap") &&
+          c1Numeric &&
+          !c2Numeric
+        ) {
+          apiCol1 = apiCol2;
+          apiCol2 = column1;
+        } else if (chartType === "line" && c1Numeric && isNumericOrDate(apiCol2) && !isNumeric(apiCol2)) {
           apiCol1 = apiCol2;
           apiCol2 = column1;
         }
@@ -1312,6 +1371,83 @@ function Visualizations({ profile, sessionId }: VisualizationsProps) {
     } catch (err: any) {
       console.error("Error fetching visualization:", err);
       setError(err.message || "Failed to generate visualization data.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDownloadImage = async () => {
+    if (!chartContainerRef.current) return;
+    setLoading(true);
+    try {
+      const dataUrl = await toPng(chartContainerRef.current, { 
+        backgroundColor: '#020617',
+        style: {
+          borderRadius: '0px'
+        }
+      });
+      const link = document.createElement('a');
+      link.download = `${chartType}_${column1}${column2 !== "none" ? '_' + column2 : ''}.png`;
+      link.href = dataUrl;
+      link.click();
+      toast.success("Image exported successfully!");
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to export image');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDownloadCode = async () => {
+    setLoading(true);
+    try {
+      let apiCol1 = column1;
+      let apiCol2 = column2 === "none" ? null : column2;
+
+      if (apiCol2) {
+        const c1Numeric = isNumeric(column1);
+        const c2Numeric = isNumeric(apiCol2);
+        if (
+          (chartType === "boxplot" ||
+            chartType === "bar" ||
+            chartType === "waterfall" ||
+            chartType === "treemap") &&
+          c1Numeric &&
+          !c2Numeric
+        ) {
+          apiCol1 = apiCol2;
+          apiCol2 = column1;
+        } else if (chartType === "line" && c1Numeric && isNumericOrDate(apiCol2) && !isNumeric(apiCol2)) {
+          apiCol1 = apiCol2;
+          apiCol2 = column1;
+        }
+      }
+
+      const result = await runExportVisualizationCode({
+        data: {
+          session_id: sessionId,
+          column1: apiCol1,
+          column2: apiCol2 || undefined,
+          chart_type: chartType,
+        },
+      });
+
+      if (!result.code) {
+        throw new Error("No code returned from server");
+      }
+
+      const blob = new Blob([result.code], { type: 'text/x-python' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = result.filename || `${chartType}_${column1}.py`;
+      link.click();
+      URL.revokeObjectURL(url);
+      toast.success("Python code exported successfully!");
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.message || 'Failed to export code');
     } finally {
       setLoading(false);
     }
@@ -1371,6 +1507,23 @@ function Visualizations({ profile, sessionId }: VisualizationsProps) {
     });
 
     return { xKeys, yKeys, maxCount, countMap };
+  }, [chartData, chartType]);
+
+  const waterfallData = useMemo(() => {
+    if (chartType !== "waterfall") return [];
+    return chartData.map((item) => {
+      const start = item.start ?? 0;
+      const end = item.end ?? 0;
+      const delta = item.delta ?? 0;
+      const isIncrease = delta >= 0;
+      return {
+        name: item.name,
+        base: isIncrease ? start : end,
+        deltaValue: Math.abs(delta),
+        rawDelta: delta,
+        isIncrease,
+      };
+    });
   }, [chartData, chartType]);
 
   const renderChart = () => {
@@ -1637,11 +1790,210 @@ function Visualizations({ profile, sessionId }: VisualizationsProps) {
           </table>
         </div>
       );
+    } else if (chartType === "line") {
+      const c1Numeric = isNumeric(column1);
+
+      let displayX = column1;
+      let displayY = column2 !== "none" ? column2 : "";
+      
+      if (column2 !== "none" && c1Numeric && isNumericOrDate(column2) && !isNumeric(column2)) {
+        displayX = column2;
+        displayY = column1;
+      }
+
+      chartElement = (
+        <LineChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+          <XAxis
+            dataKey={displayX}
+            stroke="rgba(255,255,255,0.4)"
+            fontSize={10}
+            tickLine={false}
+          />
+          <YAxis stroke="rgba(255,255,255,0.4)" fontSize={10} tickLine={false} />
+          <RechartsTooltip
+            contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.95)', borderColor: 'rgba(255, 255, 255, 0.1)', borderRadius: '8px' }}
+          />
+          <Legend wrapperStyle={{ fontSize: 10 }} />
+          <Line type="monotone" dataKey={displayY} stroke="var(--color-primary)" strokeWidth={2} dot={{ r: 2 }} activeDot={{ r: 4 }} />
+        </LineChart>
+      );
+    } else if (chartType === "pie" || chartType === "donut") {
+      const colors = [
+        "var(--color-primary)",
+        "var(--color-accent)",
+        "#10b981",
+        "#f59e0b",
+        "#f43f5e",
+        "#0ea5e9",
+        "#84cc16",
+        "#a855f7",
+      ];
+      chartElement = (
+        <PieChart margin={{ top: 20, right: 20, left: 20, bottom: 20 }}>
+          <Pie
+            data={chartData}
+            cx="50%"
+            cy="50%"
+            innerRadius={chartType === "donut" ? 60 : 0}
+            outerRadius={90}
+            paddingAngle={2}
+            dataKey="value"
+            nameKey="name"
+            label={({ name, pct }) => `${name} (${pct}%)`}
+          >
+            {chartData.map((entry, idx) => (
+              <Cell key={`cell-${idx}`} fill={colors[idx % colors.length]} />
+            ))}
+          </Pie>
+          <RechartsTooltip
+            contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.95)', borderColor: 'rgba(255, 255, 255, 0.1)', borderRadius: '8px' }}
+            formatter={(val, name, props: any) => [`${val} (${props.payload.pct}%)`, name]}
+          />
+          <Legend wrapperStyle={{ fontSize: 10 }} />
+        </PieChart>
+      );
+    } else if (chartType === "treemap") {
+      chartElement = (
+        <Treemap
+          data={chartData}
+          dataKey="value"
+          nameKey="name"
+          stroke="#fff"
+          fill="var(--color-primary)"
+        >
+          <RechartsTooltip
+            contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.95)', borderColor: 'rgba(255, 255, 255, 0.1)', borderRadius: '8px' }}
+          />
+        </Treemap>
+      );
+    } else if (chartType === "funnel") {
+      const colors = [
+        "var(--color-primary)",
+        "var(--color-accent)",
+        "#10b981",
+        "#f59e0b",
+        "#f43f5e",
+        "#0ea5e9",
+        "#84cc16",
+        "#a855f7",
+      ];
+      chartElement = (
+        <FunnelChart margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+          <RechartsTooltip
+            contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.95)', borderColor: 'rgba(255, 255, 255, 0.1)', borderRadius: '8px' }}
+          />
+          <Funnel
+            dataKey="value"
+            data={chartData}
+            isAnimationActive
+          >
+            <LabelList position="right" dataKey="stage" fill="rgba(255,255,255,0.6)" stroke="none" fontSize={10} />
+            {chartData.map((entry, idx) => (
+              <Cell key={`cell-${idx}`} fill={colors[idx % colors.length]} />
+            ))}
+          </Funnel>
+        </FunnelChart>
+      );
+    } else if (chartType === "waterfall") {
+      chartElement = (
+        <BarChart data={waterfallData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+          <XAxis dataKey="name" stroke="rgba(255,255,255,0.4)" fontSize={10} tickLine={false} />
+          <YAxis stroke="rgba(255,255,255,0.4)" fontSize={10} tickLine={false} />
+          <RechartsTooltip
+            content={({ active, payload }) => {
+              if (active && payload && payload.length) {
+                const data = payload[0].payload;
+                return (
+                  <div className="rounded-lg border border-border bg-slate-900/95 p-3 text-xs shadow-md backdrop-blur-md">
+                    <p className="font-semibold text-primary mb-1.5">{data.name}</p>
+                    <div className="space-y-1 font-mono text-[10px]">
+                      <div className="flex justify-between gap-4">
+                        <span className="text-muted-foreground">Delta:</span>
+                        <span className={`font-semibold ${data.isIncrease ? 'text-emerald-400' : 'text-rose-400'}`}>
+                          {data.rawDelta >= 0 ? "+" : ""}{data.rawDelta.toFixed(2)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between gap-4">
+                        <span className="text-muted-foreground">Value:</span>
+                        <span className="text-foreground font-semibold">
+                          {(data.base + (data.isIncrease ? data.deltaValue : 0)).toFixed(2)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
+              return null;
+            }}
+          />
+          <Bar dataKey="base" stackId="waterfall" fill="transparent" />
+          <Bar dataKey="deltaValue" stackId="waterfall">
+            {waterfallData.map((entry, idx) => (
+              <Cell
+                key={`cell-${idx}`}
+                fill={entry.isIncrease ? "rgba(16, 185, 129, 0.75)" : "rgba(244, 63, 94, 0.75)"}
+                stroke={entry.isIncrease ? "var(--color-success, #10b981)" : "var(--color-warning, #f43f5e)"}
+                strokeWidth={1}
+              />
+            ))}
+          </Bar>
+        </BarChart>
+      );
+    } else if (chartType === "gauge") {
+      const val = chartData[0]?.value ?? 0;
+      const min = chartData[0]?.min ?? 0;
+      const max = chartData[0]?.max ?? 100;
+      const range = max - min;
+      const pct = range > 0 ? Math.min(Math.max((val - min) / range, 0), 1) : 0.5;
+
+      chartElement = (
+        <div className="flex flex-col items-center justify-center w-full h-full max-w-[320px] mx-auto p-4 select-none">
+          <svg viewBox="0 0 200 120" className="w-full h-full">
+            <defs>
+              <linearGradient id="gaugeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="var(--color-primary, #0ea5e9)" />
+                <stop offset="100%" stopColor="var(--color-accent, #10b981)" />
+              </linearGradient>
+            </defs>
+            <path
+              d="M 30,90 A 70,70 0 0,1 170,90"
+              fill="none"
+              stroke="rgba(255,255,255,0.08)"
+              strokeWidth="12"
+              strokeLinecap="round"
+            />
+            <path
+              d="M 30,90 A 70,70 0 0,1 170,90"
+              fill="none"
+              stroke="url(#gaugeGrad)"
+              strokeWidth="12"
+              strokeLinecap="round"
+              strokeDasharray="220"
+              strokeDashoffset={220 - (220 * pct)}
+              className="transition-all duration-1000 ease-out"
+            />
+            <text x="30" y="110" fill="rgba(255,255,255,0.4)" fontSize="8" textAnchor="middle" fontFamily="monospace">
+              {min.toFixed(2)}
+            </text>
+            <text x="170" y="110" fill="rgba(255,255,255,0.4)" fontSize="8" textAnchor="middle" fontFamily="monospace">
+              {max.toFixed(2)}
+            </text>
+            <text x="100" y="80" fill="white" fontSize="18" fontWeight="bold" textAnchor="middle" fontFamily="sans-serif">
+              {val.toFixed(2)}
+            </text>
+            <text x="100" y="98" fill="rgba(255,255,255,0.5)" fontSize="8" textAnchor="middle" fontFamily="sans-serif">
+              Average Value
+            </text>
+          </svg>
+        </div>
+      );
     }
 
     if (!chartElement) return null;
 
-    if (chartType === "heatmap") {
+    if (chartType === "heatmap" || chartType === "gauge") {
       return chartElement;
     }
 
@@ -1712,10 +2064,46 @@ function Visualizations({ profile, sessionId }: VisualizationsProps) {
         </div>
       </div>
 
-      {/* Chart Display Area */}
-      <div className="surface-card p-6 h-[450px] flex items-center justify-center relative overflow-hidden">
-        <div className="absolute inset-0 bg-grid opacity-5 pointer-events-none" />
-        {renderChart()}
+      {chartType === 'funnel' && (
+        <div className="bg-amber-500/5 border border-amber-500/20 text-amber-400 rounded-lg p-3 text-xs flex items-start gap-2">
+          <Info className="h-4 w-4 shrink-0 mt-0.5" />
+          <p>
+            ⚠️ Approximated from category frequency — not a true sequential funnel unless your data has explicit stage ordering.
+          </p>
+        </div>
+      )}
+
+      {/* Chart Display Area with Toolbar */}
+      <div className="space-y-3">
+        <div className="flex justify-between items-center px-1">
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground font-mono">
+            Visualization View
+          </span>
+          <div className="flex gap-2">
+            <button
+              onClick={handleDownloadImage}
+              disabled={loading || !column1}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-input bg-background/60 hover:bg-secondary/80 px-3 py-1.5 text-xs transition-colors cursor-pointer text-foreground disabled:opacity-40 disabled:pointer-events-none"
+            >
+              <Download className="h-3.5 w-3.5" /> Download Image
+            </button>
+            <button
+              onClick={handleDownloadCode}
+              disabled={loading || !column1}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-input bg-background/60 hover:bg-secondary/80 px-3 py-1.5 text-xs transition-colors cursor-pointer text-foreground disabled:opacity-40 disabled:pointer-events-none"
+            >
+              <Code className="h-3.5 w-3.5" /> Download Code
+            </button>
+          </div>
+        </div>
+
+        <div 
+          ref={chartContainerRef}
+          className="surface-card p-6 h-[450px] flex items-center justify-center relative overflow-hidden"
+        >
+          <div className="absolute inset-0 bg-grid opacity-5 pointer-events-none" />
+          {renderChart()}
+        </div>
       </div>
 
       {/* Analytical Insights Card */}

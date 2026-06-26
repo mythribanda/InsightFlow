@@ -49,12 +49,12 @@ function CompleteProfile() {
 
       const { error: profileError } = await supabase
         .from("profiles")
-        .upsert({
-          id: user.id,
+        .update({
           display_name: fullName.trim(),
           email: email.trim(),
           phone: mobile.trim(),
-        });
+        })
+        .eq("id", user.id);
 
       if (profileError) throw profileError;
 
