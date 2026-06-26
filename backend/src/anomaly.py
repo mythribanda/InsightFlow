@@ -19,8 +19,13 @@ def preprocess_dataframe(df: pd.DataFrame) -> Tuple[np.ndarray, List[str]]:
     - Median imputation + StandardScaler for numeric columns.
     - Most frequent imputation + OneHotEncoder for categorical columns.
     """
+    df = df.copy()
     numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
     categorical_cols = df.select_dtypes(exclude=[np.number]).columns.tolist()
+
+    # Convert non-numeric categorical columns to strings (preserving NaNs) to prevent mixed type errors in OneHotEncoder
+    for col in categorical_cols:
+        df[col] = df[col].map(lambda x: str(x) if pd.notna(x) else x)
 
     transformers = []
     if numeric_cols:
@@ -60,6 +65,12 @@ def run_anomaly_detection(df: pd.DataFrame, contamination: float = 0.05) -> List
     """
     if df.empty:
         return []
+
+    # Ensure consistent string representation for categorical columns (preserving NaNs)
+    df = df.copy()
+    categorical_cols = df.select_dtypes(exclude=[np.number]).columns.tolist()
+    for col in categorical_cols:
+        df[col] = df[col].map(lambda x: str(x) if pd.notna(x) else x)
 
     # Preprocess
     X_preprocessed, _ = preprocess_dataframe(df)

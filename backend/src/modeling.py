@@ -517,6 +517,12 @@ def run_modeling_pipeline(
     cv_splits: int = 5
 ) -> ModelingOutput:
     """Complete modeling workflow following §4 exactly."""
+    # Ensure consistent string representation for categorical/non-numeric columns (preserving NaNs)
+    X = X.copy()
+    categorical_cols = X.select_dtypes(exclude=[np.number]).columns.tolist()
+    for col in categorical_cols:
+        X[col] = X[col].map(lambda x: str(x) if pd.notna(x) else x)
+
     task = TaskDetector.detect(y)
     
     n_samples = len(X)

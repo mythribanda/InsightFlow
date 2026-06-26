@@ -48,6 +48,12 @@ def parse_request_data(data: Any) -> pd.DataFrame:
             df[col] = pd.to_numeric(df[col])
         except (ValueError, TypeError):
             pass
+
+    # Ensure consistent string representation for categorical/non-numeric columns (preserving NaNs)
+    # to prevent scikit-learn encoder exceptions on mixed types.
+    categorical_cols = df.select_dtypes(exclude=[np.number]).columns.tolist()
+    for col in categorical_cols:
+        df[col] = df[col].map(lambda x: str(x) if pd.notna(x) else x)
             
     return df
 
