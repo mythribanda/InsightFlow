@@ -66,10 +66,12 @@ function SignupPage() {
         throw new Error("Email already registered. Try logging in instead.");
       }
 
-      // Send OTP via Supabase by registering user with a temp password
-      const { error: signUpError } = await supabase.auth.signUp({
+      // Send OTP via Supabase by signing in/creating user with OTP
+      const { error: signUpError } = await supabase.auth.signInWithOtp({
         email: email.trim(),
-        password: "temp-password-123!", // Temporary, will be replaced in step 3
+        options: {
+          shouldCreateUser: true,
+        },
       });
 
       if (signUpError) {
@@ -104,7 +106,7 @@ function SignupPage() {
       const { error: verifyError } = await supabase.auth.verifyOtp({
         email: email.trim(),
         token: otp,
-        type: "signup", // verifying signup confirmation code
+        type: "email", // verifying OTP code from signInWithOtp
       });
 
       if (verifyError) throw verifyError;
