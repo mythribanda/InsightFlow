@@ -2,7 +2,7 @@ import type { DatasetProfile } from "./profiler";
 
 export type RiskLevel = "low" | "medium" | "high";
 
-export function computeRiskLevel(p: DatasetProfile): { level: RiskLevel; score: number; reasons: string[] } {
+export function computeRiskLevel(p: DatasetProfile, overrideTrustScore?: number): { level: RiskLevel; score: number; reasons: string[] } {
   let score = 0;
   const reasons: string[] = [];
   if (p.missingPct > 20) { score += 3; reasons.push(`${p.missingPct.toFixed(0)}% missing data`); }
@@ -12,8 +12,11 @@ export function computeRiskLevel(p: DatasetProfile): { level: RiskLevel; score: 
   else if (p.risks.length > 0) { score += 1; }
   if (p.humanErrors.length > 0) { score += 2; reasons.push(`${p.humanErrors.length} human-error signals`); }
   if (p.contradictions.length > 0) { score += 1; reasons.push(`${p.contradictions.length} contradictions`); }
-  if (p.trustScore < 55) { score += 2; reasons.push("low trust score"); }
-  else if (p.trustScore < 80) { score += 1; }
+  
+  if (overrideTrustScore !== undefined) {
+    if (overrideTrustScore < 55) { score += 2; reasons.push("low trust score"); }
+    else if (overrideTrustScore < 80) { score += 1; }
+  }
   const level: RiskLevel = score >= 5 ? "high" : score >= 2 ? "medium" : "low";
   return { level, score, reasons };
 }

@@ -7,6 +7,21 @@ export type ClusteringPoint = {
   cluster: number;
 };
 
+export type FeatureProfile = {
+  column: string;
+  type: "numeric" | "categorical";
+  cluster_val: any;
+  global_val: any;
+  z_score: number;
+  description: string;
+};
+
+export type ClusterProfile = {
+  cluster: number;
+  size: number;
+  features: FeatureProfile[];
+};
+
 export type ClusteringResponse = {
   data: ClusteringPoint[];
   n_clusters_found: number;
@@ -14,6 +29,7 @@ export type ClusteringResponse = {
   silhouette_score: number | null;
   variance_explained: number;
   insight: string;
+  profiles?: ClusterProfile[];
 };
 
 export const runClustering = createServerFn({ method: "POST" })
@@ -67,6 +83,73 @@ export const runClustering = createServerFn({ method: "POST" })
       console.error("Clustering error:", error);
       throw new Error(
         `Clustering failed: ${error instanceof Error ? error.message : "Unknown error"}`
+      );
+    }
+  });
+
+export const getOptimalK = createServerFn({ method: "POST" })
+  .inputValidator((v: unknown) => {
+    if (typeof v === "object" && v !== null && "session_id" in v && "columns" in v) {
+      return v as {
+        session_id: string;
+        columns: string[];
+      };
+    }
+    throw new Error("Invalid optimal K request");
+  })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ data: request }): Promise<{ optimal_k: number | null }> => {
+    const BACKEND_URL = process.env.MODELING_API_URL || "http://localhost:8000";
+    try {
+      const response = await fetch(`${BACKEND_URL}/cluster/optimal-k/${request.session_id}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          columns: request.columns,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Backend error: ${response.statusText}`);
+      }
+
+      return (await response.json()) as { optimal_k: number | null };
+    } catch (error) {
+      console.error("Optimal K fetch error:", error);
+      return { optimal_k: null };
+    }
+  });
+
+export const exportClusteredCSV = createServerFn({ method: "POST" })
+  .inputValidator((v: unknown) => {
+    if (typeof v === "object" && v !== null && "session_id" in v) {
+      return v as { session_id: string };
+    }
+    throw new Error("Invalid CSV export request");
+  })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ data: request }): Promise<string> => {
+    const BACKEND_URL = process.env.MODELING_API_URL || "http://localhost:8000";
+    try {
+      const response = await fetch(
+        `${BACKEND_URL}/export/clustered-csv/${request.session_id}`,
+        {
+          method: "GET",
+        }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Backend CSV export failed: ${errorText}`);
+      }
+
+      return await response.text();
+    } catch (error) {
+      console.error("Clustered CSV Export server function error:", error);
+      throw new Error(
+        `Failed to export clustered CSV: ${error instanceof Error ? error.message : "Unknown error"}`
       );
     }
   });

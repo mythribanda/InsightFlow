@@ -129,7 +129,8 @@ function Home() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
-  const [sessionId, setSessionId] = useState<string>("");
+  const [sessionId, setSessionId] = useState<string>( "");
+  const [queryMode, setQueryMode] = useState<"sandbox" | "chat">("sandbox");
   // BlurText one-shot gate lives here in Home — Insights remounts on every tab switch
   // (AnimatedContent key={tab} fully unmounts it), so a ref inside Insights would reset every time.
   const blurSeenForFingerprintRef = useRef<string>("");
@@ -139,7 +140,11 @@ function Home() {
 
   const insights = useMemo(() => (profile ? generateInsights(profile) : []), [profile]);
   const forecast = useMemo(() => (profile ? trendForecast(profile) : null), [profile]);
-  const risk = useMemo(() => (profile ? computeRiskLevel(profile) : null), [profile]);
+  const risk = useMemo(() => {
+    if (!profile) return null;
+    const trust = analysis ? analysis.trust_score : undefined;
+    return computeRiskLevel(profile, trust);
+  }, [profile, analysis]);
 
   const handleFile = async (file: File) => {
     const ext = file.name.split(".").pop()?.toLowerCase();
@@ -585,67 +590,15 @@ function Home() {
                     <p className="text-sm font-medium text-muted-foreground">Running backend intelligence profiling...</p>
                   </div>
                 )}
-                
-                {analysis ? (
-                  <div className="space-y-6">
-                    {/* Backend Shape, Trust Score, & Breakdown */}
-                    <div className="grid gap-6 lg:grid-cols-3">
-                      {/* Shape and Info */}
-                      <div className="surface-card p-5 flex flex-col justify-between">
-                        <div>
-                          <div className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">dataset shape</div>
-                          <div className="mt-2 text-2xl font-bold text-gradient"><CountUp to={analysis.shape.rows} from={0} duration={1.4} separator="," /> rows</div>
-                          <div className="text-lg font-semibold text-muted-foreground">{analysis.shape.cols} columns</div>
-                          <div className="mt-1 text-xs text-muted-foreground"><CountUp to={analysis.shape.total_cells} from={0} duration={1.6} separator="," /> total cells</div>
-                        </div>
-                        <div className="mt-4 border-t border-border/40 pt-4 flex gap-4">
-                          <div>
-                            <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-mono">risk level</span>
-                            <div className="mt-1"><RiskBadge level={risk.level} /></div>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Trust Score Breakdown */}
-                      <div className="surface-card p-5 lg:col-span-2 flex flex-col md:flex-row gap-6">
-                        <div className="flex flex-col items-center justify-center shrink-0 w-full md:w-48 border-b md:border-b-0 md:border-r border-border/40 pb-6 md:pb-0 md:pr-6">
-                          <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">trust score</span>
-                          <div className="mt-3 text-6xl font-extrabold animate-pulse-glow" style={{ color: analysis.trust_score >= 80 ? "var(--color-success)" : analysis.trust_score >= 55 ? "var(--color-warning)" : "var(--color-destructive)" }}>
-                            <CountUp to={analysis.trust_score} from={0} duration={1.8} />
-                          </div>
-                          <span className="mt-2 text-xs text-muted-foreground text-center">Composite quality metric</span>
-                        </div>
-                        <div className="flex-1 space-y-3.5">
-                          {analysis.trust_breakdown.map((b) => (
-                            <div key={b.label} className="text-xs">
-                              <div className="flex justify-between font-medium mb-1">
-                                <span>{b.label}</span>
-                                <span className="text-muted-foreground font-mono">{b.score.toFixed(0)}%</span>
-                              </div>
-                              <div className="h-1.5 overflow-hidden rounded-full bg-secondary">
-                                <div className="h-full bg-gradient-to-r from-primary to-accent transition-all duration-500" style={{ width: `${b.score}%` }} />
-                              </div>
-                              <div className="mt-0.5 text-[10px] text-muted-foreground">{b.note}</div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Column Profile Table */}
-                    <BackendColumnTable columns={analysis.columns} />
-
-                    {/* Dependency Heatmaps */}
-                    <DependencyHeatmaps
-                      columns={analysis.dependency.columns}
-                      pearson={analysis.dependency.pearson}
-                      spearman={analysis.dependency.spearman}
-                      mutual_info={analysis.dependency.mutual_info}
-                    />
-                  </div>
-                ) : (
-                  <Dashboard profile={profile} risk={risk} insights={insights} fileName={fileName} onJump={setTab} />
-                )}
+                <Dashboard
+                  profile={profile}
+                  risk={risk}
+                  insights={insights}
+                  fileName={fileName}
+                  onJump={setTab}
+                  analysis={analysis}
+                  sessionId={sessionId}
+                />
               </div>
             )}
             {tab === "overview" && (
@@ -656,9 +609,10 @@ function Home() {
                 runNarrative={() => runAi("narrative")}
                 aiBusy={aiBusy === "narrative"}
                 sessionId={sessionId}
+                analysis={analysis}
               />
             )}
-            {tab === "insights" && <Insights insights={insights} profile={profile} hasBlurredRef={blurSeenForFingerprintRef} />}
+            {tab === "insights" && <Insights insights={insights} profile={profile} hasBlurredRef={blurSeenForFingerprintRef} analysis={analysis} />}
             {tab === "modeling" && <ModelingPanel data={rows} columns={profile?.columns.map(c => c.name) || []} sessionId={sessionId} />}
             {tab === "anomaly" && <AnomalyPanel sessionId={sessionId} />}
             {tab === "clustering" && profile && (
@@ -673,9 +627,36 @@ function Home() {
               />
             )}
             {tab === "chat" && (
-              <div className="grid gap-6 md:grid-cols-2 items-start">
-                <QueryBox sessionId={sessionId} />
-                <ChatPanel profile={profile} persona={persona} suggestions={profile.suggestedQuestions} />
+              <div className="space-y-6">
+                {/* Mode toggle */}
+                <div className="flex rounded-lg bg-secondary/50 p-0.5 border border-border w-fit">
+                  <button
+                    onClick={() => setQueryMode("sandbox")}
+                    className={`rounded-md px-3 py-1 text-[10px] font-medium transition-colors cursor-pointer ${
+                      queryMode === "sandbox"
+                        ? "bg-primary text-primary-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    Sandbox
+                  </button>
+                  <button
+                    onClick={() => setQueryMode("chat")}
+                    className={`rounded-md px-3 py-1 text-[10px] font-medium transition-colors cursor-pointer ${
+                      queryMode === "chat"
+                        ? "bg-primary text-primary-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    AI Chat
+                  </button>
+                </div>
+
+                {queryMode === "sandbox" ? (
+                  <QueryBox sessionId={sessionId} />
+                ) : (
+                  <ChatPanel profile={profile} persona={persona} suggestions={profile.suggestedQuestions} sessionId={sessionId} analysis={analysis} />
+                )}
               </div>
             )}
             {tab === "visualizations" && profile && (
@@ -690,6 +671,7 @@ function Home() {
                 story={story}
                 runStory={() => runAi("story")}
                 aiBusy={aiBusy === "story"}
+                analysis={analysis}
               />
             )}
           </AnimatedContent>
@@ -817,17 +799,27 @@ function RiskBadge({ level }: { level: "low" | "medium" | "high" }) {
   );
 }
 
-/* ─── Dashboard ─── */
 function Dashboard({
-  profile, risk, insights, fileName, onJump,
+  profile, risk, insights, fileName, onJump, analysis, sessionId,
 }: {
   profile: DatasetProfile;
   risk: { level: "low" | "medium" | "high"; reasons: string[] };
   insights: { text: string; why?: string; confidence: number; tag: string }[];
   fileName: string;
   onJump: (t: Tab) => void;
+  analysis: AnalysisResult | null;
+  sessionId: string;
 }) {
-  const trustColor = profile.trustScore >= 80 ? "var(--color-success)" : profile.trustScore >= 55 ? "var(--color-warning)" : "var(--color-destructive)";
+  const trustScore = analysis ? analysis.trust_score : undefined;
+  const trustColor = trustScore !== undefined
+    ? (trustScore >= 80 ? "var(--color-success)" : trustScore >= 55 ? "var(--color-warning)" : "var(--color-destructive)")
+    : "var(--color-muted)";
+  
+  const rowCount = analysis ? analysis.shape.rows : profile.rowCount;
+  const colCount = analysis ? analysis.shape.cols : profile.colCount;
+  const totalCells = analysis ? analysis.shape.total_cells : (profile.rowCount * profile.colCount);
+  const trustBreakdown = analysis ? analysis.trust_breakdown : undefined;
+
   const firstCat = profile.columns.find((c) => c.type === "categorical" && c.topValues?.length);
   const miniData = firstCat?.topValues?.slice(0, 5).map((t) => ({ value: String(t.value).slice(0, 12), count: t.count })) ?? [];
 
@@ -839,7 +831,7 @@ function Dashboard({
         <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-accent/5" />
         <div className="relative flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div className="min-w-0">
-            <div className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">active dataset</div>
+            <div className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">active dataset</div>
             <div className="mt-1 flex items-center gap-3">
               <div className="truncate text-xl font-bold" title={fileName}>{fileName}</div>
               <RiskBadge level={risk.level} />
@@ -851,19 +843,85 @@ function Dashboard({
             )}
           </div>
           <div className="flex items-center gap-4">
-            <div className="text-right">
-              <div className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">trust score</div>
-              <div className="text-4xl font-bold tabular-nums animate-pulse-glow" style={{ color: trustColor }}>
-                <CountUp to={profile.trustScore} from={0} duration={1.6} />
-              </div>
-            </div>
-            <div className="h-12 w-px bg-border/50" />
             <button
               onClick={() => onJump("report")}
-              className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-primary to-accent px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-[0_0_30px_-6px_var(--color-primary)] transition-all duration-200 hover:opacity-90 hover:scale-105 active:scale-95"
+              className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-primary to-accent px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-[0_0_30px_-6px_var(--color-primary)] transition-all duration-200 hover:opacity-90 hover:scale-105 active:scale-95 cursor-pointer"
             >
               <Download className="h-4 w-4" /> Export Report
             </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Dataset Shape & Trust Score Section */}
+      <div className="grid gap-6 lg:grid-cols-3">
+        {/* Shape and Info Card */}
+        <div className="surface-card p-5 flex flex-col justify-between">
+          <div>
+            <div className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">dataset shape</div>
+            <div className="mt-2 text-2xl font-bold text-gradient"><CountUp to={rowCount} from={0} duration={1.4} separator="," /> rows</div>
+            <div className="text-lg font-semibold text-muted-foreground">{colCount} columns</div>
+            <div className="mt-1 text-xs text-muted-foreground"><CountUp to={totalCells} from={0} duration={1.6} separator="," /> total cells</div>
+          </div>
+          <div className="mt-4 border-t border-border/40 pt-4 flex gap-4">
+            <div>
+              <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-mono font-semibold">risk level</span>
+              <div className="mt-1 flex items-center gap-2">
+                <RiskBadge level={risk.level} />
+                {risk.reasons.length > 0 && (
+                  <span className="text-[10px] text-muted-foreground italic">
+                    {risk.reasons.length} flags detected
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Trust Score Breakdown Card */}
+        <div className="surface-card p-5 lg:col-span-2 flex flex-col md:flex-row gap-6">
+          <div className="flex flex-col items-center justify-center shrink-0 w-full md:w-48 border-b md:border-b-0 md:border-r border-border/40 pb-6 md:pb-0 md:pr-6">
+            <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">trust score</span>
+            {analysis ? (
+              <div className="mt-3 text-6xl font-extrabold flex flex-col items-center animate-pulse-glow" style={{ color: trustColor }}>
+                <CountUp to={analysis.trust_score} from={0} duration={1.8} />
+              </div>
+            ) : (
+              <div className="mt-3 flex flex-col items-center justify-center animate-pulse">
+                <div className="h-12 w-20 bg-muted/30 rounded" />
+                <span className="text-[10px] text-primary/75 font-medium mt-2.5 uppercase tracking-wider">Analyzing...</span>
+              </div>
+            )}
+            <span className="mt-2 text-[10px] text-muted-foreground text-center">Composite quality metric</span>
+          </div>
+          <div className="flex-1 space-y-3">
+            {analysis && trustBreakdown ? (
+              trustBreakdown.map((b) => (
+                <div key={b.label} className="text-xs">
+                  <div className="flex justify-between font-medium mb-0.5">
+                    <span>{b.label}</span>
+                    <span className="text-muted-foreground font-mono">{b.score.toFixed(0)}%</span>
+                  </div>
+                  <div className="h-1.5 overflow-hidden rounded-full bg-secondary">
+                    <div className="h-full bg-gradient-to-r from-primary to-accent transition-all duration-500" style={{ width: `${b.score}%` }} />
+                  </div>
+                  <div className="mt-0.5 text-[9px] text-muted-foreground">{b.note}</div>
+                </div>
+              ))
+            ) : (
+              <div className="space-y-4 animate-pulse">
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <div key={i} className="space-y-1.5">
+                    <div className="flex justify-between">
+                      <div className="h-3 w-20 bg-muted/30 rounded" />
+                      <div className="h-3 w-8 bg-muted/30 rounded" />
+                    </div>
+                    <div className="h-1.5 rounded-full bg-muted/20" />
+                    <div className="h-2 w-1/2 bg-muted/20 rounded" />
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -898,7 +956,7 @@ function Dashboard({
               </div>
               Top insights
             </h3>
-            <button onClick={() => onJump("insights")} className="inline-flex items-center gap-1 rounded-md border border-border px-2.5 py-1 text-[10px] font-mono uppercase tracking-wider text-muted-foreground transition-colors hover:border-primary hover:text-primary">
+            <button onClick={() => onJump("insights")} className="inline-flex items-center gap-1 rounded-md border border-border px-2.5 py-1 text-[10px] font-mono uppercase tracking-wider text-muted-foreground transition-colors hover:border-primary hover:text-primary cursor-pointer">
               view all <ChevronRight className="h-3 w-3" />
             </button>
           </div>
@@ -930,7 +988,7 @@ function Dashboard({
               </div>
               Quick chart
             </h3>
-            <button onClick={() => onJump("visualizations")} className="inline-flex items-center gap-1 rounded-md border border-border px-2.5 py-1 text-[10px] font-mono uppercase tracking-wider text-muted-foreground transition-colors hover:border-primary hover:text-primary">
+            <button onClick={() => onJump("visualizations")} className="inline-flex items-center gap-1 rounded-md border border-border px-2.5 py-1 text-[10px] font-mono uppercase tracking-wider text-muted-foreground transition-colors hover:border-primary hover:text-primary cursor-pointer">
               all charts <ChevronRight className="h-3 w-3" />
             </button>
           </div>
@@ -944,13 +1002,38 @@ function Dashboard({
           )}
         </div>
       </div>
+
+      {/* Column Profile Table */}
+      {analysis ? (
+        <BackendColumnTable columns={analysis.columns} />
+      ) : (
+        <ColumnTable profile={profile} sessionId={sessionId} />
+      )}
+
+      {/* Dependency Heatmaps */}
+      {analysis ? (
+        <DependencyHeatmaps
+          columns={analysis.dependency.columns}
+          pearson={analysis.dependency.pearson}
+          spearman={analysis.dependency.spearman}
+          mutual_info={analysis.dependency.mutual_info}
+        />
+      ) : (
+        <div className="surface-card p-6 flex flex-col items-center justify-center min-h-[300px]">
+          <BarChart3 className="h-8 w-8 text-primary animate-pulse mb-3" />
+          <p className="text-sm font-semibold text-foreground">Advanced Dependency Heatmaps</p>
+          <p className="text-xs text-muted-foreground max-w-sm text-center mt-1">
+            Linear correlations and non-linear Mutual Information dependencies will be available once backend intelligence profiling completes.
+          </p>
+        </div>
+      )}
     </div>
   );
 }
 
 /* ─── Profiling ─── */
 function Profiling({
-  profile, forecast, narrative, runNarrative, aiBusy, sessionId,
+  profile, forecast, narrative, runNarrative, aiBusy, sessionId, analysis,
 }: {
   profile: DatasetProfile;
   forecast: string | null;
@@ -958,6 +1041,7 @@ function Profiling({
   runNarrative: () => void;
   aiBusy: boolean;
   sessionId: string;
+  analysis: AnalysisResult | null;
 }) {
   const runExportCleanCSV = useServerFn(exportCleanCSV);
   const [isExporting, setIsExporting] = useState(false);
@@ -1000,10 +1084,12 @@ function Profiling({
     return "bg-destructive/15 text-destructive border-destructive/30";
   };
 
+  const currentTrustScore = analysis ? analysis.trust_score : undefined;
+
   return (
     <div className="space-y-6">
       <div className="grid gap-4 lg:grid-cols-3">
-        <TrustGauge score={profile.trustScore} />
+        <TrustGauge score={currentTrustScore} />
         <div className="surface-card p-5 lg:col-span-2">
           <div className="mb-4 flex items-center justify-between">
             <h3 className="text-sm font-semibold flex items-center gap-2">
@@ -1060,9 +1146,15 @@ function Profiling({
               <h3 className="text-sm font-semibold flex items-center gap-2">
                 <Download className="h-4 w-4 text-primary" /> Export Clean Dataset
               </h3>
-              <span className={cn("rounded-full border px-2.5 py-0.5 text-[11px] font-bold tracking-wider", getTrustBadgeClass(profile.trustScore))}>
-                Data Trust: {profile.trustScore}/100
-              </span>
+              {analysis ? (
+                <span className={cn("rounded-full border px-2.5 py-0.5 text-[11px] font-bold tracking-wider", getTrustBadgeClass(analysis.trust_score))}>
+                  Data Trust: {analysis.trust_score}/100
+                </span>
+              ) : (
+                <span className="rounded-full border border-border bg-secondary/40 px-2.5 py-0.5 text-[11px] font-medium text-muted-foreground animate-pulse">
+                  Data Trust: Loading...
+                </span>
+              )}
             </div>
             <p className="text-xs text-muted-foreground max-w-lg">
               Download the clean dataset. Missing values imputed, outliers marked, and duplicate rows dropped.
@@ -1297,13 +1389,17 @@ function PreviewTable({ profile }: { profile: DatasetProfile }) {
 
 /* ─── Insights ─── */
 function Insights({
-  insights, profile, hasBlurredRef,
+  insights, profile, hasBlurredRef, analysis,
 }: {
   insights: { text: string; why?: string; confidence: number; tag: string }[];
   profile: DatasetProfile;
   hasBlurredRef: React.MutableRefObject<string>;
+  analysis: AnalysisResult | null;
 }) {
-  const trustColor = profile.trustScore >= 80 ? "var(--color-success)" : profile.trustScore >= 50 ? "var(--color-warning)" : "var(--color-destructive)";
+  const trustScore = analysis ? analysis.trust_score : undefined;
+  const trustColor = trustScore !== undefined
+    ? (trustScore >= 80 ? "var(--color-success)" : trustScore >= 50 ? "var(--color-warning)" : "var(--color-destructive)")
+    : "var(--color-muted)";
   // Gate reads from the ref that lives in Home — survives tab switches, resets only on new dataset
   const insightFingerprint = insights.map(i => i.tag).join("-");
   const isFirstRender = hasBlurredRef.current !== insightFingerprint;
@@ -1377,9 +1473,16 @@ function Insights({
             {/* Trust Score Section */}
             <div className="flex flex-col items-center justify-center border-b md:border-b-0 md:border-r border-border/40 pb-6 md:pb-0 md:pr-6 text-center">
               <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">trust score</span>
-              <div className="mt-2 text-5xl font-extrabold animate-pulse-glow" style={{ color: trustColor }}>
-                <CountUp to={profile.trustScore} from={0} duration={1.8} />
-              </div>
+              {analysis ? (
+                <div className="mt-2 text-5xl font-extrabold flex flex-col items-center animate-pulse-glow" style={{ color: trustColor }}>
+                  <CountUp to={analysis.trust_score} from={0} duration={1.8} />
+                </div>
+              ) : (
+                <div className="mt-3 flex flex-col items-center justify-center animate-pulse">
+                  <div className="h-10 w-16 bg-muted/30 rounded" />
+                  <span className="text-[9px] text-primary/75 font-medium mt-2 uppercase tracking-wider">Analyzing...</span>
+                </div>
+              )}
               <span className="mt-1.5 text-xs text-muted-foreground">Composite quality metric</span>
             </div>
 
@@ -2499,10 +2602,10 @@ function Visualizations({ profile, sessionId, rows }: VisualizationsProps) {
 
 /* ─── Report Tab ─── */
 function ReportTab({
-  profile, fileName, insights, narrative, story, runStory, aiBusy,
+  profile, fileName, insights, narrative, story, runStory, aiBusy, analysis,
 }: {
   profile: DatasetProfile; fileName: string; insights: { text: string; why?: string; confidence: number; tag: string }[];
-  narrative: string; story: string; runStory: () => void; aiBusy: boolean;
+  narrative: string; story: string; runStory: () => void; aiBusy: boolean; analysis: AnalysisResult | null;
 }) {
   return (
     <div className="space-y-6">
@@ -2553,7 +2656,7 @@ function ReportTab({
             </p>
           </div>
           <button
-            onClick={() => exportReportPDF({ profile, fileName, insights, story, narrative })}
+            onClick={() => exportReportPDF({ profile, fileName, insights, story, narrative, analysis })}
             className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-primary to-accent px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-[0_0_30px_-6px_var(--color-primary)] transition-all duration-200 hover:opacity-90 hover:scale-105 active:scale-95"
           >
             <Download className="h-4 w-4" /> Download PDF

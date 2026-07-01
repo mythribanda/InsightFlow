@@ -310,7 +310,7 @@ export const ModelingPanel: React.FC<ModelingPanelProps> = ({ data, columns, ses
   return (
     <div className="space-y-6">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="target">Target</TabsTrigger>
           <TabsTrigger value="recommendations" disabled={!suitabilityResult}>Features (S2)</TabsTrigger>
           <TabsTrigger value="train" disabled={!recommendationsResult}>Train (§4)</TabsTrigger>

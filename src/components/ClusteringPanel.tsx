@@ -1,6 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { runClustering, type ClusteringResponse } from "@/server/clustering";
+import { runClustering, getOptimalK, exportClusteredCSV, type ClusteringResponse } from "@/server/clustering";
 import { type DatasetProfile } from "@/lib/profiler";
 import {
   Card,
@@ -22,7 +22,8 @@ import {
   ResponsiveContainer,
   Cell
 } from "recharts";
-import { Target, AlertTriangle, Layers, Activity, HelpCircle, Info } from "lucide-react";
+import { Target, AlertTriangle, Layers, Activity, HelpCircle, Info, Download } from "lucide-react";
+import { toast } from "sonner";
 
 interface ClusteringPanelProps {
   sessionId: string;
@@ -31,10 +32,13 @@ interface ClusteringPanelProps {
 
 export const ClusteringPanel: React.FC<ClusteringPanelProps> = ({ sessionId, profile }) => {
   const executeClustering = useServerFn(runClustering);
+  const runGetOptimalK = useServerFn(getOptimalK);
+  const runExportClusteredCSV = useServerFn(exportClusteredCSV);
 
-  const numericCols = profile?.columns.filter(c => c.type === "numeric").map(c => c.name) || [];
+  // MIXED-TYPE support: Allow selecting both numeric and categorical columns
+  const eligibleCols = profile?.columns.filter(c => c.type === "numeric" || c.type === "categorical").map(c => c.name) || [];
 
-  const [selectedCols, setSelectedCols] = useState<string[]>(numericCols.slice(0, 2));
+  const [selectedCols, setSelectedCols] = useState<string[]>(eligibleCols.slice(0, 2));
   const [method, setMethod] = useState<"kmeans" | "dbscan">("kmeans");
   const [nClusters, setNClusters] = useState(3);
   const [eps, setEps] = useState(0.5);
@@ -43,10 +47,34 @@ export const ClusteringPanel: React.FC<ClusteringPanelProps> = ({ sessionId, pro
   const [result, setResult] = useState<ClusteringResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+
+  // OPTIMAL K: runs silhouette sweep over K=2..10 whenever features change
+  const [optimalK, setOptimalK] = useState<number | null>(null);
+  const [fetchingOptimalK, setFetchingOptimalK] = useState(false);
+
+  useEffect(() => {
+    if (selectedCols.length >= 2) {
+      setFetchingOptimalK(true);
+      runGetOptimalK({ data: { session_id: sessionId, columns: selectedCols } })
+        .then((res) => {
+          setOptimalK(res.optimal_k);
+        })
+        .catch((err) => {
+          console.error("Failed to fetch optimal K:", err);
+          setOptimalK(null);
+        })
+        .finally(() => {
+          setFetchingOptimalK(false);
+        });
+    } else {
+      setOptimalK(null);
+    }
+  }, [selectedCols]);
 
   const handleRun = async () => {
     if (selectedCols.length < 2) {
-      setError("Please select at least 2 numeric columns for clustering.");
+      setError("Please select at least 2 columns for clustering.");
       return;
     }
     setError(null);
@@ -68,6 +96,30 @@ export const ClusteringPanel: React.FC<ClusteringPanelProps> = ({ sessionId, pro
       setResult(null);
     } finally {
       setBusy(false);
+    }
+  };
+
+  const handleExport = async () => {
+    if (!sessionId) return;
+    setIsExporting(true);
+    try {
+      const csvContent = await runExportClusteredCSV({
+        data: { session_id: sessionId }
+      });
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", `insightflow_clustered_${sessionId}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      toast.success("Dataset with cluster labels exported successfully!");
+    } catch (err: any) {
+      console.error(err);
+      toast.error("Failed to export clustered dataset.");
+    } finally {
+      setIsExporting(false);
     }
   };
 
@@ -121,21 +173,21 @@ export const ClusteringPanel: React.FC<ClusteringPanelProps> = ({ sessionId, pro
                   Select Columns to Cluster (Min 2)
                 </label>
                 <p className="text-[10px] text-muted-foreground mt-0.5">
-                  Only numeric fields are eligible. Selected fields will be Standardized prior to clustering.
+                  Supports numeric and categorical columns. Fields are Standardized/One-Hot Encoded.
                 </p>
               </div>
 
-              {numericCols.length < 2 ? (
+              {eligibleCols.length < 2 ? (
                 <Alert variant="destructive">
                   <AlertTriangle className="h-4 w-4" />
                   <AlertTitle>Insufficient Columns</AlertTitle>
                   <AlertDescription>
-                    Clustering requires at least 2 numeric columns. This dataset only contains {numericCols.length}.
+                    Clustering requires at least 2 columns. This dataset only contains {eligibleCols.length}.
                   </AlertDescription>
                 </Alert>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[160px] overflow-y-auto border border-border bg-background/55 rounded-lg p-3 scrollbar-thin">
-                  {numericCols.map((col) => (
+                  {eligibleCols.map((col) => (
                     <label
                       key={col}
                       className="flex items-center gap-2.5 text-xs font-mono text-slate-300 hover:text-white cursor-pointer select-none py-1 truncate"
@@ -208,9 +260,19 @@ export const ClusteringPanel: React.FC<ClusteringPanelProps> = ({ sessionId, pro
                       onChange={(e) => setNClusters(parseInt(e.target.value))}
                       className="w-full accent-primary bg-slate-800 rounded-lg h-2 cursor-pointer"
                     />
-                    <span className="text-[9px] text-muted-foreground block mt-1">
-                      Partitions data into exactly K distinct groups based on centroid distance.
-                    </span>
+                    {fetchingOptimalK ? (
+                      <span className="text-[9px] text-muted-foreground block mt-1 animate-pulse">
+                        Calculating optimal cluster count...
+                      </span>
+                    ) : optimalK !== null ? (
+                      <span className="text-[9px] text-primary/80 block mt-1 font-medium flex items-center gap-1">
+                        <span>💡 Based on silhouette score, K={optimalK} looks best.</span>
+                      </span>
+                    ) : (
+                      <span className="text-[9px] text-muted-foreground block mt-1">
+                        Partitions data into exactly K distinct groups based on centroid distance.
+                      </span>
+                    )}
                   </div>
                 </div>
               ) : (
@@ -260,7 +322,7 @@ export const ClusteringPanel: React.FC<ClusteringPanelProps> = ({ sessionId, pro
               <Button
                 onClick={handleRun}
                 disabled={busy || selectedCols.length < 2}
-                className="w-full font-semibold"
+                className="w-full font-semibold cursor-pointer"
               >
                 {busy ? (
                   <span className="h-4 w-4 animate-spin rounded-full border-2 border-background border-t-transparent mr-1" />
@@ -285,62 +347,95 @@ export const ClusteringPanel: React.FC<ClusteringPanelProps> = ({ sessionId, pro
             <div className="space-y-6 pt-6 border-t border-border/40">
               <div className="grid gap-6 lg:grid-cols-3">
                 {/* Insights and stats cards */}
-                <div className="space-y-4">
-                  <div className="p-4 rounded-xl border border-border bg-background/30 space-y-3">
-                    <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-                      <Layers className="h-3.5 w-3.5 text-primary" />
-                      Clustering Metrics
-                    </h4>
+                <div className="space-y-4 flex flex-col justify-between h-full">
+                  <div className="space-y-4">
+                    <div className="p-4 rounded-xl border border-border bg-background/30 space-y-4">
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                        <Layers className="h-3.5 w-3.5 text-primary" />
+                        Clustering Metrics
+                      </h4>
 
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-xs py-1 border-b border-border/30">
-                        <span className="text-muted-foreground">Algorithm</span>
-                        <span className="font-mono text-white font-medium uppercase">{method}</span>
-                      </div>
-                      <div className="flex justify-between text-xs py-1 border-b border-border/30">
-                        <span className="text-muted-foreground">Clusters Found</span>
-                        <span className="font-mono text-white font-medium">{result.n_clusters_found}</span>
-                      </div>
-                      {method === "dbscan" && (
+                      {result.silhouette_score !== null && (
+                        <div className="rounded-xl border border-border/80 bg-slate-900/60 p-4 flex items-center gap-4">
+                          <div className="flex flex-col">
+                            <span className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground font-semibold">Silhouette Score</span>
+                            <span className="text-3xl font-extrabold mt-1 text-gradient">
+                              {result.silhouette_score.toFixed(3)}
+                            </span>
+                          </div>
+                          <div className="h-10 w-px bg-border/40" />
+                          <div className="text-[10px] text-muted-foreground flex-1 leading-normal">
+                            {result.silhouette_score > 0.5 ? (
+                              <span className="text-emerald-400 font-semibold">Excellent partition</span>
+                            ) : result.silhouette_score > 0.25 ? (
+                              <span className="text-amber-400 font-semibold">Fair partition</span>
+                            ) : (
+                              <span className="text-rose-400 font-semibold">Weak/Overlapping clusters</span>
+                            )}
+                            <div className="mt-0.5">Partitions are {result.silhouette_score > 0.25 ? "well-defined" : "overlapping"}.</div>
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="space-y-2">
                         <div className="flex justify-between text-xs py-1 border-b border-border/30">
-                          <span className="text-muted-foreground">Noise Points</span>
-                          <span className="font-mono text-amber-400 font-medium">{result.noise_count}</span>
+                          <span className="text-muted-foreground">Algorithm</span>
+                          <span className="font-mono text-white font-medium uppercase">{method}</span>
                         </div>
-                      )}
-                      <div className="flex justify-between text-xs py-1 border-b border-border/30">
-                        <span className="text-muted-foreground">Silhouette Coefficient</span>
-                        <span className="font-mono text-white font-medium">
-                          {result.silhouette_score !== null ? result.silhouette_score.toFixed(3) : "—"}
-                        </span>
+                        <div className="flex justify-between text-xs py-1 border-b border-border/30">
+                          <span className="text-muted-foreground">Clusters Found</span>
+                          <span className="font-mono text-white font-medium">{result.n_clusters_found}</span>
+                        </div>
+                        {method === "dbscan" && (
+                          <div className="flex justify-between text-xs py-1 border-b border-border/30">
+                            <span className="text-muted-foreground">Noise Points</span>
+                            <span className="font-mono text-amber-400 font-medium">{result.noise_count}</span>
+                          </div>
+                        )}
+                        {hasMultipleDimensions && (
+                          <div className="flex justify-between text-xs py-1">
+                            <span className="text-muted-foreground">PCA Variance Explained</span>
+                            <span className="font-mono text-white font-medium">
+                              {(result.variance_explained * 100).toFixed(1)}%
+                            </span>
+                          </div>
+                        )}
                       </div>
-                      {hasMultipleDimensions && (
-                        <div className="flex justify-between text-xs py-1">
-                          <span className="text-muted-foreground">PCA Variance Explained</span>
-                          <span className="font-mono text-white font-medium">
-                            {(result.variance_explained * 100).toFixed(1)}%
-                          </span>
-                        </div>
-                      )}
                     </div>
+
+                    {result.silhouette_score !== null && (
+                      <div className="p-4 rounded-xl border border-border bg-background/20 text-xs text-muted-foreground leading-relaxed">
+                        <HelpCircle className="h-4 w-4 text-primary inline mr-1 -mt-0.5" />
+                        The **Silhouette score** measures cluster cohesion and separation. A score near 1 implies clean partitions; a score near 0 or negative signals overlapping clusters.
+                      </div>
+                    )}
+
+                    {hasMultipleDimensions && (
+                      <div className="p-4 rounded-xl border border-yellow-600/20 bg-yellow-600/5 text-xs text-yellow-600/80 leading-relaxed flex gap-2">
+                        <Info className="h-4 w-4 shrink-0 mt-0.5 text-yellow-600" />
+                        <div>
+                          <span>PCA 2D projection explained </span>
+                          <strong>{(result.variance_explained * 100).toFixed(1)}%</strong>
+                          <span> of high-dimensional variance. Clusters overlapping here might be cleanly separated in full dimensions.</span>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
-                  {result.silhouette_score !== null && (
-                    <div className="p-4 rounded-xl border border-border bg-background/20 text-xs text-muted-foreground leading-relaxed">
-                      <HelpCircle className="h-4 w-4 text-primary inline mr-1 -mt-0.5" />
-                      The **Silhouette score** measures cluster cohesion and separation. A score near 1 implies clean partitions; a score near 0 or negative signals overlapping clusters.
-                    </div>
-                  )}
-
-                  {hasMultipleDimensions && (
-                    <div className="p-4 rounded-xl border border-yellow-600/20 bg-yellow-600/5 text-xs text-yellow-600/80 leading-relaxed flex gap-2">
-                      <Info className="h-4 w-4 shrink-0 mt-0.5 text-yellow-600" />
-                      <div>
-                        <span>PCA 2D projection explained </span>
-                        <strong>{(result.variance_explained * 100).toFixed(1)}%</strong>
-                        <span> of high-dimensional variance. Clusters overlapping here might be cleanly separated in full dimensions.</span>
-                      </div>
-                    </div>
-                  )}
+                  {/* Assign labels back to dataset export button */}
+                  <Button
+                    onClick={handleExport}
+                    disabled={isExporting}
+                    variant="outline"
+                    className="w-full border-primary/45 bg-primary/5 text-primary hover:bg-primary/10 cursor-pointer font-semibold py-5.5"
+                  >
+                    {isExporting ? (
+                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent mr-1.5" />
+                    ) : (
+                      <Download className="h-4 w-4 mr-1.5" />
+                    )}
+                    {isExporting ? "Exporting..." : "Export Clustered Dataset (CSV)"}
+                  </Button>
                 </div>
 
                 {/* Plot Area */}
@@ -390,6 +485,78 @@ export const ClusteringPanel: React.FC<ClusteringPanelProps> = ({ sessionId, pro
                   </div>
                 </div>
               </div>
+
+              {/* Cluster Characterization profiles render */}
+              {result.profiles && result.profiles.length > 0 && (
+                <div className="pt-6 border-t border-border/40 space-y-4">
+                  <div>
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                      <Layers className="h-3.5 w-3.5 text-primary" />
+                      Cluster Characterization Profiles
+                    </h4>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">
+                      Statistical deviations (σ) of cluster averages compared to the global average. Sorted by absolute deviation.
+                    </p>
+                  </div>
+
+                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    {result.profiles.map((profile) => {
+                      const clusterColor = getColorForCluster(profile.cluster);
+                      return (
+                        <div key={profile.cluster} className="surface-card p-4 border border-border/50 bg-secondary/15 rounded-xl space-y-3">
+                          <div className="flex items-center justify-between pb-2 border-b border-border/30">
+                            <span className="text-xs font-bold flex items-center gap-2" style={{ color: clusterColor }}>
+                              <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: clusterColor }} />
+                              {profile.cluster === -1 ? "Noise / Unclassified" : `Cluster ${profile.cluster}`}
+                            </span>
+                            <span className="text-[10px] text-muted-foreground font-mono font-medium">
+                              {profile.size} rows
+                            </span>
+                          </div>
+
+                          <div className="overflow-x-auto">
+                            <table className="w-full text-left text-[10px] border-collapse">
+                              <thead>
+                                <tr className="text-slate-400 font-medium border-b border-border/20">
+                                  <th className="py-1 pr-2">Feature</th>
+                                  <th className="py-1 px-2 text-right">Cluster Val</th>
+                                  <th className="py-1 px-2 text-right">Global</th>
+                                  <th className="py-1 pl-2 text-right">Deviation</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-border/10 font-mono">
+                                {profile.features.slice(0, 5).map((f) => {
+                                  const isSig = Math.abs(f.z_score) >= 0.5;
+                                  const devColor = !isSig ? "text-slate-400" : f.z_score >= 0 ? "text-emerald-400" : "text-rose-400";
+                                  return (
+                                    <tr key={f.column} className="hover:bg-muted/5">
+                                      <td className="py-1 pr-2 text-slate-300 truncate max-w-[80px]" title={f.column}>{f.column}</td>
+                                      <td className="py-1 px-2 text-right text-white font-medium">{f.cluster_val}</td>
+                                      <td className="py-1 px-2 text-right text-slate-400">{f.global_val}</td>
+                                      <td className={`py-1 pl-2 text-right font-semibold ${devColor}`}>
+                                        {f.z_score > 0 ? "+" : ""}{f.z_score.toFixed(1)}σ
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
+
+                          <div className="text-[9px] text-muted-foreground leading-relaxed space-y-1 pt-1.5">
+                            {profile.features.slice(0, 3).map((f, idx) => (
+                              <div key={idx} className="flex gap-1">
+                                <span className="text-primary font-bold">•</span>
+                                <span>{f.description}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </CardContent>

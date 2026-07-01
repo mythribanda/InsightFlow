@@ -96,6 +96,42 @@ export const startAnalysis = createServerFn({ method: "POST" })
     }
   });
 
+export const getStory = createServerFn({ method: "POST" })
+  .inputValidator((v: unknown) => {
+    if (typeof v === "object" && v !== null && "session_id" in v) {
+      return v as { session_id: string };
+    }
+    throw new Error("Invalid story request");
+  })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ data: request }): Promise<{ narrative: string; source_json: any }> => {
+    const BACKEND_URL = process.env.MODELING_API_URL || "http://localhost:8000";
+    try {
+      const response = await fetch(`${BACKEND_URL}/story/${request.session_id}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        const detail = errorData.detail;
+        const msg = typeof detail === "string"
+          ? detail
+          : `Backend error: ${response.statusText}`;
+        throw new Error(msg);
+      }
+
+      return (await response.json()) as { narrative: string; source_json: any };
+    } catch (error) {
+      console.error("Get story error:", error);
+      throw new Error(
+        `Failed to generate data story: ${error instanceof Error ? error.message : "Unknown error"}`
+      );
+    }
+  });
+
 export const getAnalysisStatus = createServerFn({ method: "GET" })
   .inputValidator((v: unknown) => {
     if (typeof v === "object" && v !== null && "session_id" in v) {

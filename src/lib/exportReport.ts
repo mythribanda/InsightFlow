@@ -7,8 +7,9 @@ export function exportReportPDF(opts: {
   insights: { text: string; why?: string; confidence: number; tag: string }[];
   story?: string;
   narrative?: string;
+  analysis?: any;
 }) {
-  const { profile, fileName, insights, story, narrative } = opts;
+  const { profile, fileName, insights, story, narrative, analysis } = opts;
   const doc = new jsPDF({ unit: "pt", format: "a4" });
   const W = doc.internal.pageSize.getWidth();
   const H = doc.internal.pageSize.getHeight();
@@ -78,18 +79,22 @@ export function exportReportPDF(opts: {
   doc.text(fileName, M, 100);
 
   // Trust badge on cover
-  const trustColor = profile.trustScore >= 80 ? [16, 185, 129] : profile.trustScore >= 55 ? [245, 158, 11] : [239, 68, 68];
+  const trustScore = analysis ? analysis.trust_score : null;
+  const trustColor = trustScore !== null ? (trustScore >= 80 ? [16, 185, 129] : trustScore >= 55 ? [245, 158, 11] : [239, 68, 68]) : [180, 190, 210];
   doc.setFontSize(11);
   doc.setTextColor(180, 190, 210);
   doc.text("Trust Score", W - M - 120, 78);
   doc.setFontSize(28);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(trustColor[0], trustColor[1], trustColor[2]);
-  doc.text(`${profile.trustScore}`, W - M - 120, 105);
-  doc.setFontSize(11);
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(180, 190, 210);
-  doc.text("/100", W - M - 120 + doc.getTextWidth(`${profile.trustScore}`) + 4, 105);
+  const trustText = trustScore !== null ? `${trustScore}` : "Pending";
+  doc.text(trustText, W - M - 120, 105);
+  if (trustScore !== null) {
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(180, 190, 210);
+    doc.text("/100", W - M - 120 + doc.getTextWidth(trustText) + 4, 105);
+  }
 
   doc.setTextColor(30, 30, 30);
   y = 160;
@@ -104,7 +109,7 @@ export function exportReportPDF(opts: {
     `Columns: ${profile.colCount}`,
     `Duplicates: ${profile.duplicateRows}`,
     `Missing: ${profile.missingPct.toFixed(1)}%`,
-    `Trust: ${profile.trustScore}/100`,
+    `Trust: ${analysis ? `${analysis.trust_score}/100` : "Pending"}`,
   ];
   const statWidth = (W - M * 2) / stats.length;
   stats.forEach((s, i) => {

@@ -42,8 +42,6 @@ export interface DatasetProfile {
   missingPct: number;
   columns: ColumnProfile[];
   numericMatrix?: { columns: string[]; matrix: number[][] };
-  trustScore: number;
-  trustBreakdown: { label: string; score: number; weight: number; note: string }[];
   risks: string[];
   contradictions: string[];
   humanErrors: string[];
@@ -272,7 +270,7 @@ function detectContradictions(cols: ColumnProfile[]): string[] {
   return out.slice(0, 6);
 }
 
-function describeBehavior(p: Omit<DatasetProfile, "behavior" | "trustScore" | "trustBreakdown" | "risks" | "contradictions" | "humanErrors" | "suggestedQuestions" | "recommendedActions">): string[] {
+function describeBehavior(p: Omit<DatasetProfile, "behavior" | "risks" | "contradictions" | "humanErrors" | "suggestedQuestions" | "recommendedActions">): string[] {
   const notes: string[] = [];
   if (p.missingPct > 15) notes.push("Sparse — significant missing data across columns.");
   else if (p.missingPct > 3) notes.push("Mildly sparse — pockets of missingness.");
@@ -290,30 +288,7 @@ function describeBehavior(p: Omit<DatasetProfile, "behavior" | "trustScore" | "t
   return notes;
 }
 
-function trustScoring(p: Omit<DatasetProfile, "trustScore" | "trustBreakdown" | "risks" | "contradictions" | "humanErrors" | "suggestedQuestions" | "recommendedActions" | "behavior">) {
-  const completeness = Math.max(0, 100 - p.missingPct * 1.5);
-  const dupPenalty = Math.max(0, 100 - (p.duplicateRows / Math.max(p.rowCount, 1)) * 200);
-  const constantPenalty = Math.max(0, 100 - (p.columns.filter((c) => c.constant).length / Math.max(p.colCount, 1)) * 200);
-  const numericCols = p.columns.filter((c) => c.type === "numeric");
-  const outlierAvg = numericCols.length
-    ? numericCols.reduce((a, c) => a + (c.outliers ?? 0) / Math.max(c.count - c.missing, 1), 0) / numericCols.length
-    : 0;
-  const outlierScore = Math.max(0, 100 - outlierAvg * 300);
-  const variance = numericCols.length
-    ? numericCols.filter((c) => (c.std ?? 0) > 0).length / numericCols.length * 100
-    : 80;
-  const breakdown = [
-    { label: "Completeness", score: completeness, weight: 0.35, note: `${p.missingPct.toFixed(1)}% missing` },
-    { label: "Uniqueness", score: dupPenalty, weight: 0.20, note: `${p.duplicateRows} duplicates` },
-    { label: "Variance", score: variance, weight: 0.15, note: `${numericCols.length} numeric cols` },
-    { label: "Stability", score: outlierScore, weight: 0.20, note: `${(outlierAvg * 100).toFixed(1)}% outliers` },
-    { label: "Structure", score: constantPenalty, weight: 0.10, note: `${p.columns.filter((c) => c.constant).length} constants` },
-  ];
-  const score = breakdown.reduce((a, b) => a + b.score * b.weight, 0);
-  return { score: Math.round(Math.max(0, Math.min(100, score))), breakdown };
-}
-
-function buildRisks(p: Omit<DatasetProfile, "risks" | "contradictions" | "humanErrors" | "suggestedQuestions" | "recommendedActions" | "behavior" | "trustScore" | "trustBreakdown">): string[] {
+function buildRisks(p: Omit<DatasetProfile, "risks" | "contradictions" | "humanErrors" | "suggestedQuestions" | "recommendedActions" | "behavior">): string[] {
   const risks: string[] = [];
   if (p.missingPct > 20) risks.push("High missingness can bias models — imputation or row removal will materially change results.");
   for (const c of p.columns) {
@@ -372,7 +347,6 @@ export function profileDataset(rows: Record<string, unknown>[], headers: string[
     rowCount, colCount, duplicateRows: dup, totalCells, missingCells, missingPct,
     columns, numericMatrix, preview: rows.slice(0, 10) as Record<string, unknown>[], headers,
   };
-  const trust = trustScoring(base);
   const behavior = describeBehavior(base);
   const risks = buildRisks(base);
   const contradictions = detectContradictions(columns);
@@ -382,8 +356,6 @@ export function profileDataset(rows: Record<string, unknown>[], headers: string[
 
   return {
     ...base,
-    trustScore: trust.score,
-    trustBreakdown: trust.breakdown,
     behavior,
     risks,
     contradictions,
