@@ -62,3 +62,4 @@ venv/
 .venv/
 .env
 scratch/
+supabase/.temp/
