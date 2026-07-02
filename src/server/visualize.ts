@@ -21,6 +21,9 @@ export const getVisualization = createServerFn({ method: "POST" })
   })
   .middleware([requireSupabaseAuth])
   .handler(async ({ data: request, context }) => {
+    if (!context?.userId) {
+      throw new Response("Unauthorized", { status: 401 });
+    }
     const BACKEND_URL = process.env.MODELING_API_URL || "http://localhost:8000";
     try {
       const response = await fetch(
@@ -79,6 +82,9 @@ export const exportVisualizationCode = createServerFn({ method: "POST" })
   })
   .middleware([requireSupabaseAuth])
   .handler(async ({ data: request, context }) => {
+    if (!context?.userId) {
+      throw new Response("Unauthorized", { status: 401 });
+    }
     const BACKEND_URL = process.env.MODELING_API_URL || "http://localhost:8000";
     try {
       const response = await fetch(

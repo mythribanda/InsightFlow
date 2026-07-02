@@ -24,6 +24,9 @@ export const getAnomalyReport = createServerFn({ method: "GET" })
   })
   .middleware([requireSupabaseAuth])
   .handler(async ({ data: request, context }): Promise<AnomalyRow[]> => {
+    if (!context?.userId) {
+      throw new Response("Unauthorized", { status: 401 });
+    }
     const BACKEND_URL = process.env.MODELING_API_URL || "http://localhost:8000";
     const contamination = request.contamination ?? 0.05;
 

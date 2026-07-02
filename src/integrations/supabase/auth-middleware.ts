@@ -6,7 +6,7 @@ import { supabase } from './client'
 import { checkBypassToken } from 'auth-bypass'
 
 export const requireSupabaseAuth = createMiddleware({ type: 'function' })
-  .client(async ({ next }: { next: any }) => {
+  .client(async ({ next }) => {
     let { data } = await supabase.auth.getSession();
 
     const expiresAt = data.session?.expires_at;
@@ -29,7 +29,7 @@ export const requireSupabaseAuth = createMiddleware({ type: 'function' })
     });
   })
   .server(
-    async ({ next }: { next: any }) => {
+    async ({ next }) => {
     
     const SUPABASE_URL = process.env.SUPABASE_URL;
     const SUPABASE_PUBLISHABLE_KEY = process.env.SUPABASE_PUBLISHABLE_KEY;

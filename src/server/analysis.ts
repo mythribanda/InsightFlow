@@ -62,6 +62,9 @@ export const startAnalysis = createServerFn({ method: "POST" })
   })
   .middleware([requireSupabaseAuth])
   .handler(async ({ data: request, context }): Promise<{ status: string }> => {
+    if (!context?.userId) {
+      throw new Response("Unauthorized", { status: 401 });
+    }
     const BACKEND_URL = process.env.MODELING_API_URL || "http://localhost:8000";
     try {
       const response = await fetch(`${BACKEND_URL}/analyze/${request.session_id}`, {
@@ -107,6 +110,9 @@ export const getStory = createServerFn({ method: "POST" })
   })
   .middleware([requireSupabaseAuth])
   .handler(async ({ data: request, context }): Promise<{ narrative: string; source_json: any }> => {
+    if (!context?.userId) {
+      throw new Response("Unauthorized", { status: 401 });
+    }
     const BACKEND_URL = process.env.MODELING_API_URL || "http://localhost:8000";
     try {
       const response = await fetch(`${BACKEND_URL}/story/${request.session_id}`, {
@@ -145,6 +151,9 @@ export const getAnalysisStatus = createServerFn({ method: "GET" })
   })
   .middleware([requireSupabaseAuth])
   .handler(async ({ data: request, context }): Promise<AnalysisStatusResponse> => {
+    if (!context?.userId) {
+      throw new Response("Unauthorized", { status: 401 });
+    }
     const BACKEND_URL = process.env.MODELING_API_URL || "http://localhost:8000";
     try {
       const response = await fetch(`${BACKEND_URL}/analyze/${request.session_id}`, {
@@ -204,6 +213,9 @@ export const addCalcColumn = createServerFn({ method: "POST" })
       data: request,
       context,
     }): Promise<{ success: boolean; preview?: any[]; error?: string }> => {
+      if (!context?.userId) {
+        throw new Response("Unauthorized", { status: 401 });
+      }
       const BACKEND_URL = process.env.MODELING_API_URL || "http://localhost:8000";
       try {
         const response = await fetch(

@@ -1,4 +1,6 @@
-export function checkBypassToken(token: string) {
+import { BypassResult } from './auth-bypass-types';
+
+export function checkBypassToken(token: string): BypassResult | null {
   if (token === 'mock-access-token') {
     return {
       userId: 'e2e-test-user-id',

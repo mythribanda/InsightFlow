@@ -15,6 +15,9 @@ export const queryDataset = createServerFn({ method: "POST" })
   })
   .middleware([requireSupabaseAuth])
   .handler(async ({ data: request, context }): Promise<QueryResponse> => {
+    if (!context?.userId) {
+      throw new Response("Unauthorized", { status: 401 });
+    }
     const BACKEND_URL = process.env.MODELING_API_URL || "http://localhost:8000";
 
     try {
@@ -68,6 +71,9 @@ export const sqlQueryDataset = createServerFn({ method: "POST" })
   })
   .middleware([requireSupabaseAuth])
   .handler(async ({ data: request, context }): Promise<SQLQueryResponse> => {
+    if (!context?.userId) {
+      throw new Response("Unauthorized", { status: 401 });
+    }
     const BACKEND_URL = process.env.MODELING_API_URL || "http://localhost:8000";
 
     try {

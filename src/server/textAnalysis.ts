@@ -21,6 +21,9 @@ export const getTextAnalysis = createServerFn({ method: "GET" })
   })
   .middleware([requireSupabaseAuth])
   .handler(async ({ data: request, context }): Promise<TextAnalysisResponse> => {
+    if (!context?.userId) {
+      throw new Response("Unauthorized", { status: 401 });
+    }
     const BACKEND_URL = process.env.MODELING_API_URL || "http://localhost:8000";
 
     try {

@@ -48,6 +48,9 @@ export const runClustering = createServerFn({ method: "POST" })
   })
   .middleware([requireSupabaseAuth])
   .handler(async ({ data: request, context }): Promise<ClusteringResponse> => {
+    if (!context?.userId) {
+      throw new Response("Unauthorized", { status: 401 });
+    }
     const BACKEND_URL = process.env.MODELING_API_URL || "http://localhost:8000";
 
     try {
@@ -101,6 +104,9 @@ export const getOptimalK = createServerFn({ method: "POST" })
   })
   .middleware([requireSupabaseAuth])
   .handler(async ({ data: request, context }): Promise<{ optimal_k: number | null }> => {
+    if (!context?.userId) {
+      throw new Response("Unauthorized", { status: 401 });
+    }
     const BACKEND_URL = process.env.MODELING_API_URL || "http://localhost:8000";
     try {
       const response = await fetch(`${BACKEND_URL}/cluster/optimal-k/${request.session_id}`, {
@@ -135,6 +141,9 @@ export const exportClusteredCSV = createServerFn({ method: "POST" })
   })
   .middleware([requireSupabaseAuth])
   .handler(async ({ data: request, context }): Promise<string> => {
+    if (!context?.userId) {
+      throw new Response("Unauthorized", { status: 401 });
+    }
     const BACKEND_URL = process.env.MODELING_API_URL || "http://localhost:8000";
     try {
       const response = await fetch(

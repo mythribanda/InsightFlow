@@ -91,6 +91,9 @@ export const checkSuitability = createServerFn({ method: "POST" })
   })
   .middleware([requireSupabaseAuth])
   .handler(async ({ data: request, context }): Promise<SuitabilityResponse> => {
+    if (!context?.userId) {
+      throw new Response("Unauthorized", { status: 401 });
+    }
     const BACKEND_URL = process.env.MODELING_API_URL || "http://localhost:8000";
     const SESSION_ID = request.session_id || "default";
     console.log("checkSuitability handler: request =", request);
@@ -141,6 +144,9 @@ export const getRecommendations = createServerFn({ method: "POST" })
   })
   .middleware([requireSupabaseAuth])
   .handler(async ({ data: request, context }): Promise<RecommendationResponse> => {
+    if (!context?.userId) {
+      throw new Response("Unauthorized", { status: 401 });
+    }
     const BACKEND_URL = process.env.MODELING_API_URL || "http://localhost:8000";
     const SESSION_ID = request.session_id || "default";
 
@@ -189,6 +195,9 @@ export const callModelingAPI = createServerFn({ method: "POST" })
   })
   .middleware([requireSupabaseAuth])
   .handler(async ({ data: request, context }): Promise<ModelResponse> => {
+    if (!context?.userId) {
+      throw new Response("Unauthorized", { status: 401 });
+    }
     const BACKEND_URL = process.env.MODELING_API_URL || "http://localhost:8000";
     const SESSION_ID = request.session_id || "default";
 
@@ -239,6 +248,9 @@ export const getShapAnalysis = createServerFn({ method: "POST" })
   })
   .middleware([requireSupabaseAuth])
   .handler(async ({ data: request, context }): Promise<ShapResponse> => {
+    if (!context?.userId) {
+      throw new Response("Unauthorized", { status: 401 });
+    }
     const BACKEND_URL = process.env.MODELING_API_URL || "http://localhost:8000";
     const SESSION_ID = request.session_id || "default";
 
@@ -292,6 +304,9 @@ export const exportCleanCSV = createServerFn({ method: "POST" })
   })
   .middleware([requireSupabaseAuth])
   .handler(async ({ data: request, context }): Promise<string> => {
+    if (!context?.userId) {
+      throw new Response("Unauthorized", { status: 401 });
+    }
     const BACKEND_URL = process.env.MODELING_API_URL || "http://localhost:8000";
     try {
       const params = new URLSearchParams();
@@ -349,6 +364,9 @@ export const exportReproductionCode = createServerFn({ method: "POST" })
   })
   .middleware([requireSupabaseAuth])
   .handler(async ({ data: request, context }): Promise<string> => {
+    if (!context?.userId) {
+      throw new Response("Unauthorized", { status: 401 });
+    }
     const BACKEND_URL = process.env.MODELING_API_URL || "http://localhost:8000";
     try {
       const response = await fetch(
