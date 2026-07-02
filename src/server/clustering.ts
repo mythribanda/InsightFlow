@@ -47,7 +47,7 @@ export const runClustering = createServerFn({ method: "POST" })
     throw new Error("Invalid clustering request");
   })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ data: request }): Promise<ClusteringResponse> => {
+  .handler(async ({ data: request, context }): Promise<ClusteringResponse> => {
     const BACKEND_URL = process.env.MODELING_API_URL || "http://localhost:8000";
 
     try {
@@ -55,6 +55,8 @@ export const runClustering = createServerFn({ method: "POST" })
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "x-user-id": context.userId,
+          "x-internal-secret": process.env.INTERNAL_API_SECRET || "",
         },
         body: JSON.stringify({
           columns: request.columns,
@@ -98,13 +100,15 @@ export const getOptimalK = createServerFn({ method: "POST" })
     throw new Error("Invalid optimal K request");
   })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ data: request }): Promise<{ optimal_k: number | null }> => {
+  .handler(async ({ data: request, context }): Promise<{ optimal_k: number | null }> => {
     const BACKEND_URL = process.env.MODELING_API_URL || "http://localhost:8000";
     try {
       const response = await fetch(`${BACKEND_URL}/cluster/optimal-k/${request.session_id}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "x-user-id": context.userId,
+          "x-internal-secret": process.env.INTERNAL_API_SECRET || "",
         },
         body: JSON.stringify({
           columns: request.columns,
@@ -130,13 +134,17 @@ export const exportClusteredCSV = createServerFn({ method: "POST" })
     throw new Error("Invalid CSV export request");
   })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ data: request }): Promise<string> => {
+  .handler(async ({ data: request, context }): Promise<string> => {
     const BACKEND_URL = process.env.MODELING_API_URL || "http://localhost:8000";
     try {
       const response = await fetch(
         `${BACKEND_URL}/export/clustered-csv/${request.session_id}`,
         {
           method: "GET",
+          headers: {
+            "x-user-id": context.userId,
+            "x-internal-secret": process.env.INTERNAL_API_SECRET || "",
+          },
         }
       );
 

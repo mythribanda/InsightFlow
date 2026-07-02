@@ -6,7 +6,7 @@
 [![FastAPI](https://img.shields.io/badge/FastAPI-Backend-009688?logo=fastapi&logoColor=white)](#)
 [![Python](https://img.shields.io/badge/Python-3.10+-3776AB?logo=python&logoColor=white)](#)
 [![scikit-learn](https://img.shields.io/badge/scikit--learn-1.3-F7931E?logo=scikitlearn&logoColor=white)](#)
-[![License](https://img.shields.io/badge/License-MIT-green)](#)
+[![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 
 > **AI-assisted tabular data-intelligence platform.** Upload a spreadsheet and get a profiled, trust-scored, leakage-aware analysis: honest cross-validated modeling, SHAP explanations, multivariate anomaly detection, and a grounded natural-language query interface.
 

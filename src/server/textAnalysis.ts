@@ -20,7 +20,7 @@ export const getTextAnalysis = createServerFn({ method: "GET" })
     throw new Error("Invalid text analysis request");
   })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ data: request }): Promise<TextAnalysisResponse> => {
+  .handler(async ({ data: request, context }): Promise<TextAnalysisResponse> => {
     const BACKEND_URL = process.env.MODELING_API_URL || "http://localhost:8000";
 
     try {
@@ -30,6 +30,8 @@ export const getTextAnalysis = createServerFn({ method: "GET" })
           method: "GET",
           headers: {
             "Content-Type": "application/json",
+            "x-user-id": context.userId,
+            "x-internal-secret": process.env.INTERNAL_API_SECRET || "",
           },
         }
       );

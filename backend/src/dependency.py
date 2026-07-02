@@ -50,14 +50,9 @@ def compute_dependency_matrices(df: pd.DataFrame, numeric_cols: List[str]) -> Di
                 except Exception:
                     mi_matrix[i][j] = 0.0
                     
-    # Let's normalize Mutual Info matrix by column-wise max to keep values in [0, 1] range for visual rendering
-    normalized_mi = mi_matrix.copy()
-    for i in range(n):
-        row_max = np.max(normalized_mi[i])
-        if row_max > 0:
-            # We want self-MI to be 1.0, and others relative to it or to the max
-            pass
-            
+    # Note: Returned mutual_info values are raw mutual_info_regression outputs (not normalized),
+    # with the diagonal hardcoded to 1.0 for self-dependency. The frontend handles normalization
+    # dynamically for heatmap rendering.
     return {
         "columns": numeric_cols,
         "pearson": pearson_df.values.tolist(),

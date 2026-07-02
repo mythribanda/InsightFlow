@@ -1,11 +1,11 @@
 import logging
 import pandas as pd
 import numpy as np
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Header
 
 from sklearn.feature_extraction.text import TfidfVectorizer
 
-from state import session_data_store, parse_request_data
+from state import session_data_store, parse_request_data, verify_session_owner
 from schemas import CalcColumnRequest, CalcColumnResponse
 from src.calc_columns import add_calculated_column
 
@@ -14,7 +14,8 @@ router = APIRouter()
 
 
 @router.get("/text-analysis/{session_id}/{column}")
-async def analyze_text_column(session_id: str, column: str):
+async def analyze_text_column(session_id: str, column: str, x_user_id: str = Header(None)):
+    verify_session_owner(session_id, x_user_id)
     """
     GET /text-analysis/{session_id}/{column} -> TF-IDF top terms for a free-text column.
     """
@@ -51,7 +52,8 @@ async def analyze_text_column(session_id: str, column: str):
 
 
 @router.post("/calc-column/{session_id}", response_model=CalcColumnResponse)
-async def add_calc_column(session_id: str, request: CalcColumnRequest) -> CalcColumnResponse:
+async def add_calc_column(session_id: str, request: CalcColumnRequest, x_user_id: str = Header(None)) -> CalcColumnResponse:
+    verify_session_owner(session_id, x_user_id)
     """
     Evaluates a user-defined calculated column expression and adds it to the session data.
     """
@@ -78,6 +80,8 @@ async def add_calc_column(session_id: str, request: CalcColumnRequest) -> CalcCo
         logger.info(f"[{session_id}] Calculated column '{request.name}' successfully added and session analysis updated.")
         return CalcColumnResponse(success=True, preview=preview_values)
         
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"[{session_id}] Calculated column execution crashed: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Internal server error evaluating column: {str(e)}")

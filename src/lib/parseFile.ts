@@ -9,6 +9,15 @@ export interface ParsedFile {
 }
 
 export async function parseFile(file: File): Promise<ParsedFile> {
+  const MAX_FILE_SIZE_BYTES = 25 * 1024 * 1024; // 25 MB
+  if (file.size > MAX_FILE_SIZE_BYTES) {
+    throw new Error(
+      `File size exceeds the limit of 25MB (got ${(
+        file.size /
+        (1024 * 1024)
+      ).toFixed(2)}MB). Please upload a smaller file.`
+    );
+  }
   const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
   if (ext === "csv" || ext === "tsv" || ext === "txt") {
     return new Promise((resolve, reject) => {

@@ -2,9 +2,9 @@ import logging
 import json
 import pandas as pd
 import numpy as np
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Header
 
-from state import session_data_store
+from state import session_data_store, verify_session_owner
 from schemas import VisualizationRequest, CodeExportRequest
 
 logger = logging.getLogger(__name__)
@@ -12,7 +12,8 @@ router = APIRouter()
 
 
 @router.post("/visualize/{session_id}")
-async def get_visualization(session_id: str, request: VisualizationRequest):
+async def get_visualization(session_id: str, request: VisualizationRequest, x_user_id: str = Header(None)):
+    verify_session_owner(session_id, x_user_id)
     """
     Generate data and insights for client-side visualizations.
     """
@@ -386,7 +387,8 @@ async def get_visualization(session_id: str, request: VisualizationRequest):
 
 
 @router.post("/visualize/{session_id}/export-code")
-async def export_visualization_code(session_id: str, request: CodeExportRequest):
+async def export_visualization_code(session_id: str, request: CodeExportRequest, x_user_id: str = Header(None)):
+    verify_session_owner(session_id, x_user_id)
     """Generate a standalone Python script reproducing the requested chart."""
     df = session_data_store.get(session_id)
     if df is None:

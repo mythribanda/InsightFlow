@@ -3,6 +3,7 @@ import { getRequest } from '@tanstack/react-start/server'
 import { createClient } from '@supabase/supabase-js'
 import type { Database } from './types'
 import { supabase } from './client'
+import { checkBypassToken } from 'auth-bypass'
 
 export const requireSupabaseAuth = createMiddleware({ type: 'function' })
   .client(async ({ next }: { next: any }) => {
@@ -81,9 +82,12 @@ export const requireSupabaseAuth = createMiddleware({ type: 'function' })
     let userId: string;
     let claims: any;
 
-    if (process.env.NODE_ENV === 'development' && token === 'mock-access-token') {
-      userId = 'e2e-test-user-id';
-      claims = { sub: 'e2e-test-user-id', email: 'insightflow_e2e_test@gmail.com' };
+    const bypass = (process.env.E2E_AUTH_BYPASS === '1' && token === 'mock-access-token')
+      ? checkBypassToken(token)
+      : null;
+    if (bypass) {
+      userId = bypass.userId;
+      claims = bypass.claims;
     } else {
       const { data, error } = await supabase.auth.getClaims(token);
       if (error || !data?.claims) {

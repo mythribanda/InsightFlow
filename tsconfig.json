@@ -21,7 +21,8 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true,
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "auth-bypass": ["./src/integrations/supabase/auth-bypass.prod.ts"]
     }
   }
 }

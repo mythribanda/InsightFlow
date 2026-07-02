@@ -13,6 +13,9 @@ export default defineConfig(({ command }) => ({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      "auth-bypass": command === "build"
+        ? path.resolve(__dirname, "./src/integrations/supabase/auth-bypass.prod.ts")
+        : path.resolve(__dirname, "./src/integrations/supabase/auth-bypass.dev.ts"),
     },
     dedupe: [
       "react",

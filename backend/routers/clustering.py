@@ -2,7 +2,7 @@ import logging
 from typing import List, Dict, Any
 import pandas as pd
 import numpy as np
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Header
 from fastapi.responses import Response
 
 from sklearn.preprocessing import StandardScaler
@@ -10,7 +10,7 @@ from sklearn.cluster import KMeans, DBSCAN
 from sklearn.metrics import silhouette_score
 from sklearn.decomposition import PCA
 
-from state import session_data_store, cluster_labels_store
+from state import session_data_store, cluster_labels_store, verify_session_owner
 from schemas import ClusterRequest, OptimalKRequest
 
 logger = logging.getLogger(__name__)
@@ -103,7 +103,8 @@ def characterize_clusters(
 
 
 @router.post("/cluster/{session_id}")
-async def run_clustering(session_id: str, request: ClusterRequest):
+async def run_clustering(session_id: str, request: ClusterRequest, x_user_id: str = Header(None)):
+    verify_session_owner(session_id, x_user_id)
     """
     POST /cluster/{session_id} -> runs KMeans or DBSCAN on the selected numeric
     and categorical columns (mixed-type preprocessed via ColumnTransformer),
@@ -217,7 +218,8 @@ async def run_clustering(session_id: str, request: ClusterRequest):
 
 
 @router.post("/cluster/optimal-k/{session_id}")
-async def get_optimal_k(session_id: str, request: OptimalKRequest):
+async def get_optimal_k(session_id: str, request: OptimalKRequest, x_user_id: str = Header(None)):
+    verify_session_owner(session_id, x_user_id)
     """
     POST /cluster/optimal-k/{session_id} -> runs a silhouette sweep over k=2..10
     on the selected features and suggests the optimal k.
@@ -282,7 +284,8 @@ async def get_optimal_k(session_id: str, request: OptimalKRequest):
 
 
 @router.get("/export/clustered-csv/{session_id}")
-async def export_clustered_csv(session_id: str):
+async def export_clustered_csv(session_id: str, x_user_id: str = Header(None)):
+    verify_session_owner(session_id, x_user_id)
     """
     GET /export/clustered-csv/{session_id} -> original dataset with cluster labels appended.
     """

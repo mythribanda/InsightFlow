@@ -4,9 +4,9 @@ import re
 import duckdb
 import pandas as pd
 import numpy as np
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Header
 
-from state import session_data_store
+from state import session_data_store, verify_session_owner
 from schemas import QueryRequest, SQLQueryRequest
 
 logger = logging.getLogger(__name__)
@@ -19,7 +19,8 @@ FORBIDDEN_SQL_KEYWORDS = re.compile(
 
 
 @router.post("/query/{session_id}")
-async def query_dataset(session_id: str, request: QueryRequest):
+async def query_dataset(session_id: str, request: QueryRequest, x_user_id: str = Header(None)):
+    verify_session_owner(session_id, x_user_id)
     """
     POST /query/{session_id} -> generates pandas code using Groq and executes it.
     """
@@ -68,7 +69,8 @@ async def query_dataset(session_id: str, request: QueryRequest):
 
 
 @router.post("/sql-query/{session_id}")
-async def run_sql_query(session_id: str, request: SQLQueryRequest):
+async def run_sql_query(session_id: str, request: SQLQueryRequest, x_user_id: str = Header(None)):
+    verify_session_owner(session_id, x_user_id)
     """
     POST /sql-query/{session_id} -> runs a read-only SQL SELECT against the
     uploaded dataset using DuckDB, with the dataframe exposed as table 'dataset'.

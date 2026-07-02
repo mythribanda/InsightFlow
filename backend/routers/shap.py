@@ -1,7 +1,7 @@
 import logging
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Header
 
-from state import model_store, session_data_store
+from state import model_store, session_data_store, verify_session_owner
 from schemas import ShapRequest, ShapResponse
 from src.modeling_extensions import generate_shap_plots
 
@@ -10,10 +10,11 @@ router = APIRouter()
 
 
 @router.post("/shap/{session_id}", response_model=ShapResponse)
-async def get_shap_analysis(session_id: str, request: ShapRequest) -> ShapResponse:
+async def get_shap_analysis(session_id: str, request: ShapRequest, x_user_id: str = Header(None)) -> ShapResponse:
     """
     §4.6: SHAP explainability analysis for the fitted best model.
     """
+    verify_session_owner(session_id, x_user_id)
     try:
         logger.info(f"[{session_id}] SHAP analysis request (sample {request.sample_idx})")
         

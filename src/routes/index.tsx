@@ -168,7 +168,8 @@ function Home() {
       // Backend Background analysis job
       setAnalyzing(true);
       setAnalysis(null);
-      const session_id = `session_${Date.now()}`;
+      const userId = session?.user?.id || "anonymous";
+      const session_id = `session_${userId}_${crypto.randomUUID()}`;
       setSessionId(session_id);
       
       const dataDict: Record<string, unknown[]> = {};

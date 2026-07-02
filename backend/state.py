@@ -43,13 +43,13 @@ class TTLDict(dict):
 
 
 # Session store for fitted models (in-memory; use Redis for production)
-model_store = {}
+model_store = TTLDict()
 # Session store for raw DataFrames (in-memory; cached for downstream tasks like anomalies)
 session_data_store = TTLDict()
 # Session store for compiled model and anomaly results
-model_results_store = {}
-anomaly_results_store = {}
-cluster_labels_store = {}
+model_results_store = TTLDict()
+anomaly_results_store = TTLDict()
+cluster_labels_store = TTLDict()
 # Session store for background analysis jobs
 analysis_jobs = TTLDict()
 
@@ -99,6 +99,43 @@ async def cleanup_sessions_task():
 
 def parse_request_data(data: Any) -> pd.DataFrame:
     """Parses raw request data into a DataFrame with proper types and missing values."""
+    from fastapi import HTTPException
+    import json
+
+    # 25 MB payload limit (matching client-side limit)
+    MAX_PAYLOAD_SIZE = 25 * 1024 * 1024
+    
+    payload_size = 0
+    if isinstance(data, str):
+        payload_size = len(data)
+    else:
+        try:
+            payload_size = len(json.dumps(data))
+        except:
+            payload_size = 0
+            
+    if payload_size > MAX_PAYLOAD_SIZE:
+        raise HTTPException(
+            status_code=413,
+            detail="Payload size too large. Maximum allowed size is 25MB."
+        )
+
+    # Pre-check row/cell count limit if dictionary format
+    if isinstance(data, dict):
+        max_rows = 150000
+        max_cells = 3000000
+        row_count = 0
+        cell_count = 0
+        for col_name, col_values in data.items():
+            if isinstance(col_values, list):
+                row_count = max(row_count, len(col_values))
+                cell_count += len(col_values)
+        if row_count > max_rows or cell_count > max_cells:
+            raise HTTPException(
+                status_code=413,
+                detail=f"Dataset dimensions exceed limits (max rows: {max_rows}, max cells: {max_cells})."
+            )
+
     if isinstance(data, str):
         # Base64 or CSV string
         try:
@@ -110,6 +147,15 @@ def parse_request_data(data: Any) -> pd.DataFrame:
     else:
         # Dict format
         df = pd.DataFrame(data)
+
+    # Post-check row/cell count limit on constructed DataFrame
+    max_rows = 150000
+    max_cells = 3000000
+    if len(df) > max_rows or df.size > max_cells:
+        raise HTTPException(
+            status_code=413,
+            detail=f"Dataset dimensions exceed limits (max rows: {max_rows}, max cells: {max_cells})."
+        )
     
     # Standardize string representations of NaNs/empty space
     df = df.replace(r'^\s*$', np.nan, regex=True)
@@ -145,3 +191,20 @@ def impute_missing(df: pd.DataFrame) -> pd.DataFrame:
             mode_val = mode_series[0] if len(mode_series) > 0 else "MISSING"
             df_clean[col] = df_clean[col].fillna(mode_val)
     return df_clean
+
+
+from fastapi import Header, HTTPException
+
+def verify_session_owner(session_id: str, x_user_id: str = Header(None)):
+    if not session_id:
+        raise HTTPException(status_code=400, detail="Missing session ID")
+    if not session_id.startswith("session_"):
+        raise HTTPException(status_code=403, detail="Unauthorized: Invalid session format")
+    parts = session_id.split("_")
+    if len(parts) < 3:
+        raise HTTPException(status_code=403, detail="Unauthorized: Invalid session format")
+    owner_id = parts[1]
+    if not x_user_id:
+        raise HTTPException(status_code=403, detail="Unauthorized: Missing calling user credentials")
+    if owner_id != x_user_id:
+        raise HTTPException(status_code=403, detail="Unauthorized: Session owner mismatch")

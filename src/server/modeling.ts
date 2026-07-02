@@ -90,7 +90,7 @@ export const checkSuitability = createServerFn({ method: "POST" })
     throw new Error("Invalid suitability request");
   })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ data: request }): Promise<SuitabilityResponse> => {
+  .handler(async ({ data: request, context }): Promise<SuitabilityResponse> => {
     const BACKEND_URL = process.env.MODELING_API_URL || "http://localhost:8000";
     const SESSION_ID = request.session_id || "default";
     console.log("checkSuitability handler: request =", request);
@@ -101,6 +101,8 @@ export const checkSuitability = createServerFn({ method: "POST" })
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "x-user-id": context.userId,
+          "x-internal-secret": process.env.INTERNAL_API_SECRET || "",
         },
         body: JSON.stringify({
           target: request.target,
@@ -138,7 +140,7 @@ export const getRecommendations = createServerFn({ method: "POST" })
     throw new Error("Invalid recommendation request");
   })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ data: request }): Promise<RecommendationResponse> => {
+  .handler(async ({ data: request, context }): Promise<RecommendationResponse> => {
     const BACKEND_URL = process.env.MODELING_API_URL || "http://localhost:8000";
     const SESSION_ID = request.session_id || "default";
 
@@ -147,6 +149,8 @@ export const getRecommendations = createServerFn({ method: "POST" })
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "x-user-id": context.userId,
+          "x-internal-secret": process.env.INTERNAL_API_SECRET || "",
         },
         body: JSON.stringify({
           target: request.target,
@@ -184,7 +188,7 @@ export const callModelingAPI = createServerFn({ method: "POST" })
     throw new Error("Invalid model request");
   })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ data: request }): Promise<ModelResponse> => {
+  .handler(async ({ data: request, context }): Promise<ModelResponse> => {
     const BACKEND_URL = process.env.MODELING_API_URL || "http://localhost:8000";
     const SESSION_ID = request.session_id || "default";
 
@@ -193,6 +197,8 @@ export const callModelingAPI = createServerFn({ method: "POST" })
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "x-user-id": context.userId,
+          "x-internal-secret": process.env.INTERNAL_API_SECRET || "",
         },
         body: JSON.stringify({
           target: request.target,
@@ -232,7 +238,7 @@ export const getShapAnalysis = createServerFn({ method: "POST" })
     throw new Error("Invalid SHAP request");
   })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ data: request }): Promise<ShapResponse> => {
+  .handler(async ({ data: request, context }): Promise<ShapResponse> => {
     const BACKEND_URL = process.env.MODELING_API_URL || "http://localhost:8000";
     const SESSION_ID = request.session_id || "default";
 
@@ -241,6 +247,8 @@ export const getShapAnalysis = createServerFn({ method: "POST" })
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "x-user-id": context.userId,
+          "x-internal-secret": process.env.INTERNAL_API_SECRET || "",
         },
         body: JSON.stringify({
           sample_idx: request.sample_idx || 0,
@@ -283,7 +291,7 @@ export const exportCleanCSV = createServerFn({ method: "POST" })
     throw new Error("Invalid CSV export request");
   })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ data: request }): Promise<string> => {
+  .handler(async ({ data: request, context }): Promise<string> => {
     const BACKEND_URL = process.env.MODELING_API_URL || "http://localhost:8000";
     try {
       const params = new URLSearchParams();
@@ -295,6 +303,10 @@ export const exportCleanCSV = createServerFn({ method: "POST" })
         `${BACKEND_URL}/export/clean-csv/${request.session_id}?${params.toString()}`,
         {
           method: "GET",
+          headers: {
+            "x-user-id": context.userId,
+            "x-internal-secret": process.env.INTERNAL_API_SECRET || "",
+          },
         }
       );
 
@@ -336,7 +348,7 @@ export const exportReproductionCode = createServerFn({ method: "POST" })
     throw new Error("Invalid code reproduction export request");
   })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ data: request }): Promise<string> => {
+  .handler(async ({ data: request, context }): Promise<string> => {
     const BACKEND_URL = process.env.MODELING_API_URL || "http://localhost:8000";
     try {
       const response = await fetch(
@@ -345,6 +357,8 @@ export const exportReproductionCode = createServerFn({ method: "POST" })
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            "x-user-id": context.userId,
+            "x-internal-secret": process.env.INTERNAL_API_SECRET || "",
           },
           body: JSON.stringify({
             target: request.target,

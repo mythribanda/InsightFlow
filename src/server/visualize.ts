@@ -20,7 +20,7 @@ export const getVisualization = createServerFn({ method: "POST" })
     throw new Error("Invalid visualization request");
   })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ data: request }) => {
+  .handler(async ({ data: request, context }) => {
     const BACKEND_URL = process.env.MODELING_API_URL || "http://localhost:8000";
     try {
       const response = await fetch(
@@ -29,6 +29,8 @@ export const getVisualization = createServerFn({ method: "POST" })
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            "x-user-id": context.userId,
+            "x-internal-secret": process.env.INTERNAL_API_SECRET || "",
           },
           body: JSON.stringify({
             column1: request.column1,
@@ -76,7 +78,7 @@ export const exportVisualizationCode = createServerFn({ method: "POST" })
     throw new Error("Invalid code export request");
   })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ data: request }) => {
+  .handler(async ({ data: request, context }) => {
     const BACKEND_URL = process.env.MODELING_API_URL || "http://localhost:8000";
     try {
       const response = await fetch(
@@ -85,6 +87,8 @@ export const exportVisualizationCode = createServerFn({ method: "POST" })
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            "x-user-id": context.userId,
+            "x-internal-secret": process.env.INTERNAL_API_SECRET || "",
           },
           body: JSON.stringify({
             column1: request.column1,

@@ -14,7 +14,7 @@ export const queryDataset = createServerFn({ method: "POST" })
     throw new Error("Invalid query request");
   })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ data: request }): Promise<QueryResponse> => {
+  .handler(async ({ data: request, context }): Promise<QueryResponse> => {
     const BACKEND_URL = process.env.MODELING_API_URL || "http://localhost:8000";
 
     try {
@@ -22,6 +22,8 @@ export const queryDataset = createServerFn({ method: "POST" })
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "x-user-id": context.userId,
+          "x-internal-secret": process.env.INTERNAL_API_SECRET || "",
         },
         body: JSON.stringify({
           question: request.question,
@@ -65,7 +67,7 @@ export const sqlQueryDataset = createServerFn({ method: "POST" })
     throw new Error("Invalid SQL query request");
   })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ data: request }): Promise<SQLQueryResponse> => {
+  .handler(async ({ data: request, context }): Promise<SQLQueryResponse> => {
     const BACKEND_URL = process.env.MODELING_API_URL || "http://localhost:8000";
 
     try {
@@ -73,6 +75,8 @@ export const sqlQueryDataset = createServerFn({ method: "POST" })
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "x-user-id": context.userId,
+          "x-internal-secret": process.env.INTERNAL_API_SECRET || "",
         },
         body: JSON.stringify({
           query: request.query,

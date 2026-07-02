@@ -61,13 +61,15 @@ export const startAnalysis = createServerFn({ method: "POST" })
     throw new Error("Invalid start analysis request");
   })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ data: request }): Promise<{ status: string }> => {
+  .handler(async ({ data: request, context }): Promise<{ status: string }> => {
     const BACKEND_URL = process.env.MODELING_API_URL || "http://localhost:8000";
     try {
       const response = await fetch(`${BACKEND_URL}/analyze/${request.session_id}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "x-user-id": context.userId,
+          "x-internal-secret": process.env.INTERNAL_API_SECRET || "",
         },
         body: JSON.stringify({
           data: request.data,
@@ -104,13 +106,15 @@ export const getStory = createServerFn({ method: "POST" })
     throw new Error("Invalid story request");
   })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ data: request }): Promise<{ narrative: string; source_json: any }> => {
+  .handler(async ({ data: request, context }): Promise<{ narrative: string; source_json: any }> => {
     const BACKEND_URL = process.env.MODELING_API_URL || "http://localhost:8000";
     try {
       const response = await fetch(`${BACKEND_URL}/story/${request.session_id}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "x-user-id": context.userId,
+          "x-internal-secret": process.env.INTERNAL_API_SECRET || "",
         },
       });
 
@@ -140,13 +144,15 @@ export const getAnalysisStatus = createServerFn({ method: "GET" })
     throw new Error("Invalid status request");
   })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ data: request }): Promise<AnalysisStatusResponse> => {
+  .handler(async ({ data: request, context }): Promise<AnalysisStatusResponse> => {
     const BACKEND_URL = process.env.MODELING_API_URL || "http://localhost:8000";
     try {
       const response = await fetch(`${BACKEND_URL}/analyze/${request.session_id}`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
+          "x-user-id": context.userId,
+          "x-internal-secret": process.env.INTERNAL_API_SECRET || "",
         },
       });
 
@@ -196,6 +202,7 @@ export const addCalcColumn = createServerFn({ method: "POST" })
   .handler(
     async ({
       data: request,
+      context,
     }): Promise<{ success: boolean; preview?: any[]; error?: string }> => {
       const BACKEND_URL = process.env.MODELING_API_URL || "http://localhost:8000";
       try {
@@ -205,6 +212,8 @@ export const addCalcColumn = createServerFn({ method: "POST" })
             method: "POST",
             headers: {
               "Content-Type": "application/json",
+              "x-user-id": context.userId,
+              "x-internal-secret": process.env.INTERNAL_API_SECRET || "",
             },
             body: JSON.stringify({
               name: request.name,

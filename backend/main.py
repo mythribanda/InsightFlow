@@ -47,6 +47,27 @@ app = FastAPI(
     version="1.0.0"
 )
 
+from fastapi.responses import JSONResponse
+
+INTERNAL_API_SECRET = os.getenv("INTERNAL_API_SECRET")
+
+@app.middleware("http")
+async def verify_internal_secret(request: Request, call_next):
+    # Allow OPTIONS (CORS preflight) and health check without secret check
+    if request.method == "OPTIONS" or request.url.path == "/health":
+        return await call_next(request)
+        
+    secret = INTERNAL_API_SECRET
+    header_secret = request.headers.get("x-internal-secret")
+    
+    if not secret or header_secret != secret:
+        return JSONResponse(
+            status_code=401,
+            content={"detail": "Unauthorized: Invalid or missing internal API secret"}
+        )
+        
+    return await call_next(request)
+
 # CORS
 cors_origins_str = os.getenv("CORS_ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:3000")
 origins = [origin.strip() for origin in cors_origins_str.split(",") if origin.strip()]
@@ -56,7 +77,7 @@ app.add_middleware(
     allow_origins=origins,
     allow_credentials=False,
     allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
-    allow_headers=["Content-Type"],
+    allow_headers=["Content-Type", "x-user-id", "X-User-Id", "x-internal-secret", "X-Internal-Secret"],
 )
 
 @app.exception_handler(RequestValidationError)

@@ -4,7 +4,7 @@ import os
 import json
 import pandas as pd
 import numpy as np
-from fastapi import APIRouter, HTTPException, BackgroundTasks
+from fastapi import APIRouter, HTTPException, BackgroundTasks, Header
 from fastapi.responses import Response
 
 from state import (
@@ -14,6 +14,7 @@ from state import (
     model_results_store,
     parse_request_data,
     impute_missing,
+    verify_session_owner,
 )
 from schemas import AnalyzeRequest, AnalyzeStatusResponse
 from src.profile import profile_dataset
@@ -59,7 +60,8 @@ def run_analysis(session_id: str, df: pd.DataFrame):
 
 
 @router.post("/analyze/{session_id}")
-async def start_analysis(session_id: str, request: AnalyzeRequest, background_tasks: BackgroundTasks):
+async def start_analysis(session_id: str, request: AnalyzeRequest, background_tasks: BackgroundTasks, x_user_id: str = Header(None)):
+    verify_session_owner(session_id, x_user_id)
     try:
         logger.info(f"[{session_id}] Received analysis request")
         df = parse_request_data(request.data)
@@ -74,13 +76,16 @@ async def start_analysis(session_id: str, request: AnalyzeRequest, background_ta
         }
         background_tasks.add_task(run_analysis, session_id, df)
         return {"status": "processing"}
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"[{session_id}] Failed to start analysis: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Failed to start analysis: {str(e)}")
 
 
 @router.get("/analyze/{session_id}", response_model=AnalyzeStatusResponse)
-async def get_analysis_status(session_id: str):
+async def get_analysis_status(session_id: str, x_user_id: str = Header(None)):
+    verify_session_owner(session_id, x_user_id)
     job = analysis_jobs.get(session_id)
     if not job:
         raise HTTPException(status_code=404, detail=f"No analysis job found for session '{session_id}'")
@@ -88,10 +93,11 @@ async def get_analysis_status(session_id: str):
 
 
 @router.get("/anomaly/{session_id}")
-async def get_anomalies(session_id: str, contamination: float = 0.05):
+async def get_anomalies(session_id: str, contamination: float = 0.05, x_user_id: str = Header(None)):
     """
     GET /anomaly/{session_id} -> ranked anomalous rows with top-3 drivers.
     """
+    verify_session_owner(session_id, x_user_id)
     try:
         logger.info(f"[{session_id}] Anomaly detection request (contamination={contamination})")
         df = session_data_store.get(session_id)
@@ -114,11 +120,12 @@ async def get_anomalies(session_id: str, contamination: float = 0.05):
 
 
 @router.post("/story/{session_id}")
-async def get_story(session_id: str):
+async def get_story(session_id: str, x_user_id: str = Header(None)):
     """
     POST /story/{session_id} -> compiles computed facts JSON, converts to narrative with Groq,
     and returns both.
     """
+    verify_session_owner(session_id, x_user_id)
     try:
         logger.info(f"[{session_id}] Narrative story request received")
         df = session_data_store.get(session_id)
@@ -197,11 +204,12 @@ async def get_story(session_id: str):
 
 
 @router.get("/export/clean-csv/{session_id}")
-async def export_clean_csv(session_id: str, excluded_features: str = ""):
+async def export_clean_csv(session_id: str, excluded_features: str = "", x_user_id: str = Header(None)):
     """
     Exports a cleaned version of the session data as a CSV download.
     Applies column exclusions and missing value imputation.
     """
+    verify_session_owner(session_id, x_user_id)
     try:
         logger.info(f"[{session_id}] CSV Export request received. Excluded: '{excluded_features}'")
         

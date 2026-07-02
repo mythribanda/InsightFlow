@@ -5,7 +5,7 @@ import sys
 import json
 import pandas as pd
 import numpy as np
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Header
 from fastapi.responses import Response
 
 from state import (
@@ -14,6 +14,7 @@ from state import (
     model_results_store,
     parse_request_data,
     impute_missing,
+    verify_session_owner,
 )
 from schemas import (
     ModelRequest,
@@ -38,13 +39,14 @@ router = APIRouter()
 
 
 @router.post("/suitability/{session_id}", response_model=SuitabilityResponse)
-async def check_suitability(session_id: str, request: SuitabilityRequest) -> SuitabilityResponse:
+async def check_suitability(session_id: str, request: SuitabilityRequest, x_user_id: str = Header(None)) -> SuitabilityResponse:
     """
     S3: Target suitability pre-flight health check.
     Run BEFORE training to assess if target is suitable.
     
     Checks: completeness, variance, class balance, sample-size heuristic.
     """
+    verify_session_owner(session_id, x_user_id)
     try:
         logger.info(f"[{session_id}] Suitability check for target: {request.target}")
         
@@ -80,12 +82,13 @@ async def check_suitability(session_id: str, request: SuitabilityRequest) -> Sui
 
 
 @router.post("/recommend/{session_id}", response_model=RecommendationResponse)
-async def get_recommendations(session_id: str, request: RecommendationRequest) -> RecommendationResponse:
+async def get_recommendations(session_id: str, request: RecommendationRequest, x_user_id: str = Header(None)) -> RecommendationResponse:
     """
     S2: Feature recommendation bucketing.
     Categorizes features into: high_signal, low_signal, harmful, leakage.
     Run BEFORE or AFTER training; uses leakage flags + importance.
     """
+    verify_session_owner(session_id, x_user_id)
     try:
         logger.info(f"[{session_id}] Feature recommendations for target: {request.target}")
         
@@ -134,10 +137,11 @@ async def get_recommendations(session_id: str, request: RecommendationRequest) -
 
 
 @router.post("/model/{session_id}", response_model=ModelResponse)
-async def train_model(session_id: str, request: ModelRequest) -> ModelResponse:
+async def train_model(session_id: str, request: ModelRequest, x_user_id: str = Header(None)) -> ModelResponse:
     """
     Train ML models on uploaded data with leakage detection.
     """
+    verify_session_owner(session_id, x_user_id)
     try:
         logger.info(f"[{session_id}] Received model training request for target: {request.target}")
         
@@ -231,11 +235,12 @@ async def train_model(session_id: str, request: ModelRequest) -> ModelResponse:
 
 
 @router.post("/export/code/{session_id}")
-async def export_code(session_id: str, request: ExportCodeRequest):
+async def export_code(session_id: str, request: ExportCodeRequest, x_user_id: str = Header(None)):
     """
     Generates a standalone Python script that reproduces the preprocessing,
     modeling training, and validation visualizations on raw data.
     """
+    verify_session_owner(session_id, x_user_id)
     try:
         logger.info(f"[{session_id}] Code reproduction export request received for target: {request.target}")
         

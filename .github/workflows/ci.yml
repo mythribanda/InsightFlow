@@ -1,0 +1,93 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches:
+      - main
+      - fix
+      - 'fix/*'
+  pull_request:
+    branches:
+      - main
+      - fix
+      - 'fix/*'
+
+jobs:
+  frontend:
+    name: Frontend CI
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: TypeScript Compile Check
+        run: npx tsc --noEmit
+
+  backend:
+    name: Backend CI
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run Modeling Unit Tests
+        run: |
+          python test_modeling.py > test_modeling.log 2>&1
+          cat test_modeling.log
+          # Fail on traceback, FAILED, or non-zero code
+          if grep -qi -E "traceback|failed" test_modeling.log; then
+            echo "❌ FAILED: Found traceback or failure string in test_modeling.py output!"
+            exit 1
+          fi
+
+      - name: Start FastAPI Server
+        run: |
+          python -m uvicorn main:app --host 127.0.0.1 --port 8000 &
+          echo "FastAPI Server started in background."
+
+      - name: Poll Health Check (Wait for Server Startup)
+        run: |
+          timeout=30
+          elapsed=0
+          until curl -s http://127.0.0.1:8000/health > /dev/null; do
+            if [ $elapsed -ge $timeout ]; then
+              echo "❌ FAILED: FastAPI Server failed to start within $timeout seconds"
+              exit 1
+            fi
+            echo "Waiting for server to respond to health check..."
+            sleep 1
+            elapsed=$((elapsed+1))
+          done
+          echo "✅ Server is healthy!"
+
+      - name: Run Endpoints Smoke Tests
+        run: |
+          python tests/test_endpoints_smoke.py
+
+      - name: Shutdown FastAPI Server
+        if: always()
+        run: |
+          pkill -f uvicorn || true
