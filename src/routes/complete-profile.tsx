@@ -59,7 +59,7 @@ function CompleteProfile() {
       if (profileError) throw profileError;
 
       toast.success("Profile completed");
-      navigate({ to: "/" });
+      navigate({ to: "/app" });
     } catch (err: any) {
       setError(err.message || "Failed to complete profile");
       toast.error(err.message || "Failed to complete profile");

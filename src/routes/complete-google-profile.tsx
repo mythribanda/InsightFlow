@@ -38,7 +38,7 @@ function CompleteGoogleProfile() {
           .maybeSingle();
 
         if (profile?.display_name && profile?.phone) {
-          navigate({ to: "/" });
+          navigate({ to: "/app" });
           return;
         }
 
@@ -85,7 +85,7 @@ function CompleteGoogleProfile() {
       if (profileError) throw profileError;
 
       toast.success("Profile completed successfully!");
-      navigate({ to: "/" });
+      navigate({ to: "/app" });
     } catch (err: any) {
       setError(err.message || "Failed to complete profile");
       toast.error("Failed to save profile");

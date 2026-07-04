@@ -67,7 +67,7 @@ function ResetPasswordPage() {
 
       // Delay navigation slightly to let the user see success message
       setTimeout(() => {
-        navigate({ to: "/" });
+        navigate({ to: "/app" });
       }, 1500);
     } catch (err) {
       console.error("Password update error:", err);

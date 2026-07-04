@@ -273,7 +273,7 @@ export const ModelingPanel: React.FC<ModelingPanelProps> = ({ data, columns, ses
 
     if (suitabilityResult) {
       availableFeatures.forEach((feat) => {
-        suitabilityResult.warnings.forEach((warn) => {
+        suitabilityResult?.warnings?.forEach((warn) => {
           if (warn.includes(feat)) {
             const lowerWarn = warn.toLowerCase();
             if (lowerWarn.includes("imbalance") || lowerWarn.includes("imbalanced")) {
@@ -285,7 +285,7 @@ export const ModelingPanel: React.FC<ModelingPanelProps> = ({ data, columns, ses
             }
           }
         });
-        suitabilityResult.issues.forEach((issue) => {
+        suitabilityResult?.issues?.forEach((issue) => {
           if (issue.includes(feat)) {
             const lowerIssue = issue.toLowerCase();
             if (lowerIssue.includes("imbalance") || lowerIssue.includes("imbalanced")) {
@@ -380,7 +380,7 @@ export const ModelingPanel: React.FC<ModelingPanelProps> = ({ data, columns, ses
               </CardHeader>
               <CardContent className="space-y-4">
                 {/* Issues */}
-                {suitabilityResult.issues.length > 0 && (
+                {suitabilityResult?.issues && suitabilityResult.issues.length > 0 && (
                   <Alert variant="destructive">
                     <AlertTriangle className="h-4 w-4" />
                     <AlertTitle>Issues</AlertTitle>
@@ -397,7 +397,7 @@ export const ModelingPanel: React.FC<ModelingPanelProps> = ({ data, columns, ses
                 )}
 
                 {/* Warnings */}
-                {suitabilityResult.warnings.length > 0 && (
+                {suitabilityResult?.warnings && suitabilityResult.warnings.length > 0 && (
                   <Alert>
                     <Zap className="h-4 w-4" />
                     <AlertTitle>Warnings (Heuristic)</AlertTitle>

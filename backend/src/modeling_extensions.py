@@ -187,8 +187,11 @@ def check_target_suitability(
             )
             
     class_imbalance = check_class_imbalance(y, task)
-            
+    if class_imbalance["imbalanced"] and class_imbalance["message"]:
+        warnings.append(class_imbalance["message"])
+        
     return {
+
         "task": task,
         "n_samples": n_samples,
         "n_features": n_features,

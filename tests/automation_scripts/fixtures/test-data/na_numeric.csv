@@ -1,0 +1,11 @@
+employee_id,name,age,experience,department,city,rating,salary
+EMP001,Alice Smith,30,8,Engineering,San Francisco,4.5,95000
+EMP002,Bob Jones,24,2,Marketing,New York,3.8,60000
+EMP003,Charlie Brown,45,20,Sales,Los Angeles,4.2,NA
+EMP004,Diana Prince,32,10,Engineering,San Francisco,4.9,125000
+EMP005,Evan Wright,28,5,HR,Chicago,3.5,55000
+EMP006,Fiona Gallagher,NA,6,Finance,Boston,4,75000
+EMP007,George Costanza,35,12,Sales,New York,2.1,45000
+EMP008,Harriet Tubman,50,25,Engineering,Washington,5,150000
+EMP009,Ian Malcolm,40,15,Marketing,Austin,NA,90000
+EMP010,Julia Roberts,38,13,HR,Los Angeles,4.3,80000

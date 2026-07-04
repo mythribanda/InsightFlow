@@ -123,7 +123,15 @@ class LeakageScan:
         if n_samples < cv_splits:
             return []
             
-        cv = StratifiedKFold(cv_splits, shuffle=True, random_state=42) if task == "classification" else KFold(cv_splits, shuffle=True, random_state=42)
+        if task == "classification":
+            class_counts = y.value_counts()
+            if (class_counts < cv_splits).any():
+                cv = KFold(n_splits=cv_splits, shuffle=True, random_state=42)
+            else:
+                cv = StratifiedKFold(n_splits=cv_splits, shuffle=True, random_state=42)
+        else:
+            cv = KFold(n_splits=cv_splits, shuffle=True, random_state=42)
+
         
         # 1. Single-feature CV scan
         for col in X.columns:
@@ -357,7 +365,12 @@ def evaluate_model_cv(
 ) -> Tuple[Dict[str, float], Dict[str, float], Dict[str, List[float]]]:
     """Evaluates the pipeline using StratifiedKFold or KFold cross-validation."""
     if task == "classification":
-        cv = StratifiedKFold(n_splits=cv_splits, shuffle=True, random_state=42)
+        class_counts = y.value_counts()
+        if (class_counts < cv_splits).any():
+            cv = KFold(n_splits=cv_splits, shuffle=True, random_state=42)
+        else:
+            cv = StratifiedKFold(n_splits=cv_splits, shuffle=True, random_state=42)
+
         metrics_to_compute = ["accuracy", "precision", "recall", "f1", "roc_auc", "balanced_accuracy"]
     else:
         cv = KFold(n_splits=cv_splits, shuffle=True, random_state=42)

@@ -57,7 +57,7 @@ function LoginPage() {
       if (session) {
         const isComplete = await checkProfileComplete(session.user.id);
         if (isComplete) {
-          navigate({ to: "/" });
+          navigate({ to: "/app" });
         }
       }
     }
@@ -89,7 +89,7 @@ function LoginPage() {
         const isComplete = await checkProfileComplete(data.user.id);
         if (isComplete) {
           toast.success("Login successful!");
-          navigate({ to: "/" });
+          navigate({ to: "/app" });
         }
       } else {
         setTempEmail(email.trim());
@@ -157,7 +157,7 @@ function LoginPage() {
         const isComplete = await checkProfileComplete(data.user.id);
         if (isComplete) {
           toast.success("Verification successful!");
-          navigate({ to: "/" });
+          navigate({ to: "/app" });
         }
       }
     } catch (err: any) {

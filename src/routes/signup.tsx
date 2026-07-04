@@ -152,7 +152,7 @@ function SignupPage() {
       if (profileError) throw profileError;
 
       toast.success("Account created successfully!");
-      navigate({ to: "/" });
+      navigate({ to: "/app" });
     } catch (err: any) {
       setError(err.message || "Failed to create account");
       toast.error("Account creation failed");
