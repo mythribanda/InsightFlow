@@ -255,6 +255,23 @@ def generate_shap_plots(
         plots['prediction'] = pred_val
         plots['row_label'] = row_label
         
+        # Resolve class index for explanation if classification
+        class_idx = 0
+        classes = None
+        if task == "classification":
+            if hasattr(pipeline, "classes_"):
+                classes = pipeline.classes_
+            elif hasattr(model, "classes_"):
+                classes = model.classes_
+            
+            if classes is not None:
+                try:
+                    pred_label = pipeline.predict(X.iloc[[sample_idx]])[0]
+                    class_idx = list(classes).index(pred_label)
+                except Exception as e:
+                    print(f"Error resolving predicted class index: {e}")
+                    class_idx = 0
+
         # Create explainer
         if 'HistGradient' in str(type(model)):
             explainer = shap.TreeExplainer(model)
@@ -262,37 +279,62 @@ def generate_shap_plots(
         else:
             explainer = shap.LinearExplainer(model, X_transformed_df)
             shap_values = explainer.shap_values(X_transformed_df)
-            
-        # Safe unpacking for expected values and shap values across all task types
+
+        # Unpack global SHAP values
         if isinstance(shap_values, list):
-            val_idx = 1 if len(shap_values) == 2 else 0
-            values = shap_values[val_idx]
-            
-            # Retrieve expected value safely
-            expected_val_raw = explainer.expected_value
-            if hasattr(expected_val_raw, "__len__") and not isinstance(expected_val_raw, (str, bytes)):
-                if len(expected_val_raw) > val_idx:
-                    expected = expected_val_raw[val_idx]
-                else:
-                    expected = expected_val_raw[0]
+            if len(shap_values) == 2:
+                # Binary classification list
+                global_values = shap_values[1]
             else:
-                expected = expected_val_raw
+                # Multiclass list
+                global_values = shap_values
+        elif len(shap_values.shape) == 3:
+            # Multiclass 3D array (samples, features, classes)
+            global_values = shap_values
         else:
-            values = shap_values
-            expected_val_raw = explainer.expected_value
-            if hasattr(expected_val_raw, "__len__") and not isinstance(expected_val_raw, (str, bytes)):
-                if len(expected_val_raw) == 1:
-                    expected = expected_val_raw[0]
-                elif len(expected_val_raw) == 2:
-                    expected = expected_val_raw[1]
-                else:
-                    expected = expected_val_raw[0]
+            # 2D array (regression or binary)
+            global_values = shap_values
+
+        # Unpack single-sample SHAP and expected value
+        if isinstance(shap_values, list):
+            values_for_waterfall = shap_values[class_idx][sample_idx]
+            if hasattr(explainer.expected_value, "__len__") and not isinstance(explainer.expected_value, (str, bytes)):
+                expected = explainer.expected_value[class_idx] if len(explainer.expected_value) > class_idx else explainer.expected_value[0]
             else:
-                expected = expected_val_raw
-            
+                expected = explainer.expected_value
+        elif len(shap_values.shape) == 3:
+            values_for_waterfall = shap_values[sample_idx, :, class_idx]
+            if hasattr(explainer.expected_value, "__len__") and not isinstance(explainer.expected_value, (str, bytes)):
+                expected = explainer.expected_value[class_idx] if len(explainer.expected_value) > class_idx else explainer.expected_value[0]
+            else:
+                expected = explainer.expected_value
+        else:  # 2D array
+            if task == "classification" and classes is not None and len(classes) == 2:
+                if class_idx == 0:
+                    values_for_waterfall = -shap_values[sample_idx]
+                    if hasattr(explainer.expected_value, "__len__") and not isinstance(explainer.expected_value, (str, bytes)):
+                        if len(explainer.expected_value) == 2:
+                            expected = explainer.expected_value[0]
+                        else:
+                            expected = -explainer.expected_value[0]
+                    else:
+                        expected = -explainer.expected_value
+                else:
+                    values_for_waterfall = shap_values[sample_idx]
+                    if hasattr(explainer.expected_value, "__len__") and not isinstance(explainer.expected_value, (str, bytes)):
+                        expected = explainer.expected_value[1] if len(explainer.expected_value) == 2 else explainer.expected_value[0]
+                    else:
+                        expected = explainer.expected_value
+            else:
+                values_for_waterfall = shap_values[sample_idx]
+                if hasattr(explainer.expected_value, "__len__") and not isinstance(explainer.expected_value, (str, bytes)):
+                    expected = explainer.expected_value[0]
+                else:
+                    expected = explainer.expected_value
+
         # 1. Global importance plot
         plt.figure(figsize=(10, 6))
-        shap.summary_plot(values, X_transformed_df, plot_type="bar", show=False)
+        shap.summary_plot(global_values, X_transformed_df, plot_type="bar", show=False)
         
         buf = io.BytesIO()
         plt.savefig(buf, format='png', bbox_inches='tight', dpi=100)
@@ -304,7 +346,7 @@ def generate_shap_plots(
         plt.figure(figsize=(10, 8))
         shap.plots._waterfall.waterfall_legacy(
             expected,
-            values[sample_idx],
+            values_for_waterfall,
             X_transformed_df.iloc[sample_idx]
         )
         
