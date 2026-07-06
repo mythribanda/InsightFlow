@@ -42,43 +42,44 @@
 }
 
 :root {
-  --radius: 0.625rem;
-  /* Dark analyst console — always dark */
-  --background: oklch(0.13 0.02 250);
-  --foreground: oklch(0.96 0.01 230);
-  --card: oklch(0.17 0.025 252);
-  --card-foreground: oklch(0.96 0.01 230);
-  --popover: oklch(0.15 0.025 252);
-  --popover-foreground: oklch(0.96 0.01 230);
-  --primary: oklch(0.78 0.17 195);          /* neon cyan */
-  --primary-foreground: oklch(0.12 0.02 250);
-  --secondary: oklch(0.22 0.03 255);
-  --secondary-foreground: oklch(0.96 0.01 230);
-  --muted: oklch(0.20 0.025 255);
-  --muted-foreground: oklch(0.62 0.025 250);
-  --accent: oklch(0.66 0.22 305);           /* violet */
-  --accent-foreground: oklch(0.98 0.01 230);
-  --destructive: oklch(0.66 0.22 25);
-  --destructive-foreground: oklch(0.98 0.01 230);
-  --success: oklch(0.74 0.18 155);
-  --warning: oklch(0.80 0.17 80);
-  --info: oklch(0.72 0.15 230);
-  --border: oklch(0.28 0.025 255 / 50%);
-  --input: oklch(0.22 0.025 255);
-  --ring: oklch(0.78 0.17 195);
-  --grid: oklch(0.28 0.02 255 / 25%);
-  --chart-1: oklch(0.78 0.17 195);
-  --chart-2: oklch(0.66 0.22 305);
-  --chart-3: oklch(0.80 0.17 80);
-  --chart-4: oklch(0.74 0.18 155);
-  --chart-5: oklch(0.72 0.18 25);
+  --radius: 16px;
+  /* Dark glassmorphism theme tokens */
+  --background: #0A0A0F;
+  --foreground: #F5F5F7;
+  --card: #15151F;
+  --card-foreground: #F5F5F7;
+  --popover: #15151F;
+  --popover-foreground: #F5F5F7;
+  --primary: #8B5CF6;          /* violet/purple */
+  --primary-foreground: #F5F5F7;
+  --secondary: #A855F7;        /* purple */
+  --secondary-foreground: #F5F5F7;
+  --muted: #1E1E2A;
+  --muted-foreground: #A1A1AA; /* muted gray */
+  --accent: #A855F7;
+  --accent-foreground: #F5F5F7;
+  --destructive: #EF4444;
+  --destructive-foreground: #F5F5F7;
+  --success: #22C55E;          /* green accent */
+  --warning: #F59E0B;
+  --info: #3B82F6;
+  --border: rgba(255, 255, 255, 0.08);
+  --input: rgba(255, 255, 255, 0.04);
+  --ring: #8B5CF6;
+  --grid: rgba(255, 255, 255, 0.02);
+  --chart-1: #8B5CF6;          /* violet */
+  --chart-2: #22C55E;          /* green */
+  --chart-3: #3B82F6;          /* blue */
+  --chart-4: #A855F7;          /* purple */
+  --chart-5: #F59E0B;          /* amber */
 
-  --gradient-hero: linear-gradient(135deg, oklch(0.78 0.17 195 / 0.14), oklch(0.66 0.22 305 / 0.14));
-  --gradient-primary: linear-gradient(135deg, oklch(0.78 0.17 195), oklch(0.66 0.22 305));
-  --gradient-accent: linear-gradient(135deg, oklch(0.66 0.22 305), oklch(0.78 0.17 195));
-  --shadow-glow: 0 0 0 1px oklch(0.78 0.17 195 / 0.25), 0 10px 40px -10px oklch(0.78 0.17 195 / 0.35);
-  --shadow-card: 0 1px 0 oklch(1 0 0 / 0.03) inset, 0 20px 50px -20px oklch(0 0 0 / 0.7);
-  --shadow-glass: 0 8px 32px oklch(0 0 0 / 0.4), inset 0 1px 0 oklch(1 0 0 / 0.05);
+  --gradient-hero: radial-gradient(circle at 50% 0%, rgba(139, 92, 246, 0.15) 0%, rgba(34, 197, 94, 0.15) 50%, transparent 100%);
+  --gradient-primary: linear-gradient(135deg, #8B5CF6, #A855F7);
+  --gradient-accent: linear-gradient(135deg, #A855F7, #22C55E);
+  --gradient-green: linear-gradient(135deg, #22C55E, #4ADE80);
+  --shadow-glow: 0 0 25px -2px rgba(139, 92, 246, 0.3);
+  --shadow-card: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  --shadow-glass: 0 8px 32px 0 rgba(0, 0, 0, 0.37), inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
 }
 
 @layer base {
@@ -90,23 +91,24 @@
     font-family: var(--font-sans);
   }
   body {
+    background-color: #0A0A0F;
     background-image:
-      radial-gradient(1400px 700px at 5% -15%, oklch(0.78 0.17 195 / 0.07), transparent 60%),
-      radial-gradient(1000px 600px at 105% 5%, oklch(0.66 0.22 305 / 0.07), transparent 60%),
-      radial-gradient(800px 400px at 50% 100%, oklch(0.78 0.17 195 / 0.04), transparent 60%);
+      radial-gradient(1000px 600px at 50% -10%, rgba(139, 92, 246, 0.09) 0%, transparent 60%),
+      radial-gradient(800px 500px at 0% 30%, rgba(34, 197, 94, 0.05) 0%, transparent 60%),
+      radial-gradient(800px 500px at 100% 70%, rgba(168, 85, 247, 0.04) 0%, transparent 60%);
     background-attachment: fixed;
     font-feature-settings: "ss01", "cv11";
   }
-  ::selection { background: oklch(0.78 0.17 195 / 0.35); }
+  ::selection { background: rgba(139, 92, 246, 0.35); }
 
   /* Custom scrollbar */
   ::-webkit-scrollbar { width: 6px; height: 6px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb {
-    background: oklch(0.35 0.03 255 / 0.6);
+    background: rgba(255, 255, 255, 0.1);
     border-radius: 999px;
   }
-  ::-webkit-scrollbar-thumb:hover { background: oklch(0.45 0.03 255 / 0.8); }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.2); }
 }
 
 @layer utilities {
@@ -123,28 +125,29 @@
     color: transparent;
   }
   .surface-card {
-    background: oklch(0.17 0.025 252 / 0.65);
-    backdrop-filter: blur(20px) saturate(1.4);
-    -webkit-backdrop-filter: blur(20px) saturate(1.4);
+    background: linear-gradient(rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.06)), #15151F;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
     box-shadow: var(--shadow-glass);
-    border: 1px solid oklch(1 0 0 / 0.06);
-    border-radius: var(--radius-lg);
-    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    transition: border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
   }
   .surface-card:hover {
-    border-color: oklch(1 0 0 / 0.10);
+    border-color: rgba(255, 255, 255, 0.15);
+    box-shadow: 0 8px 32px 0 rgba(139, 92, 246, 0.12);
   }
   .glass-sidebar {
-    background: oklch(0.14 0.025 252 / 0.75);
-    backdrop-filter: blur(24px) saturate(1.5);
-    -webkit-backdrop-filter: blur(24px) saturate(1.5);
-    border-right: 1px solid oklch(1 0 0 / 0.06);
+    background: rgba(13, 13, 20, 0.75);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-right: 1px solid rgba(255, 255, 255, 0.08);
   }
   .glass-topbar {
-    background: oklch(0.13 0.02 250 / 0.70);
-    backdrop-filter: blur(20px) saturate(1.4);
-    -webkit-backdrop-filter: blur(20px) saturate(1.4);
-    border-bottom: 1px solid oklch(1 0 0 / 0.06);
+    background: rgba(10, 10, 15, 0.70);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   }
   .glow { box-shadow: var(--shadow-glow); }
   .glow-sm { box-shadow: 0 0 20px -4px oklch(0.78 0.17 195 / 0.30); }

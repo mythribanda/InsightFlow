@@ -20,14 +20,14 @@ export function FileDrop({ onFile, busy }: { onFile: (f: File) => void; busy?: b
       onDrop={onDrop}
       className={cn(
         "relative w-full flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed px-6 py-12 text-center transition-all duration-300 cursor-pointer select-none",
-        "bg-slate-950/20 border-slate-800/80 hover:border-cyan-500/40 hover:bg-slate-900/10",
-        hover && "border-cyan-500 bg-cyan-500/5 scale-[1.01] glow-sm",
+        "bg-white/2 border-white/10 hover:border-primary/40 hover:bg-white/5",
+        hover && "border-primary bg-primary/5 scale-[1.01] glow-sm",
         busy && "pointer-events-none opacity-60",
       )}
     >
       <div className={cn(
         "relative flex h-14 w-14 items-center justify-center rounded-2xl transition-all duration-300 shadow-lg",
-        hover ? "bg-cyan-500/20 scale-110" : "bg-gradient-to-br from-cyan-500 to-purple-500",
+        hover ? "bg-primary/20 scale-110" : "bg-gradient-to-br from-[#8B5CF6] to-[#A855F7]",
       )}>
         {busy ? (
           <div className="h-6 w-6 animate-spin rounded-full border-2 border-white border-t-transparent" />

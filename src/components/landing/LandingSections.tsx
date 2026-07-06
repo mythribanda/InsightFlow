@@ -30,7 +30,7 @@ const LABEL: React.CSSProperties = {
   fontSize: "clamp(10px, 1vw, 12px)",
   letterSpacing: "0.2em",
   textTransform: "uppercase" as const,
-  color: "#64748b",
+  color: "var(--muted-foreground)",
   marginBottom: 16,
 };
 
@@ -39,7 +39,7 @@ const HEADLINE: React.CSSProperties = {
   fontSize: "clamp(32px, 5vw, 72px)",
   fontWeight: 400,
   lineHeight: 1.1,
-  color: "#f8fafc",
+  color: "var(--foreground)",
   letterSpacing: "-0.03em",
   margin: "0 0 24px",
 };
@@ -48,7 +48,7 @@ const BODY: React.CSSProperties = {
   ...MONO,
   fontSize: "clamp(13px, 1.2vw, 16px)",
   lineHeight: 1.75,
-  color: "#94a3b8",
+  color: "var(--muted-foreground)",
   maxWidth: 480,
 };
 
@@ -172,14 +172,14 @@ function HeroSection({ active }: { active: boolean }) {
           style={{ ...HEADLINE, fontSize: "clamp(40px, 6vw, 88px)" }}
           data-reveal-heading
         >
-          Honest analysis.{"\n"}No pretense.
+          Honest <span className="bg-gradient-to-r from-[#8B5CF6] to-[#A855F7] bg-clip-text text-transparent">analysis.</span>{"\n"}No pretense.
         </h1>
         <p style={BODY} data-reveal-body>
           Upload a spreadsheet. Get a trust-scored, leakage-aware, SHAP-explained
           analysis — every number computed in Python, every claim defensible.
         </p>
         <div style={{ marginTop: 40, opacity: 0 }} data-reveal-body>
-          <p style={{ ...MONO, fontSize: 11, color: "#475569", letterSpacing: "0.15em" }}>
+          <p style={{ ...MONO, fontSize: 11, color: "var(--muted-foreground)", letterSpacing: "0.15em" }}>
             SCROLL TO EXPLORE
           </p>
         </div>
@@ -333,13 +333,15 @@ export function CtaSection({
               fontSize: 13,
               letterSpacing: "0.15em",
               textTransform: "uppercase",
-              color: "#000",
-              background: "#f8fafc",
+              color: "#ffffff",
+              background: "var(--gradient-primary)",
               border: "none",
               padding: "16px 40px",
+              borderRadius: "9999px",
               cursor: "pointer",
               position: "relative",
               overflow: "hidden",
+              boxShadow: "var(--shadow-glow)",
             }}
             aria-label="Launch InsightFlow application"
             id="cta-launch-button"

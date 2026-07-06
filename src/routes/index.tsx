@@ -12,10 +12,11 @@
  *      which is not configured in this project.
  *   3. The preloader covers the hydration gap — there is no flash of wrong content.
  */
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, Suspense, lazy, useState, useCallback } from "react";
 import { Canvas } from "@react-three/fiber";
 import { useAuth } from "@/contexts/AuthContext";
+import { Brain } from "lucide-react";
 import { CinematicPreloader }  from "../components/landing/CinematicPreloader";
 import { GrainOverlay }        from "../components/landing/GrainOverlay";
 import { CustomCursor }        from "../components/landing/CustomCursor";
@@ -23,6 +24,79 @@ import { SideProgress }        from "../components/landing/SideProgress";
 import { AmbientAudio }        from "../components/landing/AmbientAudio";
 import { RouteTransition }     from "../components/landing/RouteTransition";
 import { useScrollJack, SECTION_COUNT } from "../hooks/useScrollJack";
+
+// ─── Navbar Component ────────────────────────────────────────────────────────
+
+function Navbar({
+  currentSection,
+  onJump,
+  onLaunch,
+}: {
+  currentSection: number;
+  onJump: (index: number) => void;
+  onLaunch: () => void;
+}) {
+  const sections = [
+    { label: "Home", index: 0 },
+    { label: "Trust Score", index: 1 },
+    { label: "Leakage Scan", index: 2 },
+    { label: "SHAP", index: 3 },
+    { label: "Anomaly", index: 4 },
+  ];
+
+  return (
+    <header className="fixed top-0 left-0 right-0 z-30 transition-all duration-300 bg-[#0A0A0F]/60 backdrop-blur-md border-b border-white/5 py-4 px-6 sm:px-12 flex items-center justify-between">
+      {/* Logo */}
+      <div className="flex items-center gap-2 cursor-pointer select-none" onClick={() => onJump(0)}>
+        <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-gradient-to-br from-[#8B5CF6] to-[#A855F7] shadow-[0_0_15px_rgba(139,92,246,0.3)]">
+          <Brain className="w-4.5 h-4.5 text-white" />
+        </div>
+        <span className="font-bold text-base text-white tracking-tight">
+          Insight<span className="bg-gradient-to-r from-[#8B5CF6] to-[#A855F7] bg-clip-text text-transparent">Flow</span>
+        </span>
+      </div>
+
+      {/* Nav Links */}
+      <nav className="hidden md:flex items-center gap-6">
+        {sections.map((s) => (
+          <button
+            key={s.index}
+            onClick={() => onJump(s.index)}
+            className={`font-mono text-xs uppercase tracking-wider transition-colors cursor-pointer ${
+              currentSection === s.index
+                ? "text-[#8B5CF6] font-bold"
+                : "text-slate-400 hover:text-white"
+            }`}
+          >
+            {s.label}
+          </button>
+        ))}
+      </nav>
+
+      {/* Action Buttons */}
+      <div className="flex items-center gap-3">
+        <Link
+          to="/login"
+          className="rounded-full px-4 py-1.5 border border-white/10 hover:border-white/20 text-xs font-mono font-medium text-slate-300 hover:text-white transition-all bg-white/5"
+        >
+          Login
+        </Link>
+        <Link
+          to="/signup"
+          className="hidden sm:inline-block rounded-full px-4 py-1.5 border border-transparent hover:border-white/10 text-xs font-mono font-medium text-slate-300 hover:text-white transition-all"
+        >
+          Register
+        </Link>
+        <button
+          onClick={onLaunch}
+          className="rounded-full bg-gradient-to-r from-[#8B5CF6] to-[#A855F7] hover:from-[#7c3aed] hover:to-[#9333ea] px-5 py-1.5 text-xs font-mono font-bold text-white shadow-[0_0_15px_rgba(139,92,246,0.2)] hover:shadow-[0_0_20px_rgba(139,92,246,0.4)] transition-all cursor-pointer"
+        >
+          Launch App
+        </button>
+      </div>
+    </header>
+  );
+}
 
 const DependencyGraph3D = lazy(() =>
   import("../components/landing/DependencyGraph3D").then((m) => ({
@@ -96,7 +170,7 @@ function LandingCanvas({
   return (
     <Canvas
       camera={{ position: [0, 0, 18], fov: 60 }}
-      style={{ position: "absolute", inset: 0, background: "#000810" }}
+      style={{ position: "absolute", inset: 0, background: "var(--background)" }}
       gl={{ antialias: true, alpha: false, powerPreference: "high-performance" }}
       dpr={[1, Math.min(window.devicePixelRatio, 2)]}
       frameloop="always"
@@ -150,29 +224,29 @@ function ReducedMotionSections({ onLaunch }: { onLaunch: () => void }) {
             flexDirection: "column",
             justifyContent: "center",
             padding: "clamp(32px, 6vw, 96px)",
-            background: i % 2 === 0 ? "#000" : "#020c1b",
+            background: i % 2 === 0 ? "#0A0A0F" : "#15151F",
           }}
         >
-          <p style={{ fontFamily: "monospace", fontSize: 11, letterSpacing: "0.2em", textTransform: "uppercase", color: "#64748b", marginBottom: 16 }}>
+          <p style={{ fontFamily: "monospace", fontSize: 11, letterSpacing: "0.2em", textTransform: "uppercase", color: "var(--muted-foreground)", marginBottom: 16 }}>
             {s.label}
           </p>
-          <h2 style={{ fontFamily: "monospace", fontSize: "clamp(28px, 4vw, 56px)", fontWeight: 400, color: "#f8fafc", whiteSpace: "pre-line", margin: "0 0 24px" }}>
+          <h2 style={{ fontFamily: "monospace", fontSize: "clamp(28px, 4vw, 56px)", fontWeight: 400, color: "var(--foreground)", whiteSpace: "pre-line", margin: "0 0 24px" }}>
             {s.headline}
           </h2>
-          <p style={{ fontFamily: "monospace", fontSize: "clamp(13px, 1.2vw, 16px)", color: "#94a3b8", maxWidth: 480, lineHeight: 1.75 }}>
+          <p style={{ fontFamily: "monospace", fontSize: "clamp(13px, 1.2vw, 16px)", color: "var(--muted-foreground)", maxWidth: 480, lineHeight: 1.75 }}>
             {s.body}
           </p>
         </section>
       ))}
       <section
-        style={{ minHeight: "100dvh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: "#000", padding: 32 }}
+        style={{ minHeight: "100dvh", display: "flex", flexDirection: "column", alignItems: "center", justifyCenter: "center", background: "#0A0A0F", padding: 32 }}
       >
-        <h2 style={{ fontFamily: "monospace", fontSize: "clamp(28px, 4vw, 56px)", color: "#f8fafc", textAlign: "center", margin: "0 0 40px", whiteSpace: "pre-line" }}>
+        <h2 style={{ fontFamily: "monospace", fontSize: "clamp(28px, 4vw, 56px)", color: "var(--foreground)", textAlign: "center", margin: "0 0 40px", whiteSpace: "pre-line" }}>
           Upload your dataset.{"\n"}Get the truth.
         </h2>
         <button
           onClick={onLaunch}
-          style={{ fontFamily: "monospace", fontSize: 13, letterSpacing: "0.15em", textTransform: "uppercase", color: "#000", background: "#f8fafc", border: "none", padding: "16px 40px", cursor: "pointer" }}
+          style={{ fontFamily: "monospace", fontSize: 13, letterSpacing: "0.15em", textTransform: "uppercase", color: "#000", background: "var(--foreground)", border: "none", padding: "16px 40px", cursor: "pointer" }}
         >
           Launch InsightFlow
         </button>
@@ -219,11 +293,12 @@ function LandingPage() {
   return (
     <>
       <div
-        style={{ position: "fixed", inset: 0, overflow: "hidden", background: "#000810" }}
+        style={{ position: "fixed", inset: 0, overflow: "hidden", background: "var(--background)" }}
         aria-label="InsightFlow landing page"
       >
         <LandingCanvas scrollProgress={scrollProgress} preloaderDone={preloaderDone} />
         {preloaderDone && <Vignette />}
+        {preloaderDone && <Navbar currentSection={currentSection} onJump={goToSection} onLaunch={handleLaunch} />}
         {preloaderDone && (
           <Suspense fallback={null}>
             <LandingSections currentSection={currentSection} onLaunch={handleLaunch} />
