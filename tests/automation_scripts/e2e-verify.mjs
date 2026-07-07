@@ -2,7 +2,7 @@
  * E2E verification: real browser click-through of Anomaly tab and Query box.
  * Uses Playwright to drive a Chromium browser against the running dev server.
  *
- * Prerequisites: backend on :8000, frontend on :8081
+ * Prerequisites: backend on :8000, frontend on :8080
  * Run:  npx playwright test e2e-verify.mjs  (or node e2e-verify.mjs with playwright installed)
  */
 import { chromium } from "playwright";
@@ -10,7 +10,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const APP_URL = "http://localhost:8081";
+const APP_URL = "http://localhost:8080";
 const CSV_PATH = path.join(__dirname, "..", "..", "demo-employee-data.csv");
 const TIMEOUT = 60_000;
 

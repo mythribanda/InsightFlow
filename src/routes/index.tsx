@@ -239,7 +239,7 @@ function ReducedMotionSections({ onLaunch }: { onLaunch: () => void }) {
         </section>
       ))}
       <section
-        style={{ minHeight: "100dvh", display: "flex", flexDirection: "column", alignItems: "center", justifyCenter: "center", background: "#0A0A0F", padding: 32 }}
+        style={{ minHeight: "100dvh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: "#0A0A0F", padding: 32 }}
       >
         <h2 style={{ fontFamily: "monospace", fontSize: "clamp(28px, 4vw, 56px)", color: "var(--foreground)", textAlign: "center", margin: "0 0 40px", whiteSpace: "pre-line" }}>
           Upload your dataset.{"\n"}Get the truth.

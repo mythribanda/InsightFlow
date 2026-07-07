@@ -3,7 +3,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const APP_URL = "http://localhost:8081/login";
+const APP_URL = "http://localhost:8080/login";
 const TIMEOUT = 15_000;
 
 (async () => {

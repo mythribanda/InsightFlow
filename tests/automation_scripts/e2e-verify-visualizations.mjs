@@ -3,7 +3,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const APP_URL = "http://localhost:8081";
+const APP_URL = "http://localhost:8080";
 const CSV_PATH = path.join(__dirname, "..", "..", "demo-employee-data.csv");
 const TIMEOUT = 60_000;
 

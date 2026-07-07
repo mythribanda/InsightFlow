@@ -5,7 +5,7 @@ import { fileURLToPath } from "url";
 import { execSync } from "child_process";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const APP_URL = "http://localhost:8081";
+const APP_URL = "http://localhost:8080";
 const CSV_PATH = path.join(__dirname, "..", "..", "demo-employee-data.csv");
 const TIMEOUT = 90_000;
 
