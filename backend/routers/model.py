@@ -214,7 +214,9 @@ async def train_model(session_id: str, request: ModelRequest, x_user_id: str = H
             "leakage": output.leakage_flags,
             "results": output.results,
             "best": output.best,
-            "class_imbalance": output.class_imbalance
+            "class_imbalance": output.class_imbalance,
+            "excluded_classes": output.excluded_classes,
+            "roc_auc_class_coverage": output.roc_auc_class_coverage
         }
         
         logger.info(f"[{session_id}] Pipeline complete. Task: {output.task}, Leakage flags: {len(output.leakage_flags)}")
@@ -224,7 +226,10 @@ async def train_model(session_id: str, request: ModelRequest, x_user_id: str = H
             leakage=output.leakage_flags,
             results=output.results,
             best=output.best,
-            class_imbalance=output.class_imbalance
+            class_imbalance=output.class_imbalance,
+            roc_auc_fold_coverage=output.roc_auc_fold_coverage,
+            excluded_classes=output.excluded_classes,
+            roc_auc_class_coverage=output.roc_auc_class_coverage
         )
     
     except HTTPException:

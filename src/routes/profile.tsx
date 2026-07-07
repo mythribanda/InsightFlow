@@ -192,7 +192,7 @@ function ProfilePage() {
 
   if (checkingSession) {
     return (
-      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center relative overflow-hidden">
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center relative overflow-hidden">
         <div className="absolute inset-0 bg-grid opacity-5" />
         <div className="flex flex-col items-center space-y-4 relative">
           <Loader2 className="h-8 w-8 text-primary animate-spin" />
@@ -203,21 +203,21 @@ function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4 relative overflow-hidden font-sans">
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4 relative overflow-hidden font-sans">
       {/* Decorative Glow elements */}
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-primary/10 blur-[120px] rounded-full pointer-events-none" />
-      <div className="absolute bottom-1/4 left-1/4 w-[300px] h-[300px] bg-accent/5 blur-[100px] rounded-full pointer-events-none" />
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-primary/5 blur-[120px] rounded-full pointer-events-none" />
+      <div className="absolute bottom-1/4 left-1/4 w-[300px] h-[300px] bg-secondary/5 blur-[100px] rounded-full pointer-events-none" />
       <div className="absolute inset-0 bg-grid opacity-5 pointer-events-none" />
 
       {/* Main Container */}
       <div className="w-full max-w-md space-y-6 relative z-10">
         {/* Header Logo */}
         <div className="flex flex-col items-center space-y-2 text-center">
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-accent shadow-[0_0_24px_-4px_var(--color-primary)]">
-            <Brain className="h-6 w-6 text-primary-foreground" />
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-secondary shadow-[0_0_24px_-4px_var(--color-primary)]">
+            <Brain className="h-6 w-6 text-white" />
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">
-            Insight<span className="text-gradient">Flow</span>
+          <h1 className="text-2xl font-bold tracking-tight text-white">
+            Insight<span className="bg-gradient-to-r from-[#8B5CF6] to-[#A855F7] bg-clip-text text-transparent">Flow</span>
           </h1>
           <p className="text-xs text-muted-foreground font-mono uppercase tracking-wider">
             data intelligence console
@@ -225,30 +225,35 @@ function ProfilePage() {
         </div>
 
         {/* Card */}
-        <Card className="border border-border/80 bg-card/45 backdrop-blur-md shadow-2xl rounded-2xl overflow-hidden">
+        <Card className="border border-white/8 bg-[#15151F]/90 backdrop-blur-md shadow-2xl rounded-3xl overflow-hidden"
+          style={{
+            background: "linear-gradient(rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.05)), #15151F",
+            boxShadow: "0 25px 60px -25px rgba(0, 0, 0, 0.85), inset 0 0 0 1px rgba(255, 255, 255, 0.02)",
+          }}
+        >
           <CardHeader className="space-y-1.5 pb-6">
             <div className="flex items-center justify-between">
               <Link
-                to="/"
-                className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1.5 transition-colors font-medium"
+                to="/app"
+                className="text-xs text-muted-foreground hover:text-white flex items-center gap-1.5 transition-colors font-medium"
               >
                 <ArrowLeft className="h-3.5 w-3.5" /> Dashboard
               </Link>
               <button
                 onClick={handleSignOut}
-                className="text-xs text-muted-foreground hover:text-destructive flex items-center gap-1.5 transition-colors font-medium cursor-pointer"
+                className="text-xs text-muted-foreground hover:text-rose-400 flex items-center gap-1.5 transition-colors font-medium cursor-pointer"
               >
                 <LogOut className="h-3.5 w-3.5" /> Sign out
               </button>
             </div>
-            <CardTitle className="text-xl font-bold text-center mt-2">User Profile</CardTitle>
-            <CardDescription className="text-center text-xs">
+            <CardTitle className="text-xl font-bold text-center mt-2 text-white">User Profile</CardTitle>
+            <CardDescription className="text-center text-xs text-muted-foreground">
               Manage your personal workspace account settings
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">
             {error && (
-              <Alert variant="destructive" className="text-xs">
+              <Alert variant="destructive" className="text-xs border-red-500/25 bg-red-500/10 text-red-300">
                 <AlertTriangle className="h-4 w-4" />
                 <AlertTitle>Profile Error</AlertTitle>
                 <AlertDescription>{error}</AlertDescription>
@@ -258,7 +263,7 @@ function ProfilePage() {
             {/* Avatar Section */}
             <div className="flex flex-col items-center space-y-3">
               <div className="relative group">
-                <div className="w-24 h-24 rounded-full border-2 border-border/80 overflow-hidden bg-background/50 flex items-center justify-center shadow-inner relative">
+                <div className="w-24 h-24 rounded-full border-2 border-white/10 overflow-hidden bg-white/5 flex items-center justify-center shadow-inner relative">
                   {uploading ? (
                     <Loader2 className="h-6 w-6 animate-spin text-primary" />
                   ) : avatarUrl ? (
@@ -276,7 +281,7 @@ function ProfilePage() {
                     type="button"
                     disabled={uploading}
                     onClick={() => fileInputRef.current?.click()}
-                    className="absolute inset-0 bg-slate-950/70 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="absolute inset-0 bg-[#0A0A0F]/70 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <Upload className="h-5 w-5 text-primary" />
                   </button>
@@ -310,7 +315,7 @@ function ProfilePage() {
             <form onSubmit={handleSaveProfile} className="space-y-4">
               {/* Full Name */}
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
+                <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1 uppercase tracking-wider">
                   Full name
                 </label>
                 <div className="relative">
@@ -321,14 +326,14 @@ function ProfilePage() {
                     value={displayName}
                     onChange={(e) => setDisplayName(e.target.value)}
                     disabled={loading || uploading}
-                    className="pl-10 h-11 border-border/60 bg-background/50 text-sm focus:border-primary"
+                    className="pl-10 h-11 rounded-xl text-white placeholder:text-muted-foreground/30 border-white/10 bg-white/5 focus:border-primary/50 focus:ring-primary/20 text-sm"
                   />
                 </div>
               </div>
 
               {/* Phone */}
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
+                <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1 uppercase tracking-wider">
                   Phone number
                 </label>
                 <div className="relative">
@@ -339,17 +344,17 @@ function ProfilePage() {
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     disabled={loading || uploading}
-                    className="pl-10 h-11 border-border/60 bg-background/50 text-sm focus:border-primary"
+                    className="pl-10 h-11 rounded-xl text-white placeholder:text-muted-foreground/30 border-white/10 bg-white/5 focus:border-primary/50 focus:ring-primary/20 text-sm"
                   />
                 </div>
               </div>
 
               {/* Email (Read-Only) */}
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
+                <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1 uppercase tracking-wider">
                   Email address{" "}
-                  <span className="text-[10px] text-muted-foreground/50 font-normal">
-                    (Read-only)
+                  <span className="text-[10px] text-muted-foreground/50 font-normal lowercase italic">
+                    (read-only)
                   </span>
                 </label>
                 <div className="relative">
@@ -358,7 +363,7 @@ function ProfilePage() {
                     type="email"
                     value={email}
                     disabled
-                    className="pl-10 h-11 border-border/40 bg-muted/20 text-muted-foreground/60 text-sm cursor-not-allowed opacity-75"
+                    className="pl-10 h-11 rounded-xl text-muted-foreground/60 placeholder:text-muted-foreground/30 border-white/5 bg-white/2 text-sm cursor-not-allowed opacity-70"
                   />
                 </div>
                 <p className="text-[10px] text-muted-foreground/50 leading-relaxed pt-0.5">
@@ -371,7 +376,7 @@ function ProfilePage() {
               <Button
                 type="submit"
                 disabled={loading || uploading || !displayName.trim()}
-                className="w-full h-11 bg-gradient-to-r from-primary to-accent font-semibold text-primary-foreground shadow-[0_0_24px_-6px_var(--color-primary)] transition-all duration-200 hover:opacity-90 active:scale-98 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+                className="w-full h-11 rounded-full bg-gradient-to-r from-primary to-secondary font-bold text-white shadow-lg shadow-primary/20 hover:opacity-90 transition-all duration-200 active:scale-[0.98] cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 text-xs"
               >
                 {loading ? (
                   <Loader2 className="h-4 w-4 animate-spin mr-2 inline" />

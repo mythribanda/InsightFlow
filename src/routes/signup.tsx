@@ -152,7 +152,7 @@ function SignupPage() {
       if (profileError) throw profileError;
 
       toast.success("Account created successfully!");
-      navigate({ to: "/" });
+      navigate({ to: "/app" });
     } catch (err: any) {
       setError(err.message || "Failed to create account");
       toast.error("Account creation failed");
@@ -183,15 +183,15 @@ function SignupPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 relative overflow-hidden flex items-center justify-center p-4">
+    <div className="min-h-screen bg-background relative overflow-hidden flex items-center justify-center p-4">
       {/* Layer 1: animated particles */}
       <DataPointsBackground />
 
       {/* Layer 2: soft color glows */}
       <div className="absolute top-[10%] left-1/2 -translate-x-1/2 w-[600px] h-[600px] rounded-full pointer-events-none z-[1]"
-        style={{ background: "radial-gradient(circle, rgba(14,165,233,0.18), transparent 70%)" }} />
+        style={{ background: "radial-gradient(circle, rgba(139,92,246,0.06), transparent 70%)" }} />
       <div className="absolute bottom-[5%] right-[15%] w-[400px] h-[400px] rounded-full pointer-events-none z-[1]"
-        style={{ background: "radial-gradient(circle, rgba(168,85,247,0.15), transparent 70%)" }} />
+        style={{ background: "radial-gradient(circle, rgba(34,197,94,0.05), transparent 70%)" }} />
 
       {/* Layer 3: content */}
       <div className="relative z-10 w-full max-w-md">
@@ -200,26 +200,23 @@ function SignupPage() {
           <div
             className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4"
             style={{
-              background: "linear-gradient(135deg, #0ea5e9, #a855f7)",
-              boxShadow: "0 0 40px -8px rgba(14,165,233,0.6)",
+              background: "var(--gradient-primary)",
+              boxShadow: "var(--shadow-glow)",
             }}
           >
             <Brain className="w-7 h-7 text-white" />
           </div>
           <h1 className="text-3xl font-bold tracking-tight text-white">
-            Insight<span className="text-cyan-400">Flow</span>
+            Insight<span className="bg-gradient-to-r from-[#8B5CF6] to-[#A855F7] bg-clip-text text-transparent">Flow</span>
           </h1>
         </div>
 
         {/* Glass card */}
         <div
-          className="rounded-3xl p-8 border"
+          className="rounded-3xl p-8 border border-white/8 backdrop-blur-md shadow-2xl"
           style={{
-            background: "rgba(15, 23, 42, 0.55)",
-            backdropFilter: "blur(20px)",
-            WebkitBackdropFilter: "blur(20px)",
-            borderColor: "rgba(148, 163, 184, 0.15)",
-            boxShadow: "0 8px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.03) inset",
+            background: "linear-gradient(rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.05)), #15151F",
+            boxShadow: "0 25px 60px -25px rgba(0, 0, 0, 0.85), inset 0 0 0 1px rgba(255, 255, 255, 0.02)",
           }}
         >
           <div className="text-center mb-6">
@@ -230,7 +227,7 @@ function SignupPage() {
                 ? "Verify your email"
                 : "Set your password"}
             </h2>
-            <p className="text-sm text-slate-400">
+            <p className="text-sm text-muted-foreground">
               {step === "details"
                 ? "Enter your details to get started"
                 : step === "otp"
@@ -245,8 +242,8 @@ function SignupPage() {
                   key={s}
                   className={`h-1 flex-1 rounded-full transition-all duration-300 ${
                     s <= (step === "details" ? 1 : step === "otp" ? 2 : 3)
-                      ? "bg-cyan-500"
-                      : "bg-slate-800"
+                      ? "bg-primary"
+                      : "bg-white/5"
                   }`}
                 />
               ))}
@@ -254,8 +251,8 @@ function SignupPage() {
           </div>
 
           {error && (
-            <div role="alert" className="mb-4 px-4 py-3 rounded-xl text-sm text-red-300 text-destructive"
-              style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)" }}>
+            <div role="alert" className="mb-4 px-4 py-3 rounded-xl text-sm text-red-300 animate-in fade-in zoom-in-95 duration-200"
+              style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.25)" }}>
               {error}
             </div>
           )}
@@ -265,28 +262,24 @@ function SignupPage() {
               <>
                 {/* Full Name */}
                 <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-1.5">
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider">
                     Full Name *
                   </label>
                   <div className="relative">
-                    <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                    <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/50" />
                     <input
                       type="text"
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
                       placeholder="John Doe"
                       disabled={loading}
-                      className="w-full pl-10 pr-4 py-3 rounded-xl text-white placeholder:text-slate-500 outline-none transition-all"
-                      style={{
-                        background: "rgba(255,255,255,0.04)",
-                        border: "1px solid rgba(148,163,184,0.2)",
-                      }}
+                      className="w-full pl-10 pr-4 py-3 rounded-xl text-white placeholder:text-muted-foreground/30 outline-none transition-all bg-white/5 border border-white/10"
                       onFocus={(e) => {
-                        e.currentTarget.style.borderColor = "#0ea5e9";
-                        e.currentTarget.style.boxShadow = "0 0 0 3px rgba(14,165,233,0.15)";
+                        e.currentTarget.style.borderColor = "var(--color-primary)";
+                        e.currentTarget.style.boxShadow = "var(--shadow-glow)";
                       }}
                       onBlur={(e) => {
-                        e.currentTarget.style.borderColor = "rgba(148,163,184,0.2)";
+                        e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.1)";
                         e.currentTarget.style.boxShadow = "none";
                       }}
                     />
@@ -295,28 +288,24 @@ function SignupPage() {
 
                 {/* Mobile */}
                 <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-1.5">
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider">
                     Mobile Number *
                   </label>
                   <div className="relative">
-                    <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                    <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/50" />
                     <input
                       type="tel"
                       value={mobile}
                       onChange={(e) => setMobile(e.target.value)}
                       placeholder="+91 98765 43210"
                       disabled={loading}
-                      className="w-full pl-10 pr-4 py-3 rounded-xl text-white placeholder:text-slate-500 outline-none transition-all"
-                      style={{
-                        background: "rgba(255,255,255,0.04)",
-                        border: "1px solid rgba(148,163,184,0.2)",
-                      }}
+                      className="w-full pl-10 pr-4 py-3 rounded-xl text-white placeholder:text-muted-foreground/30 outline-none transition-all bg-white/5 border border-white/10"
                       onFocus={(e) => {
-                        e.currentTarget.style.borderColor = "#0ea5e9";
-                        e.currentTarget.style.boxShadow = "0 0 0 3px rgba(14,165,233,0.15)";
+                        e.currentTarget.style.borderColor = "var(--color-primary)";
+                        e.currentTarget.style.boxShadow = "var(--shadow-glow)";
                       }}
                       onBlur={(e) => {
-                        e.currentTarget.style.borderColor = "rgba(148,163,184,0.2)";
+                        e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.1)";
                         e.currentTarget.style.boxShadow = "none";
                       }}
                     />
@@ -325,28 +314,24 @@ function SignupPage() {
 
                 {/* Email */}
                 <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-1.5">
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider">
                     Email *
                   </label>
                   <div className="relative">
-                    <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                    <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/50" />
                     <input
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="your@email.com"
                       disabled={loading}
-                      className="w-full pl-10 pr-4 py-3 rounded-xl text-white placeholder:text-slate-500 outline-none transition-all"
-                      style={{
-                        background: "rgba(255,255,255,0.04)",
-                        border: "1px solid rgba(148,163,184,0.2)",
-                      }}
+                      className="w-full pl-10 pr-4 py-3 rounded-xl text-white placeholder:text-muted-foreground/30 outline-none transition-all bg-white/5 border border-white/10"
                       onFocus={(e) => {
-                        e.currentTarget.style.borderColor = "#0ea5e9";
-                        e.currentTarget.style.boxShadow = "0 0 0 3px rgba(14,165,233,0.15)";
+                        e.currentTarget.style.borderColor = "var(--color-primary)";
+                        e.currentTarget.style.boxShadow = "var(--shadow-glow)";
                       }}
                       onBlur={(e) => {
-                        e.currentTarget.style.borderColor = "rgba(148,163,184,0.2)";
+                        e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.1)";
                         e.currentTarget.style.boxShadow = "none";
                       }}
                     />
@@ -357,18 +342,18 @@ function SignupPage() {
                 <button
                   onClick={handleSendOtp}
                   disabled={!isStep1Valid || loading}
-                  className="w-full py-3.5 rounded-xl font-semibold transition-all flex items-center justify-center gap-2 mt-2"
+                  className="w-full py-3.5 rounded-full font-bold transition-all flex items-center justify-center gap-2 mt-2 text-xs"
                   style={
                     isStep1Valid && !loading
                       ? {
-                          background: "linear-gradient(135deg, #0ea5e9, #06b6d4)",
+                          background: "var(--gradient-primary)",
                           color: "#fff",
-                          boxShadow: "0 4px 20px -4px rgba(14,165,233,0.5)",
+                          boxShadow: "var(--shadow-glow)",
                           cursor: "pointer",
                         }
                       : {
-                          background: "rgba(148,163,184,0.12)",
-                          color: "rgba(148,163,184,0.6)",
+                          background: "rgba(255, 255, 255, 0.04)",
+                          color: "rgba(255, 255, 255, 0.3)",
                           cursor: "not-allowed",
                         }
                   }
@@ -386,10 +371,10 @@ function SignupPage() {
                 {/* Divider */}
                 <div className="relative py-1">
                   <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t border-slate-800" />
+                    <div className="w-full border-t border-white/5" />
                   </div>
                   <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-slate-900/90 px-2 text-slate-400">Or</span>
+                    <span className="bg-[#15151F] px-2 text-muted-foreground uppercase tracking-widest font-bold text-[10px]">Or</span>
                   </div>
                 </div>
 
@@ -397,18 +382,7 @@ function SignupPage() {
                 <button
                   onClick={handleGoogleSignUp}
                   disabled={loading}
-                  className="w-full py-3.5 rounded-xl font-semibold transition-all flex items-center justify-center gap-3 cursor-pointer"
-                  style={{
-                    background: "rgba(255,255,255,0.04)",
-                    border: "1px solid rgba(148,163,184,0.2)",
-                    color: "#cbd5e1",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = "rgba(255,255,255,0.08)";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = "rgba(255,255,255,0.04)";
-                  }}
+                  className="w-full py-3 rounded-full font-semibold border border-white/10 bg-white/5 hover:bg-white/10 text-xs text-foreground transition-all hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-3 cursor-pointer shadow-sm"
                 >
                   <svg className="w-4 h-4" viewBox="0 0 24 24">
                     <path
@@ -432,11 +406,11 @@ function SignupPage() {
                 </button>
 
                 {/* Sign In Link */}
-                <div className="text-center text-sm mt-1">
-                  <span className="text-slate-400">Already have an account? </span>
+                <div className="text-center text-xs mt-1">
+                  <span className="text-muted-foreground">Already have an account? </span>
                   <button
                     onClick={() => navigate({ to: "/login" })}
-                    className="text-cyan-400 hover:text-cyan-300 font-medium cursor-pointer"
+                    className="text-primary hover:text-primary-foreground font-semibold cursor-pointer hover:underline transition-all"
                   >
                     Sign in
                   </button>
@@ -446,8 +420,8 @@ function SignupPage() {
               <>
                 {/* OTP Input */}
                 <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-1.5">
-                    Verification Code <span className="text-cyan-400">*</span>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider">
+                    Verification Code <span className="text-primary">*</span>
                   </label>
                   <input
                     type="text"
@@ -456,17 +430,13 @@ function SignupPage() {
                     placeholder="123456"
                     disabled={loading}
                     maxLength={6}
-                    className="w-full text-center text-2xl tracking-widest py-3 rounded-xl text-white placeholder:text-slate-600 outline-none transition-all"
-                    style={{
-                      background: "rgba(255,255,255,0.04)",
-                      border: "1px solid rgba(148,163,184,0.2)",
-                    }}
+                    className="w-full text-center text-2xl tracking-widest py-3 rounded-xl text-white placeholder:text-muted-foreground/30 outline-none transition-all bg-white/5 border border-white/10"
                     onFocus={(e) => {
-                      e.currentTarget.style.borderColor = "#0ea5e9";
-                      e.currentTarget.style.boxShadow = "0 0 0 3px rgba(14,165,233,0.15)";
+                      e.currentTarget.style.borderColor = "var(--color-primary)";
+                      e.currentTarget.style.boxShadow = "var(--shadow-glow)";
                     }}
                     onBlur={(e) => {
-                      e.currentTarget.style.borderColor = "rgba(148,163,184,0.2)";
+                      e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.1)";
                       e.currentTarget.style.boxShadow = "none";
                     }}
                     onKeyDown={(e) => {
@@ -479,18 +449,18 @@ function SignupPage() {
                 <button
                   onClick={handleVerifyOtp}
                   disabled={!isStep2Valid || loading}
-                  className="w-full py-3.5 rounded-xl font-semibold transition-all flex items-center justify-center gap-2 mt-2"
+                  className="w-full py-3.5 rounded-full font-bold transition-all flex items-center justify-center gap-2 mt-2 text-xs"
                   style={
                     isStep2Valid && !loading
                       ? {
-                          background: "linear-gradient(135deg, #0ea5e9, #06b6d4)",
+                          background: "var(--gradient-primary)",
                           color: "#fff",
-                          boxShadow: "0 4px 20px -4px rgba(14,165,233,0.5)",
+                          boxShadow: "var(--shadow-glow)",
                           cursor: "pointer",
                         }
                       : {
-                          background: "rgba(148,163,184,0.12)",
-                          color: "rgba(148,163,184,0.6)",
+                          background: "rgba(255, 255, 255, 0.04)",
+                          color: "rgba(255, 255, 255, 0.3)",
                           cursor: "not-allowed",
                         }
                   }
@@ -513,12 +483,7 @@ function SignupPage() {
                     setError(null);
                   }}
                   disabled={loading}
-                  className="w-full py-3.5 rounded-xl font-semibold transition-all flex items-center justify-center gap-2 border cursor-pointer"
-                  style={{
-                    background: "transparent",
-                    borderColor: "rgba(148,163,184,0.2)",
-                    color: "#cbd5e1",
-                  }}
+                  className="w-full py-3.5 rounded-full font-bold transition-all flex items-center justify-center gap-2 border border-white/10 text-muted-foreground hover:text-white bg-transparent cursor-pointer text-xs"
                 >
                   Back
                 </button>
@@ -527,34 +492,30 @@ function SignupPage() {
               <>
                 {/* Password */}
                 <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-1.5">
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider">
                     Password *
                   </label>
                   <div className="relative">
-                    <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                    <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/50" />
                     <input
                       type={showPassword ? "text" : "password"}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="••••••••"
                       disabled={loading}
-                      className="w-full pl-10 pr-10 py-3 rounded-xl text-white placeholder:text-slate-500 outline-none transition-all"
-                      style={{
-                        background: "rgba(255,255,255,0.04)",
-                        border: "1px solid rgba(148,163,184,0.2)",
-                      }}
+                      className="w-full pl-10 pr-10 py-3 rounded-xl text-white placeholder:text-muted-foreground/30 outline-none transition-all bg-white/5 border border-white/10"
                       onFocus={(e) => {
-                        e.currentTarget.style.borderColor = "#0ea5e9";
-                        e.currentTarget.style.boxShadow = "0 0 0 3px rgba(14,165,233,0.15)";
+                        e.currentTarget.style.borderColor = "var(--color-primary)";
+                        e.currentTarget.style.boxShadow = "var(--shadow-glow)";
                       }}
                       onBlur={(e) => {
-                        e.currentTarget.style.borderColor = "rgba(148,163,184,0.2)";
+                        e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.1)";
                         e.currentTarget.style.boxShadow = "none";
                       }}
                     />
                     <button
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white cursor-pointer"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground/50 hover:text-white cursor-pointer"
                       type="button"
                     >
                       {showPassword ? (
@@ -571,12 +532,12 @@ function SignupPage() {
                           <div
                             key={i}
                             className={`h-1 w-6 rounded-full transition-all duration-300 ${
-                              i < passwordStrength ? "bg-cyan-500" : "bg-slate-800"
+                              i < passwordStrength ? "bg-primary" : "bg-white/5"
                             }`}
                           />
                         ))}
                       </div>
-                      <span className="text-slate-400 font-mono">
+                      <span className="text-muted-foreground font-mono text-[10px]">
                         {["Weak", "Fair", "Good", "Strong", "Very Strong"][passwordStrength]}
                       </span>
                     </div>
@@ -585,28 +546,24 @@ function SignupPage() {
 
                 {/* Confirm Password */}
                 <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-1.5">
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider">
                     Confirm Password *
                   </label>
                   <div className="relative">
-                    <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                    <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/50" />
                     <input
                       type={showConfirmPassword ? "text" : "password"}
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       placeholder="••••••••"
                       disabled={loading}
-                      className="w-full pl-10 pr-10 py-3 rounded-xl text-white placeholder:text-slate-500 outline-none transition-all"
-                      style={{
-                        background: "rgba(255,255,255,0.04)",
-                        border: "1px solid rgba(148,163,184,0.2)",
-                      }}
+                      className="w-full pl-10 pr-10 py-3 rounded-xl text-white placeholder:text-muted-foreground/30 outline-none transition-all bg-white/5 border border-white/10"
                       onFocus={(e) => {
-                        e.currentTarget.style.borderColor = "#0ea5e9";
-                        e.currentTarget.style.boxShadow = "0 0 0 3px rgba(14,165,233,0.15)";
+                        e.currentTarget.style.borderColor = "var(--color-primary)";
+                        e.currentTarget.style.boxShadow = "var(--shadow-glow)";
                       }}
                       onBlur={(e) => {
-                        e.currentTarget.style.borderColor = "rgba(148,163,184,0.2)";
+                        e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.1)";
                         e.currentTarget.style.boxShadow = "none";
                       }}
                       onKeyDown={(e) => {
@@ -615,7 +572,7 @@ function SignupPage() {
                     />
                     <button
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white cursor-pointer"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground/50 hover:text-white cursor-pointer"
                       type="button"
                     >
                       {showConfirmPassword ? (
@@ -634,18 +591,18 @@ function SignupPage() {
                 <button
                   onClick={handleCreateAccount}
                   disabled={!isStep3Valid || loading}
-                  className="w-full py-3.5 rounded-xl font-semibold transition-all flex items-center justify-center gap-2 mt-2"
+                  className="w-full py-3.5 rounded-full font-bold transition-all flex items-center justify-center gap-2 mt-2 text-xs"
                   style={
                     isStep3Valid && !loading
                       ? {
-                          background: "linear-gradient(135deg, #0ea5e9, #06b6d4)",
+                          background: "var(--gradient-primary)",
                           color: "#fff",
-                          boxShadow: "0 4px 20px -4px rgba(14,165,233,0.5)",
+                          boxShadow: "var(--shadow-glow)",
                           cursor: "pointer",
                         }
                       : {
-                          background: "rgba(148,163,184,0.12)",
-                          color: "rgba(148,163,184,0.6)",
+                          background: "rgba(255, 255, 255, 0.04)",
+                          color: "rgba(255, 255, 255, 0.3)",
                           cursor: "not-allowed",
                         }
                   }
@@ -669,12 +626,7 @@ function SignupPage() {
                     setError(null);
                   }}
                   disabled={loading}
-                  className="w-full py-3.5 rounded-xl font-semibold transition-all flex items-center justify-center gap-2 border cursor-pointer"
-                  style={{
-                    background: "transparent",
-                    borderColor: "rgba(148,163,184,0.2)",
-                    color: "#cbd5e1",
-                  }}
+                  className="w-full py-3.5 rounded-full font-bold transition-all flex items-center justify-center gap-2 border border-white/10 text-muted-foreground hover:text-white bg-transparent cursor-pointer text-xs"
                 >
                   Back
                 </button>

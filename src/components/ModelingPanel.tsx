@@ -273,7 +273,7 @@ export const ModelingPanel: React.FC<ModelingPanelProps> = ({ data, columns, ses
 
     if (suitabilityResult) {
       availableFeatures.forEach((feat) => {
-        suitabilityResult.warnings.forEach((warn) => {
+        suitabilityResult?.warnings?.forEach((warn) => {
           if (warn.includes(feat)) {
             const lowerWarn = warn.toLowerCase();
             if (lowerWarn.includes("imbalance") || lowerWarn.includes("imbalanced")) {
@@ -285,7 +285,7 @@ export const ModelingPanel: React.FC<ModelingPanelProps> = ({ data, columns, ses
             }
           }
         });
-        suitabilityResult.issues.forEach((issue) => {
+        suitabilityResult?.issues?.forEach((issue) => {
           if (issue.includes(feat)) {
             const lowerIssue = issue.toLowerCase();
             if (lowerIssue.includes("imbalance") || lowerIssue.includes("imbalanced")) {
@@ -380,7 +380,7 @@ export const ModelingPanel: React.FC<ModelingPanelProps> = ({ data, columns, ses
               </CardHeader>
               <CardContent className="space-y-4">
                 {/* Issues */}
-                {suitabilityResult.issues.length > 0 && (
+                {suitabilityResult?.issues && suitabilityResult.issues.length > 0 && (
                   <Alert variant="destructive">
                     <AlertTriangle className="h-4 w-4" />
                     <AlertTitle>Issues</AlertTitle>
@@ -397,7 +397,7 @@ export const ModelingPanel: React.FC<ModelingPanelProps> = ({ data, columns, ses
                 )}
 
                 {/* Warnings */}
-                {suitabilityResult.warnings.length > 0 && (
+                {suitabilityResult?.warnings && suitabilityResult.warnings.length > 0 && (
                   <Alert>
                     <Zap className="h-4 w-4" />
                     <AlertTitle>Warnings (Heuristic)</AlertTitle>
@@ -650,6 +650,27 @@ export const ModelingPanel: React.FC<ModelingPanelProps> = ({ data, columns, ses
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
+                {modelResponse.excluded_classes && modelResponse.excluded_classes.length > 0 && (
+                  <Alert variant="destructive" className="border-red-200 bg-red-50 dark:bg-red-950/20 dark:border-red-900/50">
+                    <AlertTriangle className="h-4 w-4 text-red-600 dark:text-red-400" />
+                    <AlertTitle className="text-red-800 dark:text-red-300 font-bold">Excluded Classes Warning</AlertTitle>
+                    <AlertDescription className="text-red-700 dark:text-red-400">
+                      <p className="text-xs">
+                        The following classes had exactly 1 member and were dropped before training to ensure valid cross-validation splits:
+                      </p>
+                      <div className="space-y-1 mt-2 font-mono text-xs">
+                        {modelResponse.excluded_classes.map((cls, idx) => (
+                          <div key={idx} className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4">
+                            <span>Class: <strong>{String(cls.class)}</strong></span>
+                            <span>Dropped: <strong>{cls.rows_dropped} row(s)</strong></span>
+                            <span className="opacity-80">Reason: {cls.reason}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </AlertDescription>
+                  </Alert>
+                )}
+
                 {modelResponse.leakage.length > 0 && (
                   <Alert className="border-yellow-200 bg-yellow-50">
                     <AlertTriangle className="h-4 w-4 text-yellow-600" />
@@ -677,6 +698,14 @@ export const ModelingPanel: React.FC<ModelingPanelProps> = ({ data, columns, ses
                       {modelResponse.best.value.toFixed(3)}
                     </p>
                     <p className="text-xs text-muted-foreground">±{modelResponse.best.std.toFixed(3)}</p>
+                    {modelResponse.best.primary_metric === "roc_auc" && modelResponse.roc_auc_fold_coverage && (
+                      <div className="text-[10px] text-yellow-600 dark:text-yellow-400 font-semibold mt-0.5 flex flex-col gap-0.5">
+                        <p>folds: {modelResponse.roc_auc_fold_coverage}</p>
+                        {modelResponse.roc_auc_class_coverage && (
+                          <p>class coverage: {modelResponse.roc_auc_class_coverage}</p>
+                        )}
+                      </div>
+                    )}
                   </div>
                   <div className="p-3 bg-muted rounded">
                     <p className="text-xs text-muted-foreground">Model</p>
@@ -867,6 +896,8 @@ interface MetricsTableProps {
     model: string;
     metrics: Record<string, number>;
     std: Record<string, number>;
+    roc_auc_fold_coverage?: string | null;
+    roc_auc_class_coverage?: string | null;
   }>;
   task: string;
   best: { model: string; primary_metric: string; value: number };
@@ -917,6 +948,14 @@ const MetricsTable: React.FC<MetricsTableProps> = ({ results, task, best }) => {
                           {mean.toFixed(3)}
                         </span>
                         <span className="text-muted-foreground"> ±{std.toFixed(3)}</span>
+                        {metric === "roc_auc" && result.roc_auc_fold_coverage && (
+                          <div className="text-[10px] text-yellow-600 dark:text-yellow-400 font-normal mt-0.5 flex flex-col items-end gap-0.5">
+                            <div>folds: {result.roc_auc_fold_coverage}</div>
+                            {result.roc_auc_class_coverage && (
+                              <div>class coverage: {result.roc_auc_class_coverage}</div>
+                            )}
+                          </div>
+                        )}
                       </>
                     )}
                   </TableCell>

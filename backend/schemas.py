@@ -16,6 +16,9 @@ class ModelResponse(BaseModel):
     results: List[Dict[str, Any]]
     best: Dict[str, Any]
     class_imbalance: Dict[str, Any]  # {majority_share: float, imbalanced: bool, message: str|None}
+    roc_auc_fold_coverage: Optional[str] = None
+    excluded_classes: List[Dict[str, Any]] = []
+    roc_auc_class_coverage: Optional[str] = None
 
 
 class ExportCodeRequest(BaseModel):

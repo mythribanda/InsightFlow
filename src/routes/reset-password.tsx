@@ -67,7 +67,7 @@ function ResetPasswordPage() {
 
       // Delay navigation slightly to let the user see success message
       setTimeout(() => {
-        navigate({ to: "/" });
+        navigate({ to: "/app" });
       }, 1500);
     } catch (err) {
       console.error("Password update error:", err);
@@ -82,7 +82,7 @@ function ResetPasswordPage() {
 
   if (checkingSession) {
     return (
-      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center relative overflow-hidden">
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center relative overflow-hidden">
         <div className="absolute inset-0 bg-grid opacity-5" />
         <div className="flex flex-col items-center space-y-4 relative">
           <Loader2 className="h-8 w-8 text-primary animate-spin" />
@@ -95,21 +95,21 @@ function ResetPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4 relative overflow-hidden font-sans">
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4 relative overflow-hidden font-sans">
       {/* Decorative Glow elements */}
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-primary/10 blur-[120px] rounded-full pointer-events-none" />
-      <div className="absolute bottom-1/4 left-1/4 w-[300px] h-[300px] bg-accent/5 blur-[100px] rounded-full pointer-events-none" />
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-primary/5 blur-[120px] rounded-full pointer-events-none" />
+      <div className="absolute bottom-1/4 left-1/4 w-[300px] h-[300px] bg-secondary/5 blur-[100px] rounded-full pointer-events-none" />
       <div className="absolute inset-0 bg-grid opacity-5 pointer-events-none" />
 
       {/* Main Container */}
       <div className="w-full max-w-md space-y-6 relative z-10">
         {/* Header Logo */}
         <div className="flex flex-col items-center space-y-2 text-center">
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-accent shadow-[0_0_24px_-4px_var(--color-primary)]">
-            <Brain className="h-6 w-6 text-primary-foreground" />
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-secondary shadow-[0_0_24px_-4px_var(--color-primary)]">
+            <Brain className="h-6 w-6 text-white" />
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">
-            Insight<span className="text-gradient">Flow</span>
+          <h1 className="text-2xl font-bold tracking-tight text-white">
+            Insight<span className="bg-gradient-to-r from-[#8B5CF6] to-[#A855F7] bg-clip-text text-transparent">Flow</span>
           </h1>
           <p className="text-xs text-muted-foreground font-mono uppercase tracking-wider">
             data intelligence console
@@ -117,12 +117,17 @@ function ResetPasswordPage() {
         </div>
 
         {/* Card */}
-        <Card className="border border-border/80 bg-card/45 backdrop-blur-md shadow-2xl rounded-2xl overflow-hidden">
+        <Card className="border border-white/8 bg-[#15151F]/90 backdrop-blur-md shadow-2xl rounded-3xl overflow-hidden"
+          style={{
+            background: "linear-gradient(rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.05)), #15151F",
+            boxShadow: "0 25px 60px -25px rgba(0, 0, 0, 0.85), inset 0 0 0 1px rgba(255, 255, 255, 0.02)",
+          }}
+        >
           <CardHeader className="space-y-1.5 pb-6">
-            <CardTitle className="text-xl font-bold text-center">
+            <CardTitle className="text-xl font-bold text-center text-white">
               {hasSession ? "Choose new password" : "Invalid recovery link"}
             </CardTitle>
-            <CardDescription className="text-center text-xs">
+            <CardDescription className="text-center text-xs text-muted-foreground">
               {hasSession
                 ? "Set a secure password for your workspace account"
                 : "No active password recovery session detected"}
@@ -130,7 +135,7 @@ function ResetPasswordPage() {
           </CardHeader>
           <CardContent className="space-y-5">
             {error && (
-              <Alert variant="destructive" className="text-xs">
+              <Alert variant="destructive" className="text-xs border-red-500/25 bg-red-500/10 text-red-300">
                 <AlertTriangle className="h-4 w-4" />
                 <AlertTitle>Reset Failed</AlertTitle>
                 <AlertDescription>{error}</AlertDescription>
@@ -148,8 +153,8 @@ function ResetPasswordPage() {
               <form onSubmit={handleResetPassword} className="space-y-4">
                 {/* New Password */}
                 <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
-                    New password <span className="text-rose-500">*</span>
+                  <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1 uppercase tracking-wider">
+                    New password <span className="text-primary">*</span>
                   </label>
                   <div className="relative">
                     <Lock className="absolute left-3.5 top-3.5 h-4 w-4 text-muted-foreground/60" />
@@ -160,7 +165,7 @@ function ResetPasswordPage() {
                       onChange={(e) => setPassword(e.target.value)}
                       required
                       disabled={loading || success}
-                      className="pl-10 pr-10 h-11 border-border/60 bg-background/50 text-sm focus:border-primary"
+                      className="pl-10 pr-10 h-11 rounded-xl text-white placeholder:text-muted-foreground/30 border-white/10 bg-white/5 focus:border-primary/50 focus:ring-primary/20 text-sm"
                     />
                     <button
                       type="button"
@@ -180,8 +185,8 @@ function ResetPasswordPage() {
 
                 {/* Confirm New Password */}
                 <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
-                    Confirm password <span className="text-rose-500">*</span>
+                  <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1 uppercase tracking-wider">
+                    Confirm password <span className="text-primary">*</span>
                   </label>
                   <div className="relative">
                     <Lock className="absolute left-3.5 top-3.5 h-4 w-4 text-muted-foreground/60" />
@@ -192,7 +197,7 @@ function ResetPasswordPage() {
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       required
                       disabled={loading || success}
-                      className="pl-10 pr-10 h-11 border-border/60 bg-background/50 text-sm focus:border-primary"
+                      className="pl-10 pr-10 h-11 rounded-xl text-white placeholder:text-muted-foreground/30 border-white/10 bg-white/5 focus:border-primary/50 focus:ring-primary/20 text-sm"
                     />
                     <button
                       type="button"
@@ -216,7 +221,7 @@ function ResetPasswordPage() {
                 <Button
                   type="submit"
                   disabled={loading || success || !isFormValid}
-                  className="w-full h-11 bg-gradient-to-r from-primary to-accent font-semibold text-primary-foreground shadow-[0_0_24px_-6px_var(--color-primary)] transition-all duration-200 hover:opacity-90 active:scale-98 cursor-pointer disabled:cursor-not-allowed"
+                  className="w-full h-11 rounded-full bg-gradient-to-r from-primary to-secondary font-bold text-white shadow-lg shadow-primary/20 hover:opacity-90 transition-all duration-200 active:scale-[0.98] cursor-pointer disabled:cursor-not-allowed text-xs"
                 >
                   {loading ? (
                     <Loader2 className="h-4 w-4 animate-spin mr-2 inline" />

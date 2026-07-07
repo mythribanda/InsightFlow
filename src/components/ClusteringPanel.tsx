@@ -126,15 +126,15 @@ export const ClusteringPanel: React.FC<ClusteringPanelProps> = ({ sessionId, pro
   const getColorForCluster = (cluster: number) => {
     if (cluster === -1) return "#64748b"; // Muted Slate Gray for DBSCAN noise
     const colors = [
-      "#0ea5e9", // Cyan/Primary
+      "#8B5CF6", // Violet/Primary
       "#a855f7", // Purple/Accent
       "#ec4899", // Pink
       "#3b82f6", // Blue
-      "#10b981", // Emerald
+      "#22c55e", // Green
       "#f59e0b", // Amber
       "#ef4444", // Red
       "#84cc16", // Lime
-      "#06b6d4", // Cyan
+      "#06b6d4", // Cyan (fallback)
       "#6366f1"  // Indigo
     ];
     return colors[cluster % colors.length];

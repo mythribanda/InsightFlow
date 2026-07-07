@@ -59,7 +59,7 @@ function CompleteProfile() {
       if (profileError) throw profileError;
 
       toast.success("Profile completed");
-      navigate({ to: "/" });
+      navigate({ to: "/app" });
     } catch (err: any) {
       setError(err.message || "Failed to complete profile");
       toast.error(err.message || "Failed to complete profile");
@@ -69,15 +69,15 @@ function CompleteProfile() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 relative overflow-hidden flex items-center justify-center p-4">
+    <div className="min-h-screen bg-background relative overflow-hidden flex items-center justify-center p-4">
       {/* Layer 1: animated particles, behind everything */}
       <DataPointsBackground />
 
       {/* Layer 2: soft color glows, above particles, below card */}
       <div className="absolute top-[10%] left-1/2 -translate-x-1/2 w-[600px] h-[600px] rounded-full pointer-events-none z-[1]"
-        style={{ background: "radial-gradient(circle, rgba(14,165,233,0.18), transparent 70%)" }} />
+        style={{ background: "radial-gradient(circle, rgba(139,92,246,0.06), transparent 70%)" }} />
       <div className="absolute bottom-[5%] right-[15%] w-[400px] h-[400px] rounded-full pointer-events-none z-[1]"
-        style={{ background: "radial-gradient(circle, rgba(168,85,247,0.15), transparent 70%)" }} />
+        style={{ background: "radial-gradient(circle, rgba(34,197,94,0.05), transparent 70%)" }} />
 
       {/* Layer 3: content */}
       <div className="relative z-10 w-full max-w-md">
@@ -86,40 +86,37 @@ function CompleteProfile() {
           <div
             className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4"
             style={{
-              background: "linear-gradient(135deg, #0ea5e9, #a855f7)",
-              boxShadow: "0 0 40px -8px rgba(14,165,233,0.6)",
+              background: "var(--gradient-primary)",
+              boxShadow: "var(--shadow-glow)",
             }}
           >
             <Brain className="w-7 h-7 text-white" />
           </div>
           <h1 className="text-3xl font-bold tracking-tight text-white">
-            Insight<span className="text-cyan-400">Flow</span>
+            Insight<span className="bg-gradient-to-r from-[#8B5CF6] to-[#A855F7] bg-clip-text text-transparent">Flow</span>
           </h1>
         </div>
 
-        {/* Glass card — this is what was missing: real blur + border glow + shadow */}
+        {/* Glass card */}
         <div
-          className="rounded-3xl p-8 border"
+          className="rounded-3xl p-8 border border-white/8 backdrop-blur-md shadow-2xl"
           style={{
-            background: "rgba(15, 23, 42, 0.55)",
-            backdropFilter: "blur(20px)",
-            WebkitBackdropFilter: "blur(20px)",
-            borderColor: "rgba(148, 163, 184, 0.15)",
-            boxShadow: "0 8px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.03) inset",
+            background: "linear-gradient(rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.05)), #15151F",
+            boxShadow: "0 25px 60px -25px rgba(0, 0, 0, 0.85), inset 0 0 0 1px rgba(255, 255, 255, 0.02)",
           }}
         >
           <div className="text-center mb-6">
             <h2 className="text-xl font-semibold text-white mb-1">
               Complete your profile
             </h2>
-            <p className="text-sm text-slate-400">
+            <p className="text-sm text-muted-foreground">
               Just a couple more details to get started
             </p>
           </div>
 
           {error && (
-            <div className="mb-4 px-4 py-3 rounded-xl text-sm text-red-300"
-              style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)" }}>
+            <div className="mb-4 px-4 py-3 rounded-xl text-sm text-red-300 animate-in fade-in zoom-in-95 duration-200"
+              style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.25)" }}>
               {error}
             </div>
           )}
@@ -127,28 +124,24 @@ function CompleteProfile() {
           <div className="space-y-4">
             {/* Full Name */}
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1.5">
-                Full name <span className="text-cyan-400">*</span>
+              <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider">
+                Full name <span className="text-primary">*</span>
               </label>
               <div className="relative">
-                <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/50" />
                 <input
                   type="text"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   placeholder="John Doe"
                   disabled={loading}
-                  className="w-full pl-10 pr-4 py-3 rounded-xl text-white placeholder:text-slate-500 outline-none transition-all"
-                  style={{
-                    background: "rgba(255,255,255,0.04)",
-                    border: "1px solid rgba(148,163,184,0.2)",
-                  }}
+                  className="w-full pl-10 pr-4 py-3 rounded-xl text-white placeholder:text-muted-foreground/30 outline-none transition-all bg-white/5 border border-white/10"
                   onFocus={(e) => {
-                    e.currentTarget.style.borderColor = "#0ea5e9";
-                    e.currentTarget.style.boxShadow = "0 0 0 3px rgba(14,165,233,0.15)";
+                    e.currentTarget.style.borderColor = "var(--color-primary)";
+                    e.currentTarget.style.boxShadow = "var(--shadow-glow)";
                   }}
                   onBlur={(e) => {
-                    e.currentTarget.style.borderColor = "rgba(148,163,184,0.2)";
+                    e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.1)";
                     e.currentTarget.style.boxShadow = "none";
                   }}
                 />
@@ -157,28 +150,24 @@ function CompleteProfile() {
 
             {/* Mobile */}
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1.5">
-                Mobile number <span className="text-cyan-400">*</span>
+              <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider">
+                Mobile number <span className="text-primary">*</span>
               </label>
               <div className="relative">
-                <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/50" />
                 <input
                   type="tel"
                   value={mobile}
                   onChange={(e) => setMobile(e.target.value)}
                   placeholder="+91 98765 43210"
                   disabled={loading}
-                  className="w-full pl-10 pr-4 py-3 rounded-xl text-white placeholder:text-slate-500 outline-none transition-all"
-                  style={{
-                    background: "rgba(255,255,255,0.04)",
-                    border: "1px solid rgba(148,163,184,0.2)",
-                  }}
+                  className="w-full pl-10 pr-4 py-3 rounded-xl text-white placeholder:text-muted-foreground/30 outline-none transition-all bg-white/5 border border-white/10"
                   onFocus={(e) => {
-                    e.currentTarget.style.borderColor = "#0ea5e9";
-                    e.currentTarget.style.boxShadow = "0 0 0 3px rgba(14,165,233,0.15)";
+                    e.currentTarget.style.borderColor = "var(--color-primary)";
+                    e.currentTarget.style.boxShadow = "var(--shadow-glow)";
                   }}
                   onBlur={(e) => {
-                    e.currentTarget.style.borderColor = "rgba(148,163,184,0.2)";
+                    e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.1)";
                     e.currentTarget.style.boxShadow = "none";
                   }}
                 />
@@ -187,50 +176,46 @@ function CompleteProfile() {
 
             {/* Email */}
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1.5">
-                Email <span className="text-cyan-400">*</span>
+              <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider">
+                Email *
               </label>
               <div className="relative">
-                <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/50" />
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@example.com"
                   disabled={loading}
-                  className="w-full pl-10 pr-4 py-3 rounded-xl text-white placeholder:text-slate-500 outline-none transition-all"
-                  style={{
-                    background: "rgba(255,255,255,0.04)",
-                    border: "1px solid rgba(148,163,184,0.2)",
-                  }}
+                  className="w-full pl-10 pr-4 py-3 rounded-xl text-white placeholder:text-muted-foreground/30 outline-none transition-all bg-white/5 border border-white/10"
                   onFocus={(e) => {
-                    e.currentTarget.style.borderColor = "#0ea5e9";
-                    e.currentTarget.style.boxShadow = "0 0 0 3px rgba(14,165,233,0.15)";
+                    e.currentTarget.style.borderColor = "var(--color-primary)";
+                    e.currentTarget.style.boxShadow = "var(--shadow-glow)";
                   }}
                   onBlur={(e) => {
-                    e.currentTarget.style.borderColor = "rgba(148,163,184,0.2)";
+                    e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.1)";
                     e.currentTarget.style.boxShadow = "none";
                   }}
                 />
               </div>
             </div>
 
-            {/* Submit button — fixed: clear enabled vs disabled state */}
+            {/* Submit button */}
             <button
               onClick={handleSubmit}
               disabled={!isValid || loading}
-              className="w-full py-3.5 rounded-xl font-semibold transition-all flex items-center justify-center gap-2 mt-2"
+              className="w-full py-3.5 rounded-full font-bold transition-all flex items-center justify-center gap-2 mt-2 text-xs"
               style={
                 isValid && !loading
                   ? {
-                      background: "linear-gradient(135deg, #0ea5e9, #06b6d4)",
+                      background: "var(--gradient-primary)",
                       color: "#fff",
-                      boxShadow: "0 4px 20px -4px rgba(14,165,233,0.5)",
+                      boxShadow: "var(--shadow-glow)",
                       cursor: "pointer",
                     }
                   : {
-                      background: "rgba(148,163,184,0.12)",
-                      color: "rgba(148,163,184,0.6)",
+                      background: "rgba(255, 255, 255, 0.04)",
+                      color: "rgba(255, 255, 255, 0.3)",
                       cursor: "not-allowed",
                     }
               }

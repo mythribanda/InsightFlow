@@ -7,7 +7,7 @@ import warnings
 from typing import Dict, List, Tuple, Any, Optional
 import numpy as np
 import pandas as pd
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 # sklearn
 from sklearn.model_selection import StratifiedKFold, KFold, cross_val_score
@@ -39,6 +39,8 @@ class ModelResult:
     metrics: Dict[str, float]
     std: Dict[str, float]
     fold_scores: Dict[str, List[float]]
+    roc_auc_fold_coverage: Optional[str] = None
+    roc_auc_class_coverage: Optional[str] = None
 
 @dataclass
 class ModelingOutput:
@@ -48,6 +50,9 @@ class ModelingOutput:
     results: List[Dict[str, Any]]
     best: Dict[str, Any]
     class_imbalance: Dict[str, Any]  # {majority_share, imbalanced, message}
+    roc_auc_fold_coverage: Optional[str] = None
+    excluded_classes: List[Dict[str, Any]] = field(default_factory=list)
+    roc_auc_class_coverage: Optional[str] = None
 
 class TaskDetector:
     """§4.1: Task Detection — classify as regression vs. classification."""
@@ -124,13 +129,14 @@ class LeakageScan:
             return []
             
         if task == "classification":
-            try:
-                cv = StratifiedKFold(cv_splits, shuffle=True, random_state=42)
-                list(cv.split(X, y))
-            except ValueError:
-                cv = KFold(cv_splits, shuffle=True, random_state=42)
+            class_counts = y.value_counts()
+            if (class_counts < cv_splits).any():
+                cv = KFold(n_splits=cv_splits, shuffle=True, random_state=42)
+            else:
+                cv = StratifiedKFold(n_splits=cv_splits, shuffle=True, random_state=42)
         else:
-            cv = KFold(cv_splits, shuffle=True, random_state=42)
+            cv = KFold(n_splits=cv_splits, shuffle=True, random_state=42)
+
         
         # 1. Single-feature CV scan
         for col in X.columns:
@@ -361,15 +367,22 @@ def evaluate_model_cv(
     y: pd.Series,
     task: str,
     cv_splits: int = 5
-) -> Tuple[Dict[str, float], Dict[str, float], Dict[str, List[float]]]:
+) -> Tuple[Dict[str, float], Dict[str, float], Dict[str, List[float]], Optional[str], Optional[str]]:
     """Evaluates the pipeline using StratifiedKFold or KFold cross-validation."""
+    classes_all = []
+    class_qualified_folds = {}
+    class_coverage_list = []
+    
     if task == "classification":
-        try:
-            cv = StratifiedKFold(n_splits=cv_splits, shuffle=True, random_state=42)
-            list(cv.split(X, y))
-        except ValueError:
+        class_counts = y.value_counts()
+        if (class_counts < cv_splits).any():
             cv = KFold(n_splits=cv_splits, shuffle=True, random_state=42)
+        else:
+            cv = StratifiedKFold(n_splits=cv_splits, shuffle=True, random_state=42)
+
         metrics_to_compute = ["accuracy", "precision", "recall", "f1", "roc_auc", "balanced_accuracy"]
+        classes_all = np.unique(y)
+        class_qualified_folds = {cls: 0 for cls in classes_all}
     else:
         cv = KFold(n_splits=cv_splits, shuffle=True, random_state=42)
         metrics_to_compute = ["mae", "rmse", "r2", "mape"]
@@ -380,36 +393,78 @@ def evaluate_model_cv(
         X_train, X_test = X.iloc[train_idx], X.iloc[test_idx]
         y_train, y_test = y.iloc[train_idx], y.iloc[test_idx]
         
-        # Fit inside fold (leakage-safe)
-        pipeline.fit(X_train, y_train)
-        y_pred = pipeline.predict(X_test)
-        
-        if task == "classification":
-            y_pred_proba = pipeline.predict_proba(X_test)
-            fold_scores["accuracy"].append(accuracy_score(y_test, y_pred))
-            fold_scores["precision"].append(precision_score(y_test, y_pred, average="weighted", zero_division=0))
-            fold_scores["recall"].append(recall_score(y_test, y_pred, average="weighted", zero_division=0))
-            fold_scores["f1"].append(f1_score(y_test, y_pred, average="weighted", zero_division=0))
+        try:
+            # Fit inside fold (leakage-safe)
+            pipeline.fit(X_train, y_train)
+            y_pred = pipeline.predict(X_test)
             
-            n_classes = len(np.unique(y_test))
-            if n_classes == 2:
-                fold_scores["roc_auc"].append(roc_auc_score(y_test, y_pred_proba[:, 1]))
-            else:
+            if task == "classification":
+                y_pred_proba = pipeline.predict_proba(X_test)
+                fold_scores["accuracy"].append(accuracy_score(y_test, y_pred))
+                fold_scores["precision"].append(precision_score(y_test, y_pred, average="weighted", zero_division=0))
+                fold_scores["recall"].append(recall_score(y_test, y_pred, average="weighted", zero_division=0))
+                fold_scores["f1"].append(f1_score(y_test, y_pred, average="weighted", zero_division=0))
+                
+                n_classes = len(np.unique(y_test))
+                model_classes = list(pipeline.classes_)
                 try:
-                    fold_scores["roc_auc"].append(roc_auc_score(y_test, y_pred_proba, multi_class="ovr", average="weighted"))
-                except Exception:
+                    if n_classes == 2:
+                        fold_scores["roc_auc"].append(roc_auc_score(y_test, y_pred_proba[:, 1]))
+                        class_coverage_list.append("2/2")
+                        for cls in classes_all:
+                            if cls in model_classes:
+                                class_qualified_folds[cls] += 1
+                    elif n_classes > 2:
+                        fold_class_scores = []
+                        fold_class_weights = []
+                        qualified_classes_in_fold = 0
+                        
+                        for cls in classes_all:
+                            if cls in model_classes and (y_test == cls).any():
+                                y_test_binary = (y_test == cls).astype(int)
+                                if y_test_binary.nunique() > 1:
+                                    col_idx = model_classes.index(cls)
+                                    class_probs = y_pred_proba[:, col_idx]
+                                    try:
+                                        score = roc_auc_score(y_test_binary, class_probs)
+                                        fold_class_scores.append(score)
+                                        fold_class_weights.append(int((y_test == cls).sum()))
+                                        class_qualified_folds[cls] += 1
+                                        qualified_classes_in_fold += 1
+                                    except Exception:
+                                        pass
+                                        
+                        if qualified_classes_in_fold > 0:
+                            fold_roc_auc = np.average(fold_class_scores, weights=fold_class_weights)
+                            fold_scores["roc_auc"].append(fold_roc_auc)
+                        else:
+                            fold_scores["roc_auc"].append(np.nan)
+                            
+                        class_coverage_list.append(f"{qualified_classes_in_fold}/{len(classes_all)}")
+                    else:
+                        raise ValueError("Fewer than 2 classes present in this fold's test set")
+                except Exception as e:
+                    warnings.warn(f"Fold ROC AUC calculation failed. Error: {e}")
                     fold_scores["roc_auc"].append(np.nan)
-            fold_scores["balanced_accuracy"].append(balanced_accuracy_score(y_test, y_pred))
-        else:
-            fold_scores["mae"].append(mean_absolute_error(y_test, y_pred))
-            fold_scores["rmse"].append(np.sqrt(mean_squared_error(y_test, y_pred)))
-            fold_scores["r2"].append(r2_score(y_test, y_pred))
-            
-            mask = y_test != 0
-            if mask.sum() > 0:
-                fold_scores["mape"].append(mean_absolute_percentage_error(y_test[mask], y_pred[mask]))
+                    class_coverage_list.append(f"0/{len(classes_all)}")
+                    
+                fold_scores["balanced_accuracy"].append(balanced_accuracy_score(y_test, y_pred))
             else:
-                fold_scores["mape"].append(np.nan)
+                fold_scores["mae"].append(mean_absolute_error(y_test, y_pred))
+                fold_scores["rmse"].append(np.sqrt(mean_squared_error(y_test, y_pred)))
+                fold_scores["r2"].append(r2_score(y_test, y_pred))
+                
+                mask = y_test != 0
+                if mask.sum() > 0:
+                    fold_scores["mape"].append(mean_absolute_percentage_error(y_test[mask], y_pred[mask]))
+                else:
+                    fold_scores["mape"].append(np.nan)
+        except Exception as e:
+            warnings.warn(f"Fold evaluation failed completely: {e}")
+            for metric in fold_scores:
+                fold_scores[metric].append(np.nan)
+            if task == "classification":
+                class_coverage_list.append(f"0/{len(classes_all)}")
                 
     mean_metrics = {}
     std_metrics = {}
@@ -422,7 +477,31 @@ def evaluate_model_cv(
             mean_metrics[metric] = 0.0
             std_metrics[metric] = 0.0
             
-    return mean_metrics, std_metrics, fold_scores
+    roc_auc_fold_coverage = None
+    roc_auc_class_coverage = None
+    if task == "classification":
+        roc_auc_scores = fold_scores.get("roc_auc", [])
+        successful_folds = sum(1 for s in roc_auc_scores if not np.isnan(s))
+        total_folds = len(roc_auc_scores)
+        roc_auc_fold_coverage = f"{successful_folds}/{total_folds}" if total_folds > 0 else None
+        
+        # Aggregate class-level coverage
+        total_qualified = 0
+        total_possible = len(classes_all) * cv.n_splits
+        for cov_str in class_coverage_list:
+            parts = cov_str.split("/")
+            total_qualified += int(parts[0])
+        roc_auc_class_coverage = f"{total_qualified}/{total_possible}" if total_possible > 0 else None
+        
+        # Warn for uncovered classes
+        uncovered_classes = [cls for cls, count in class_qualified_folds.items() if count == 0]
+        if uncovered_classes:
+            warnings.warn(
+                f"Classes {uncovered_classes} had 0/{cv.n_splits} coverage during cross-validation. "
+                "ROC-AUC calculations did not include these classes."
+            )
+            
+    return mean_metrics, std_metrics, fold_scores, roc_auc_fold_coverage, roc_auc_class_coverage
 
 def check_class_imbalance(y: pd.Series, task: str) -> Dict[str, Any]:
     """
@@ -476,24 +555,28 @@ def train_models(
     
     # Model 1: Baseline
     pipeline_baseline = LeakageSafePipeline.build_pipeline(X, y, task)
-    mean_metrics, std_metrics, fold_scores = evaluate_model_cv(pipeline_baseline, X, y, task, adjusted_cv)
+    mean_metrics, std_metrics, fold_scores, fold_cov, class_cov = evaluate_model_cv(pipeline_baseline, X, y, task, adjusted_cv)
     model_name_baseline = "LogisticRegression" if task == "classification" else "LinearRegression"
     results.append(ModelResult(
         model_name=model_name_baseline,
         metrics=mean_metrics,
         std=std_metrics,
-        fold_scores=fold_scores
+        fold_scores=fold_scores,
+        roc_auc_fold_coverage=fold_cov,
+        roc_auc_class_coverage=class_cov
     ))
     
     # Model 2: HistGradientBoosting
     pipeline_boosting = LeakageSafePipeline.build_boosting_pipeline(X, y, task)
-    mean_metrics, std_metrics, fold_scores = evaluate_model_cv(pipeline_boosting, X, y, task, adjusted_cv)
+    mean_metrics, std_metrics, fold_scores, fold_cov, class_cov = evaluate_model_cv(pipeline_boosting, X, y, task, adjusted_cv)
     model_name_boosting = "HistGradientBoostingClassifier" if task == "classification" else "HistGradientBoostingRegressor"
     results.append(ModelResult(
         model_name=model_name_boosting,
         metrics=mean_metrics,
         std=std_metrics,
-        fold_scores=fold_scores
+        fold_scores=fold_scores,
+        roc_auc_fold_coverage=fold_cov,
+        roc_auc_class_coverage=class_cov
     ))
     
     return results
@@ -534,8 +617,34 @@ def run_modeling_pipeline(
     for col in categorical_cols:
         X[col] = X[col].map(lambda x: str(x) if pd.notna(x) else x)
 
+    excluded_classes = []
     task = TaskDetector.detect(y)
     
+    if task == "classification":
+        class_counts = y.value_counts()
+        single_member_classes = class_counts[class_counts == 1].index.tolist()
+        if single_member_classes:
+            for cls in single_member_classes:
+                cls_val = cls
+                if hasattr(cls, "item"):
+                    cls_val = cls.item()
+                excluded_classes.append({
+                    "class": cls_val,
+                    "reason": "Exactly 1 member in dataset; cannot be split for cross-validation.",
+                    "rows_dropped": 1
+                })
+            warning_msg = (
+                f"Excluded classes with exactly 1 member: {single_member_classes} "
+                f"as they cannot be split into training and validation sets for cross-validation."
+            )
+            warnings.warn(warning_msg)
+            keep_mask = ~y.isin(single_member_classes)
+            X = X[keep_mask].reset_index(drop=True)
+            y = y[keep_mask].reset_index(drop=True)
+            
+            if y.nunique() < 2:
+                raise ValueError("Only one class remains after excluding 1-member classes; classification model cannot train.")
+
     n_samples = len(X)
     if n_samples < 2:
         raise ValueError(f"Dataset must have at least 2 rows to train models (found {n_samples} rows).")
@@ -555,10 +664,18 @@ def run_modeling_pipeline(
             "model": r.model_name,
             "metrics": r.metrics,
             "std": r.std,
-            "fold_scores": r.fold_scores
+            "fold_scores": r.fold_scores,
+            "roc_auc_fold_coverage": r.roc_auc_fold_coverage,
+            "roc_auc_class_coverage": r.roc_auc_class_coverage
         }
         for r in model_results
     ]
+    
+    roc_auc_fold_coverage = None
+    roc_auc_class_coverage = None
+    if model_results:
+        roc_auc_fold_coverage = model_results[0].roc_auc_fold_coverage
+        roc_auc_class_coverage = model_results[0].roc_auc_class_coverage
     
     best = determine_best_model(model_results, task)
     
@@ -581,5 +698,8 @@ def run_modeling_pipeline(
         leakage_flags=leakage_dict,
         results=results_dict,
         best=best,
-        class_imbalance=imbalance
+        class_imbalance=imbalance,
+        roc_auc_fold_coverage=roc_auc_fold_coverage,
+        excluded_classes=excluded_classes,
+        roc_auc_class_coverage=roc_auc_class_coverage
     )

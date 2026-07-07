@@ -36,6 +36,9 @@ export type ModelResult = {
   metrics: ModelMetrics;
   std: ModelMetrics;
   fold_scores: FoldScores;
+  roc_auc_fold_coverage?: string | null;
+  roc_auc_class_coverage?: string | null;
+  excluded_classes?: { class: string; reason: string; rows_dropped: number }[];
 };
 
 export type BestModel = {
@@ -50,6 +53,9 @@ export type ModelResponse = {
   leakage: LeakageFlag[];
   results: ModelResult[];
   best: BestModel;
+  roc_auc_fold_coverage?: string | null;
+  roc_auc_class_coverage?: string | null;
+  excluded_classes?: { class: string; reason: string; rows_dropped: number }[];
 };
 
 // S3: Target Suitability
