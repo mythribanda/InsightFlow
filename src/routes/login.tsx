@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { ErrorComponent } from "./__root";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -8,6 +9,7 @@ import { DataPointsBackground } from "@/components/DataPointsBackground";
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
+  errorComponent: ErrorComponent,
 });
 
 function LoginPage() {
@@ -140,7 +142,7 @@ function LoginPage() {
 
   // Handle OTP Code Verification
   async function handleOtpSubmit() {
-    if (otp.length !== 6) return;
+    if (otp.length !== 8) return;
     setLoading(true);
     setError(null);
 
@@ -646,7 +648,7 @@ function LoginPage() {
                       Verify your email
                     </h2>
                     <p className="text-xs text-slate-400">
-                      Enter the 6-digit verification code sent to your email
+                      Enter the 8-digit verification code sent to your email
                     </p>
                   </div>
 
@@ -666,10 +668,10 @@ function LoginPage() {
                       <input
                         type="text"
                         value={otp}
-                        onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                        placeholder="123456"
+                        onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 8))}
+                        placeholder="12345678"
                         disabled={loading}
-                        maxLength={6}
+                        maxLength={8}
                         className="w-full text-center text-xl tracking-widest py-2.5 rounded-xl text-white placeholder:text-muted-foreground/30 outline-none transition-all bg-white/5 border border-white/10"
                         onFocus={(e) => {
                           e.currentTarget.style.borderColor = "var(--color-primary)";
@@ -680,7 +682,7 @@ function LoginPage() {
                           e.currentTarget.style.boxShadow = "none";
                         }}
                         onKeyDown={(e) => {
-                          if (e.key === "Enter" && otp.length === 6) handleOtpSubmit();
+                          if (e.key === "Enter" && otp.length === 8) handleOtpSubmit();
                         }}
                       />
                     </div>
@@ -688,10 +690,10 @@ function LoginPage() {
                     {/* Verify Button */}
                     <button
                       onClick={handleOtpSubmit}
-                      disabled={otp.length !== 6 || loading}
+                      disabled={otp.length !== 8 || loading}
                       className="w-full py-3 rounded-full font-bold transition-all hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-1.5 mt-2 text-xs animate-in fade-in slide-in-from-bottom-2 duration-500"
                       style={
-                        otp.length === 6 && !loading
+                        otp.length === 8 && !loading
                           ? {
                               background: "var(--gradient-primary)",
                               color: "#fff",

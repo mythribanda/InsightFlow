@@ -1,11 +1,11 @@
 import logging
 import os
 import re
+import time
 import duckdb
 import pandas as pd
 import numpy as np
 from fastapi import APIRouter, HTTPException, Header
-
 from state import session_data_store, verify_session_owner
 from schemas import QueryRequest, SQLQueryRequest
 
@@ -101,12 +101,15 @@ async def run_sql_query(session_id: str, request: SQLQueryRequest, x_user_id: st
         con = duckdb.connect()
         con.register("dataset", df)
 
+        start_time = time.perf_counter()
         try:
             result_df = con.execute(query).fetchdf()
         except Exception as e:
             raise HTTPException(status_code=400, detail=f"SQL error: {str(e)}")
         finally:
             con.close()
+        end_time = time.perf_counter()
+        execution_time_ms = (end_time - start_time) * 1000.0
 
         # Cap rows returned to the frontend
         truncated = len(result_df) > 1000
@@ -124,6 +127,7 @@ async def run_sql_query(session_id: str, request: SQLQueryRequest, x_user_id: st
             "rows": result_df.to_dict("records"),
             "row_count": len(result_df),
             "truncated": truncated,
+            "execution_time_ms": execution_time_ms,
         }
     except HTTPException:
         raise

@@ -36,6 +36,10 @@ export type ModelResult = {
   metrics: ModelMetrics;
   std: ModelMetrics;
   fold_scores: FoldScores;
+  /** Total wall-clock seconds spent in .fit() summed across all CV folds. */
+  training_time_seconds?: number;
+  /** Mean per-sample inference latency in milliseconds, averaged across CV folds. */
+  inference_time_ms?: number;
 };
 
 export type BestModel = {
@@ -45,11 +49,22 @@ export type BestModel = {
   std: number;
 };
 
+export type CoefficientRow = {
+  feature: string;
+  coefficient: number;
+};
+
+export type BaselineCoefficients = {
+  intercept: number;
+  coefficients: CoefficientRow[];
+};
+
 export type ModelResponse = {
   task: string;
   leakage: LeakageFlag[];
   results: ModelResult[];
   best: BestModel;
+  baseline_coefficients?: BaselineCoefficients;
 };
 
 // S3: Target Suitability
@@ -189,7 +204,7 @@ export const getRecommendations = createServerFn({ method: "POST" })
 export const callModelingAPI = createServerFn({ method: "POST" })
   .inputValidator((v: unknown) => {
     if (typeof v === "object" && v !== null && "target" in v) {
-      return v as { target: string; data: Record<string, unknown[]>; excluded_features?: string[]; cv_splits?: number; session_id?: string };
+      return v as { target: string; data: Record<string, unknown[]>; excluded_features?: string[]; cv_splits?: number; session_id?: string; project_id?: string };
     }
     throw new Error("Invalid model request");
   })
@@ -214,6 +229,7 @@ export const callModelingAPI = createServerFn({ method: "POST" })
           data: request.data,
           excluded_features: request.excluded_features || [],
           cv_splits: request.cv_splits || 5,
+          project_id: request.project_id || null,
         }),
       });
 
@@ -405,4 +421,90 @@ export const exportReproductionCode = createServerFn({ method: "POST" })
   });
 
 
+// §HT: Hyperparameter Tuning
+export type TuneCvResultRow = {
+  rank: number;
+  params: Record<string, any>;
+  mean_score: number;
+  std_score: number;
+};
 
+export type TuneResponse = {
+  model_name: string;
+  search_type: string;
+  best_params: Record<string, any>;
+  best_score: number;
+  baseline_score?: number;
+  scoring_metric: string;
+  n_candidates: number;
+  search_duration_s: number;
+  cv_results_summary: TuneCvResultRow[];
+  tuned_pipeline_key: string;
+};
+
+export const runHyperparameterTuning = createServerFn({ method: "POST" })
+  .inputValidator((v: unknown) => {
+    if (
+      typeof v === "object" &&
+      v !== null &&
+      "session_id" in v &&
+      "model_name" in v
+    ) {
+      return v as {
+        session_id: string;
+        model_name: string;
+        search_type?: string;
+        param_grid?: Record<string, any[]>;
+        n_iter?: number;
+        cv_splits?: number;
+      };
+    }
+    throw new Error("Invalid tune request");
+  })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ data: request, context }): Promise<TuneResponse> => {
+    if (!context?.userId) {
+      throw new Response("Unauthorized", { status: 401 });
+    }
+    const BACKEND_URL = process.env.MODELING_API_URL || "http://localhost:8000";
+    const SESSION_ID = request.session_id;
+
+    try {
+      const response = await fetch(`${BACKEND_URL}/tune/${SESSION_ID}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-user-id": context.userId,
+          "x-internal-secret": process.env.INTERNAL_API_SECRET || "",
+        },
+        body: JSON.stringify({
+          model_name: request.model_name,
+          search_type: request.search_type || "random",
+          param_grid: request.param_grid || null,
+          n_iter: request.n_iter ?? 20,
+          cv_splits: request.cv_splits ?? 5,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        const detail = errorData.detail;
+        const msg =
+          typeof detail === "string"
+            ? detail
+            : Array.isArray(detail)
+              ? detail.map((e: any) => `${e.loc?.join(".") || "error"}: ${e.msg}`).join("; ")
+              : typeof detail === "object" && detail !== null
+                ? JSON.stringify(detail)
+                : `Backend error: ${response.statusText}`;
+        throw new Error(msg);
+      }
+
+      return (await response.json()) as TuneResponse;
+    } catch (error) {
+      console.error("Tuning error:", error);
+      throw new Error(
+        `Hyperparameter tuning failed: ${error instanceof Error ? error.message : "Unknown error"}`
+      );
+    }
+  });

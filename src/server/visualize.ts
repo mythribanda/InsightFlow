@@ -1,6 +1,12 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
+export interface ColumnFilter {
+  column: string;
+  type: string;
+  value: any;
+}
+
 export const getVisualization = createServerFn({ method: "POST" })
   .inputValidator((v: unknown) => {
     if (
@@ -15,6 +21,7 @@ export const getVisualization = createServerFn({ method: "POST" })
         column1: string;
         column2?: string | null;
         chart_type: string;
+        filters?: ColumnFilter[];
       };
     }
     throw new Error("Invalid visualization request");
@@ -39,6 +46,7 @@ export const getVisualization = createServerFn({ method: "POST" })
             column1: request.column1,
             column2: request.column2 || null,
             chart_type: request.chart_type,
+            filters: request.filters || null,
           }),
         }
       );

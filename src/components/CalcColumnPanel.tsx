@@ -28,6 +28,11 @@ interface CalcColumnPanelProps {
   rows: Record<string, unknown>[];
   headers: string[];
   onColumnCreated: (name: string, allValues: any[]) => void;
+  /** If provided, a version snapshot will be written to this project after column creation */
+  projectId?: string;
+  initialName?: string;
+  initialFormula?: string;
+  onClearInitials?: () => void;
 }
 
 export const CalcColumnPanel: React.FC<CalcColumnPanelProps> = ({
@@ -35,10 +40,22 @@ export const CalcColumnPanel: React.FC<CalcColumnPanelProps> = ({
   rows,
   headers,
   onColumnCreated,
+  projectId,
+  initialName,
+  initialFormula,
+  onClearInitials,
 }) => {
   const runAddCalcColumn = useServerFn(addCalcColumn);
-  const [name, setName] = useState("");
-  const [formula, setFormula] = useState("");
+  const [name, setName] = useState(initialName || "");
+  const [formula, setFormula] = useState(initialFormula || "");
+
+  React.useEffect(() => {
+    if (initialName !== undefined && initialName !== "") setName(initialName);
+    if (initialFormula !== undefined && initialFormula !== "") setFormula(initialFormula);
+    if (initialName || initialFormula) {
+      onClearInitials?.();
+    }
+  }, [initialName, initialFormula, onClearInitials]);
   const [previewValues, setPreviewValues] = useState<any[] | null>(null);
   const [createdName, setCreatedName] = useState("");
 
@@ -62,6 +79,7 @@ export const CalcColumnPanel: React.FC<CalcColumnPanelProps> = ({
           name: cleanName,
           formula: cleanFormula,
           data: dataDict,
+          project_id: projectId,
         },
       });
 

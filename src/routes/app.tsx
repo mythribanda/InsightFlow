@@ -1,6 +1,9 @@
 import React, { useMemo, useState, useEffect, useRef, Fragment } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
+import { ErrorComponent } from "./__root";
+import { saveProject, loadProject } from "@/server/projects";
+import Papa from "papaparse";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
 import { getVisualization, exportVisualizationCode } from "@/server/visualize";
@@ -33,11 +36,12 @@ import {
   Lightbulb, ListChecks, MessageSquare, Sparkles, Wand2, GitCompareArrows,
   LayoutDashboard, ShieldCheck, ShieldAlert, ShieldX, ChevronLeft, ChevronRight,
   Zap, Eye, Target, TrendingUp, Zap as ZapIcon, Loader2, Code, Info,
-  ArrowRight, Lock, ChevronDown, CloudUpload, Layers
+  ArrowRight, Lock, ChevronDown, CloudUpload, Layers, Calendar, Sun, Moon
 } from "lucide-react";
 import { toPng } from "html-to-image";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTheme } from "@/contexts/ThemeContext";
 import { FileDrop } from "@/components/FileDrop";
 import { MetricCard } from "@/components/MetricCard";
 import { TrustGauge } from "@/components/TrustGauge";
@@ -45,20 +49,23 @@ import { AutoCharts } from "@/components/AutoCharts";
 import { ChatPanel } from "@/components/ChatPanel";
 import { MiniBarChart } from "@/components/MiniBarChart";
 import { ModelingPanel } from "@/components/ModelingPanel";
+import { StatisticsPanel } from "@/components/StatisticsPanel";
+import { TimeSeriesPanel } from "@/components/TimeSeriesPanel";
+import { DashboardGrid } from "@/components/dashboard/DashboardGrid";
 import { parseFile } from "@/lib/parseFile";
 import { profileDataset, generateInsights, trendForecast, type DatasetProfile } from "@/lib/profiler";
 import { computeRiskLevel, severityFor, severityStyle } from "@/lib/riskLevel";
-import { exportReportPDF } from "@/lib/exportReport";
+import { exportReportPDF, exportHtmlReport } from "@/lib/exportReport";
 import { askDataset } from "@/utils/ai.functions";
 import { cn } from "@/lib/utils";
-import { startAnalysis, getAnalysisStatus, type AnalysisResult } from "@/server/analysis";
+import { startAnalysis, getAnalysisStatus, getStory, type AnalysisResult } from "@/server/analysis";
 import { exportCleanCSV } from "@/server/modeling";
 import { DependencyHeatmaps } from "@/components/DependencyHeatmaps";
 import { AnomalyPanel } from "@/components/AnomalyPanel";
 import { QueryBox } from "@/components/QueryBox";
 import { CalcColumnPanel } from "@/components/CalcColumnPanel";
 import { ClusteringPanel } from "@/components/ClusteringPanel";
-import { getTextAnalysis } from "@/server/textAnalysis";
+import { getTextAnalysis, getSentimentAnalysis } from "@/server/textAnalysis";
 import { Calculator } from "lucide-react";
 import { CountUp } from "@/components/reactbits/CountUp";
 import { BlurText } from "@/components/reactbits/BlurText";
@@ -66,8 +73,13 @@ import { Aurora } from "@/components/reactbits/Aurora";
 import { AnimatedList } from "@/components/reactbits/AnimatedList";
 import { ClickSpark } from "@/components/reactbits/ClickSpark";
 import { AnimatedContent } from "@/components/reactbits/AnimatedContent";
+import { fireDashboardSaveConfetti } from "@/lib/confetti";
+import { motion, AnimatePresence } from "framer-motion";
+import { cardVariants, panelVariants, containerVariants, listItemVariants } from "@/hooks/useAnimationVariants";
 
-export const Route = createFileRoute("/app")(  {
+import { z } from "zod";
+
+export const Route = createFileRoute("/app")({
   head: () => ({
     meta: [
       { title: "InsightFlow — Analyst Console" },
@@ -77,16 +89,18 @@ export const Route = createFileRoute("/app")(  {
     ],
   }),
   component: Home,
+  errorComponent: ErrorComponent,
 });
 
 type Persona = "business" | "student" | "developer";
-type Tab = "dashboard" | "overview" | "visualizations" | "insights" | "chat" | "modeling" | "report" | "anomaly" | "calc" | "clustering";
+type Tab = "dashboard" | "overview" | "visualizations" | "insights" | "chat" | "modeling" | "report" | "anomaly" | "calc" | "clustering" | "statistics" | "timeseries";
 
 function Home() {
   const navigate = useNavigate();
   const { session, loading: authLoading } = useAuth();
   const [loadingSession, setLoadingSession] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [dashboardSubMode, setDashboardSubMode] = useState<"overview" | "grid">("overview");
 
   useEffect(() => {
     if (authLoading) return;
@@ -127,6 +141,11 @@ function Home() {
   const [story, setStory] = useState<string>("");
   const [aiBusy, setAiBusy] = useState<"narrative" | "story" | null>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [initialCalcName, setInitialCalcName] = useState("");
+  const [initialCalcFormula, setInitialCalcFormula] = useState("");
+  const [initialExcludedFeatures, setInitialExcludedFeatures] = useState<string[]>([]);
+  const [cleaningSuggestions, setCleaningSuggestions] = useState<any[]>([]);
+  const [storySourceJson, setStorySourceJson] = useState<any>(null);
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [sessionId, setSessionId] = useState<string>( "");
@@ -134,9 +153,91 @@ function Home() {
   // BlurText one-shot gate lives here in Home — Insights remounts on every tab switch
   // (AnimatedContent key={tab} fully unmounts it), so a ref inside Insights would reset every time.
   const blurSeenForFingerprintRef = useRef<string>("");
+  const projectId = useMemo(() => {
+    if (typeof window === "undefined") return undefined;
+    const searchParams = new URLSearchParams(window.location.search);
+    return searchParams.get("projectId") || undefined;
+  }, [typeof window !== "undefined" ? window.location.search : ""]);
   const ask = useServerFn(askDataset);
   const runStartAnalysis = useServerFn(startAnalysis);
   const runGetAnalysisStatus = useServerFn(getAnalysisStatus);
+  const runSaveProject = useServerFn(saveProject);
+  const runLoadProject = useServerFn(loadProject);
+
+  const [showSaveModal, setShowSaveModal] = useState(false);
+  const [projectName, setProjectName] = useState("");
+  const [isSavingProject, setIsSavingProject] = useState(false);
+
+  // Load project on mount or when projectId changes
+  useEffect(() => {
+    if (authLoading) return;
+    if (!session) return;
+    if (!projectId) return;
+
+    async function loadProjectData() {
+      setBusy(true);
+      try {
+        const userId = session?.user?.id || "anonymous";
+        const session_id = `session_${userId}_${projectId}`;
+        
+        toast.info("Loading project from Supabase...");
+        const res = await runLoadProject({ data: { project_id: projectId, session_id } });
+        
+        if (res) {
+          const parsed = Papa.parse<Record<string, unknown>>(res.csv_data, {
+            header: true,
+            dynamicTyping: false,
+            skipEmptyLines: true,
+          });
+          const headers = parsed.meta.fields ?? [];
+          const rows = parsed.data;
+          
+          const p = profileDataset(rows, headers);
+          setProfile(p);
+          setRows(rows);
+          setFileName(res.project.name);
+          setSessionId(session_id);
+          setAnalysis(res.analysis_result);
+          setTab("dashboard");
+          setNarrative("");
+          setStory("");
+          
+          toast.success(`Project "${res.project.name}" loaded successfully!`);
+        }
+      } catch (err: any) {
+        console.error("Failed to load project:", err);
+        toast.error("Failed to load project: " + (err.message || err));
+      } finally {
+        setBusy(false);
+      }
+    }
+
+    loadProjectData();
+  }, [projectId, session, authLoading]);
+
+  const handleSaveProject = async () => {
+    if (!projectName.trim()) return;
+    setIsSavingProject(true);
+    try {
+      toast.loading("Saving project...", { id: "save-project" });
+      const saved = await runSaveProject({
+        data: {
+          name: projectName.trim(),
+          session_id: sessionId,
+        },
+      });
+      toast.success(`Project "${projectName.trim()}" saved successfully!`, { id: "save-project" });
+      setShowSaveModal(false);
+      window.history.replaceState(null, "", `/app?projectId=${saved.id}`);
+      // One-shot confetti burst on first successful project save
+      fireDashboardSaveConfetti();
+    } catch (err: any) {
+      console.error("Save project error:", err);
+      toast.error("Failed to save project: " + (err.message || err), { id: "save-project" });
+    } finally {
+      setIsSavingProject(false);
+    }
+  };
 
   const insights = useMemo(() => (profile ? generateInsights(profile) : []), [profile]);
   const forecast = useMemo(() => (profile ? trendForecast(profile) : null), [profile]);
@@ -165,16 +266,25 @@ function Home() {
       setNarrative(""); setStory("");
       toast.success(`Profiled ${parsed.rows.length.toLocaleString()} rows × ${parsed.headers.length} columns`);
 
-      // Backend Background analysis job
-      setAnalyzing(true);
-      setAnalysis(null);
+      await triggerAnalysisJob(parsed.rows, parsed.headers);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to parse file");
+      setBusy(false);
+      setAnalyzing(false);
+    }
+  };
+
+  const triggerAnalysisJob = async (rowsData: Record<string, unknown>[], headersList: string[]) => {
+    setAnalyzing(true);
+    setAnalysis(null);
+    try {
       const userId = session?.user?.id || "anonymous";
       const session_id = `session_${userId}_${crypto.randomUUID()}`;
       setSessionId(session_id);
       
       const dataDict: Record<string, unknown[]> = {};
-      parsed.headers.forEach(h => {
-        dataDict[h] = parsed.rows.map(r => r[h]);
+      headersList.forEach(h => {
+        dataDict[h] = rowsData.map(r => r[h]);
       });
       
       await runStartAnalysis({ data: { session_id, data: dataDict } });
@@ -197,12 +307,35 @@ function Home() {
         toast.error("Backend analysis timed out. Using client fallback.");
       }
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed to parse file");
-    } finally { 
-      setBusy(false); 
+      toast.error(e instanceof Error ? e.message : "Failed to run analysis");
+    } finally {
+      setBusy(false);
       setAnalyzing(false);
     }
   };
+
+  useEffect(() => {
+    const handleSwitchTab = (e: Event) => {
+      const tabName = (e as CustomEvent<string>).detail;
+      setTab(tabName as Tab);
+    };
+    const handleTriggerAnalysis = () => {
+      if (profile && rows.length) {
+        toast.info("Re-running dataset intelligence analysis...");
+        triggerAnalysisJob(rows, profile.columns.map(c => c.name));
+      } else {
+        toast.error("Please upload a dataset first.");
+      }
+    };
+
+    window.addEventListener("switch-tab", handleSwitchTab);
+    window.addEventListener("trigger-analysis", handleTriggerAnalysis);
+
+    return () => {
+      window.removeEventListener("switch-tab", handleSwitchTab);
+      window.removeEventListener("trigger-analysis", handleTriggerAnalysis);
+    };
+  }, [profile, rows, session]);
 
   const runAi = async (mode: "narrative" | "story") => {
     if (!profile) return;
@@ -214,6 +347,58 @@ function Home() {
       else if (mode === "narrative") setNarrative(res.content || "");
       else setStory(res.content || "");
     } finally { setAiBusy(null); }
+  };
+
+  const runGetStory = useServerFn(getStory);
+
+  useEffect(() => {
+    if (sessionId && analysis) {
+      runGetStory({ data: { session_id: sessionId } })
+        .then((res) => {
+          setStory(res.narrative || "");
+          setStorySourceJson(res.source_json);
+          if (res.cleaning_suggestions) {
+            setCleaningSuggestions(res.cleaning_suggestions);
+          }
+        })
+        .catch((err) => {
+          console.error("Failed to load story narrative and cleaning suggestions:", err);
+        });
+    }
+  }, [sessionId, analysis]);
+
+  const handleApplySuggestion = (suggestion: any) => {
+    const action = suggestion.suggested_action;
+    const col = suggestion.column;
+
+    if (action === "drop_column" && col) {
+      setInitialExcludedFeatures((prev) => Array.from(new Set([...prev, col])));
+      setTab("modeling");
+      toast.success(`Pre-filled exclusion for '${col}' in Modeling Panel.`);
+    } else if (action === "impute_missing" && col) {
+      const colProfile = profile?.columns.find(c => c.name === col);
+      const isNumeric = colProfile?.type === "numeric";
+      setInitialCalcName(col);
+      if (isNumeric) {
+        const meanVal = colProfile?.mean !== undefined ? colProfile.mean.toFixed(2) : "0";
+        setInitialCalcFormula(`IF(ISNULL(\`${col}\`), ${meanVal}, \`${col}\`)`);
+      } else {
+        const modeVal = colProfile?.topValues?.[0]?.value !== undefined ? `"${colProfile.topValues[0].value}"` : `""`;
+        setInitialCalcFormula(`IF(ISNULL(\`${col}\`), ${modeVal}, \`${col}\`)`);
+      }
+      setTab("calc");
+      toast.success(`Pre-filled imputation formula for '${col}' in Calculated Columns.`);
+    } else if (action === "drop_duplicates") {
+      toast.info("Duplicate rows are automatically dropped on clean CSV export.");
+      setTab("report");
+    } else {
+      if (col) {
+        setInitialCalcName(`${col}_cleaned`);
+        setInitialCalcFormula(`ROUND(\`${col}\`, 2)`);
+        setTab("calc");
+        toast.success(`Pre-filled formula suggestion for '${col}' in Calculated Columns.`);
+      }
+    }
   };
 
   const handleColumnCreated = (name: string, allValues: any[]) => {
@@ -257,6 +442,8 @@ function Home() {
     { id: "anomaly", label: "Anomalies", icon: ShieldAlert, desc: "Outlier detection" },
     { id: "clustering", label: "Clustering", icon: Target, desc: "K-Means & DBSCAN" },
     { id: "calc", label: "Calculated Cols", icon: Calculator, desc: "Create new columns" },
+    { id: "statistics", label: "Stats", icon: GitCompareArrows, desc: "Hypothesis testing" },
+    { id: "timeseries", label: "Time Series", icon: Calendar, desc: "Decompose & forecast" },
     { id: "chat", label: "Ask your data", icon: MessageSquare, desc: "AI chat" },
     { id: "visualizations", label: "Visualizations", icon: BarChart3, desc: "Auto and custom charts" },
     { id: "report", label: "Report", icon: Download, desc: "Export PDF" },
@@ -498,7 +685,15 @@ function Home() {
   // App with dataset — sidebar layout
   return (
     <div className="min-h-screen">
-      <TopBar persona={persona} setPersona={setPersona} />
+      <TopBar
+        persona={persona}
+        setPersona={setPersona}
+        hasAnalysis={!!analysis}
+        onSaveClick={() => {
+          setProjectName(fileName.replace(/\.[^/.]+$/, ""));
+          setShowSaveModal(true);
+        }}
+      />
       <div className="flex">
         {/* Sidebar */}
         <aside className={cn(
@@ -591,15 +786,44 @@ function Home() {
                     <p className="text-sm font-medium text-muted-foreground">Running backend intelligence profiling...</p>
                   </div>
                 )}
-                <Dashboard
-                  profile={profile}
-                  risk={risk}
-                  insights={insights}
-                  fileName={fileName}
-                  onJump={setTab}
-                  analysis={analysis}
-                  sessionId={sessionId}
-                />
+
+                {/* Sub-mode switcher tabs */}
+                <div className="flex rounded-lg bg-secondary/50 p-0.5 border border-border w-fit">
+                  <button
+                    onClick={() => setDashboardSubMode("overview")}
+                    className={`rounded-md px-3.5 py-1.5 text-[10px] font-semibold uppercase tracking-wider transition-all cursor-pointer ${
+                      dashboardSubMode === "overview"
+                        ? "bg-primary text-primary-foreground shadow-sm font-bold"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    Overview Summary
+                  </button>
+                  <button
+                    onClick={() => setDashboardSubMode("grid")}
+                    className={`rounded-md px-3.5 py-1.5 text-[10px] font-semibold uppercase tracking-wider transition-all cursor-pointer ${
+                      dashboardSubMode === "grid"
+                        ? "bg-primary text-primary-foreground shadow-sm font-bold"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    Interactive Grid
+                  </button>
+                </div>
+
+                {dashboardSubMode === "overview" ? (
+                  <Dashboard
+                    profile={profile}
+                    risk={risk}
+                    insights={insights}
+                    fileName={fileName}
+                    onJump={setTab}
+                    analysis={analysis}
+                    sessionId={sessionId}
+                  />
+                ) : (
+                  <DashboardGrid sessionId={sessionId} profile={profile} projectId={projectId} analysis={analysis} />
+                )}
               </div>
             )}
             {tab === "overview" && (
@@ -613,8 +837,26 @@ function Home() {
                 analysis={analysis}
               />
             )}
-            {tab === "insights" && <Insights insights={insights} profile={profile} hasBlurredRef={blurSeenForFingerprintRef} analysis={analysis} />}
-            {tab === "modeling" && <ModelingPanel data={rows} columns={profile?.columns.map(c => c.name) || []} sessionId={sessionId} />}
+            {tab === "insights" && (
+              <Insights
+                insights={insights}
+                profile={profile}
+                hasBlurredRef={blurSeenForFingerprintRef}
+                analysis={analysis}
+                cleaningSuggestions={cleaningSuggestions}
+                onApplySuggestion={handleApplySuggestion}
+              />
+            )}
+            {tab === "modeling" && (
+              <ModelingPanel
+                data={rows}
+                columns={profile?.columns.map(c => c.name) || []}
+                sessionId={sessionId}
+                projectId={projectId}
+                initialExcludedFeatures={initialExcludedFeatures}
+                onClearExcluded={() => setInitialExcludedFeatures([])}
+              />
+            )}
             {tab === "anomaly" && <AnomalyPanel sessionId={sessionId} />}
             {tab === "clustering" && profile && (
               <ClusteringPanel sessionId={sessionId} profile={profile} />
@@ -625,7 +867,20 @@ function Home() {
                 rows={rows}
                 headers={profile?.columns.map(c => c.name) || []}
                 onColumnCreated={handleColumnCreated}
+                projectId={projectId}
+                initialName={initialCalcName}
+                initialFormula={initialCalcFormula}
+                onClearInitials={() => {
+                  setInitialCalcName("");
+                  setInitialCalcFormula("");
+                }}
               />
+            )}
+            {tab === "statistics" && (
+              <StatisticsPanel sessionId={sessionId} profile={profile} />
+            )}
+            {tab === "timeseries" && profile && (
+              <TimeSeriesPanel sessionId={sessionId} profile={profile} rows={rows} />
             )}
             {tab === "chat" && (
               <div className="space-y-6">
@@ -654,9 +909,9 @@ function Home() {
                 </div>
 
                 {queryMode === "sandbox" ? (
-                  <QueryBox sessionId={sessionId} />
+                  <QueryBox sessionId={sessionId} profile={profile} projectId={projectId} />
                 ) : (
-                  <ChatPanel profile={profile} persona={persona} suggestions={profile.suggestedQuestions} sessionId={sessionId} analysis={analysis} />
+                  <ChatPanel profile={profile} persona={persona} suggestions={profile.suggestedQuestions} sessionId={sessionId} analysis={analysis} initialStory={story} initialSourceJson={storySourceJson} />
                 )}
               </div>
             )}
@@ -678,14 +933,85 @@ function Home() {
           </AnimatedContent>
         </main>
       </div>
+
+      {showSaveModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="w-full max-w-sm rounded-xl border border-white/10 bg-[#15151F] p-5 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+            <h3 className="text-sm font-bold text-foreground">Save Project</h3>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Persist this dataset and analysis results to Supabase.
+            </p>
+            <div className="mt-4">
+              <label className="block text-[9px] font-mono uppercase tracking-wider text-muted-foreground mb-1">
+                Project Name
+              </label>
+              <input
+                type="text"
+                value={projectName}
+                onChange={(e) => setProjectName(e.target.value)}
+                className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs text-foreground focus:outline-none focus:border-primary transition-colors font-mono"
+                placeholder="My Project"
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && projectName.trim()) {
+                    handleSaveProject();
+                  }
+                  if (e.key === "Escape") {
+                    setShowSaveModal(false);
+                  }
+                }}
+              />
+            </div>
+            <div className="mt-5 flex justify-end gap-2.5">
+              <button
+                onClick={() => setShowSaveModal(false)}
+                className="rounded-lg px-3 py-1.5 border border-white/10 hover:bg-white/5 text-[10px] font-mono font-medium text-slate-300 hover:text-white transition-all cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveProject}
+                disabled={isSavingProject || !projectName.trim()}
+                className="rounded-lg bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 px-4.5 py-1.5 text-[10px] font-mono font-bold text-white shadow-md hover:shadow-lg transition-all flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
+              >
+                {isSavingProject ? (
+                  <>
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  "Save"
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
+interface TopBarProps {
+  persona?: Persona;
+  setPersona?: (p: Persona) => void;
+  hidePersona?: boolean;
+  onSaveClick?: () => void;
+  hasAnalysis?: boolean;
+  currentProjectName?: string;
+}
+
 /* ─── TopBar ─── */
-function TopBar({ persona, setPersona, hidePersona }: { persona: Persona; setPersona: (p: Persona) => void; hidePersona?: boolean }) {
+function TopBar({
+  persona,
+  setPersona,
+  hidePersona,
+  onSaveClick,
+  hasAnalysis,
+  currentProjectName,
+}: TopBarProps) {
   const navigate = useNavigate();
   const { session } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
   // Sign out helper
@@ -724,13 +1050,13 @@ function TopBar({ persona, setPersona, hidePersona }: { persona: Persona; setPer
         </div>
 
         {/* Center Section: Persona Selector on App Page only */}
-        {!hidePersona && (
-          <div className="flex items-center gap-2">
+        {!hidePersona && persona && setPersona && (
+          <div className="flex items-center gap-2 font-sans">
             <span className="hidden sm:inline font-mono text-[10px] uppercase tracking-wider text-muted-foreground">persona</span>
             <select
               value={persona}
               onChange={(e) => setPersona(e.target.value as Persona)}
-              className="rounded-lg border border-input bg-background/60 px-2.5 py-1.5 text-xs backdrop-blur-sm transition-colors focus:border-primary focus:outline-none"
+              className="rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 px-2.5 py-1 text-xs transition-colors focus:border-primary focus:outline-none"
             >
               <option value="business">Business</option>
               <option value="student">Student</option>
@@ -741,6 +1067,23 @@ function TopBar({ persona, setPersona, hidePersona }: { persona: Persona; setPer
 
         {/* Right Section: Profile initials Dropdown */}
         <div className="flex items-center gap-3">
+          {hasAnalysis && onSaveClick && (
+            <button
+              onClick={onSaveClick}
+              className="rounded-full bg-gradient-to-r from-primary to-accent hover:from-primary/95 hover:to-accent/95 px-3.5 py-1.5 text-[10px] font-mono font-bold text-white shadow-md hover:shadow-lg transition-all cursor-pointer flex items-center gap-1"
+            >
+              <Layers className="h-3 w-3" />
+              Save Project
+            </button>
+          )}
+
+          <button
+            onClick={toggleTheme}
+            className="flex h-7 w-7 items-center justify-center rounded-full border border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20 transition-all text-muted-foreground hover:text-foreground cursor-pointer shrink-0"
+            title={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
+          >
+            {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+          </button>
 
           {/* Profile Dropdown */}
           <div className="relative">
@@ -766,6 +1109,18 @@ function TopBar({ persona, setPersona, hidePersona }: { persona: Persona; setPer
                     className="w-full text-left px-3 py-2 rounded-lg text-xs hover:bg-white/5 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
                   >
                     My Profile
+                  </button>
+                  <button
+                    onClick={() => { setDropdownOpen(false); navigate({ to: "/projects" }); }}
+                    className="w-full text-left px-3 py-2 rounded-lg text-xs hover:bg-white/5 text-muted-foreground hover:text-foreground transition-colors cursor-pointer block"
+                  >
+                    My Projects
+                  </button>
+                  <button
+                    onClick={() => { setDropdownOpen(false); navigate({ to: "/datasets" }); }}
+                    className="w-full text-left px-3 py-2 rounded-lg text-xs hover:bg-white/5 text-muted-foreground hover:text-foreground transition-colors cursor-pointer block"
+                  >
+                    Dataset Gallery
                   </button>
                   <button
                     onClick={() => { setDropdownOpen(false); handleSignOut(); }}
@@ -825,9 +1180,14 @@ function Dashboard({
   const miniData = firstCat?.topValues?.slice(0, 5).map((t) => ({ value: String(t.value).slice(0, 12), count: t.count })) ?? [];
 
   return (
-    <div className="space-y-6">
+    <motion.div
+      className="space-y-6"
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+    >
       {/* Header strip with Aurora background */}
-      <div className="surface-card relative overflow-hidden p-6">
+      <motion.div className="surface-card relative overflow-hidden p-6" variants={cardVariants}>
         <Aurora colors={["hsl(192 100% 50% / 0.12)","hsl(262 100% 65% / 0.10)","hsl(220 100% 60% / 0.09)"]} blur={90} speed={0.6} />
         <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-accent/5" />
         <div className="relative flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -852,10 +1212,10 @@ function Dashboard({
             </button>
           </div>
         </div>
-      </div>
+      </motion.div>
 
       {/* Dataset Shape & Trust Score Section */}
-      <div className="grid gap-6 lg:grid-cols-3">
+      <motion.div className="grid gap-6 lg:grid-cols-3" variants={cardVariants}>
         {/* Shape and Info Card */}
         <div className="surface-card p-5 flex flex-col justify-between">
           <div>
@@ -925,10 +1285,10 @@ function Dashboard({
             )}
           </div>
         </div>
-      </div>
+      </motion.div>
 
       {/* KPI grid */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <motion.div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4" variants={cardVariants}>
         <MetricCard label="Rows" value={<CountUp to={profile.rowCount} from={0} duration={1.2} separator="," />} icon={Database} accent="primary" />
         <MetricCard label="Columns" value={profile.colCount} icon={BarChart3} accent="primary" />
         <MetricCard
@@ -945,10 +1305,10 @@ function Dashboard({
           icon={Target}
           accent={profile.duplicateRows ? "warning" : "success"}
         />
-      </div>
+      </motion.div>
 
       {/* Highlights */}
-      <div className="grid gap-4 lg:grid-cols-3">
+      <motion.div className="grid gap-4 lg:grid-cols-3" variants={cardVariants}>
         <div className="surface-card p-5 lg:col-span-2">
           <div className="mb-4 flex items-center justify-between">
             <h3 className="flex items-center gap-2 text-sm font-semibold">
@@ -1002,7 +1362,7 @@ function Dashboard({
             <p className="text-sm text-muted-foreground">No categorical column suitable for a quick chart.</p>
           )}
         </div>
-      </div>
+      </motion.div>
 
       {/* Column Profile Table */}
       {analysis ? (
@@ -1018,6 +1378,7 @@ function Dashboard({
           pearson={analysis.dependency.pearson}
           spearman={analysis.dependency.spearman}
           mutual_info={analysis.dependency.mutual_info}
+          sessionId={sessionId}
         />
       ) : (
         <div className="surface-card p-6 flex flex-col items-center justify-center min-h-[300px]">
@@ -1028,7 +1389,7 @@ function Dashboard({
           </p>
         </div>
       )}
-    </div>
+    </motion.div>
   );
 }
 
@@ -1184,9 +1545,14 @@ function Profiling({
 /* ─── Column Table ─── */
 function ColumnTable({ profile, sessionId }: { profile: DatasetProfile; sessionId: string }) {
   const fetchTextAnalysis = useServerFn(getTextAnalysis);
+  const fetchSentimentAnalysis = useServerFn(getSentimentAnalysis);
+
   const [expandedCols, setExpandedCols] = useState<Record<string, boolean>>({});
   const [textAnalysisData, setTextAnalysisData] = useState<Record<string, any>>({});
   const [loadingTextCols, setLoadingTextCols] = useState<Record<string, boolean>>({});
+  
+  const [sentimentAnalysisData, setSentimentAnalysisData] = useState<Record<string, any>>({});
+  const [loadingSentimentCols, setLoadingSentimentCols] = useState<Record<string, boolean>>({});
 
   const loadTextAnalysis = async (colName: string) => {
     if (expandedCols[colName]) {
@@ -1195,17 +1561,33 @@ function ColumnTable({ profile, sessionId }: { profile: DatasetProfile; sessionI
     }
     setExpandedCols((prev) => ({ ...prev, [colName]: true }));
 
-    if (textAnalysisData[colName]) return;
+    if (!textAnalysisData[colName]) {
+      setLoadingTextCols((prev) => ({ ...prev, [colName]: true }));
+      fetchTextAnalysis({ data: { session_id: sessionId, column: colName } })
+        .then((res) => {
+          setTextAnalysisData((prev) => ({ ...prev, [colName]: res }));
+        })
+        .catch((err) => {
+          console.error("Text analysis error:", err);
+          toast.error(`Text analysis failed: ${err instanceof Error ? err.message : String(err)}`);
+        })
+        .finally(() => {
+          setLoadingTextCols((prev) => ({ ...prev, [colName]: false }));
+        });
+    }
 
-    setLoadingTextCols((prev) => ({ ...prev, [colName]: true }));
-    try {
-      const res = await fetchTextAnalysis({ data: { session_id: sessionId, column: colName } });
-      setTextAnalysisData((prev) => ({ ...prev, [colName]: res }));
-    } catch (err) {
-      console.error("Text analysis error:", err);
-      toast.error(`Text analysis failed: ${err instanceof Error ? err.message : String(err)}`);
-    } finally {
-      setLoadingTextCols((prev) => ({ ...prev, [colName]: false }));
+    if (!sentimentAnalysisData[colName]) {
+      setLoadingSentimentCols((prev) => ({ ...prev, [colName]: true }));
+      fetchSentimentAnalysis({ data: { session_id: sessionId, column: colName } })
+        .then((res) => {
+          setSentimentAnalysisData((prev) => ({ ...prev, [colName]: res }));
+        })
+        .catch((err) => {
+          console.error("Sentiment analysis error:", err);
+        })
+        .finally(() => {
+          setLoadingSentimentCols((prev) => ({ ...prev, [colName]: false }));
+        });
     }
   };
 
@@ -1274,7 +1656,7 @@ function ColumnTable({ profile, sessionId }: { profile: DatasetProfile; sessionI
                             <span className="font-mono text-xs">Running TF-IDF top term analysis...</span>
                           </div>
                         ) : textAnalysisData[c.name] ? (
-                          <div className="grid gap-6 md:grid-cols-2">
+                          <div className="grid gap-6 md:grid-cols-3">
                             {/* TF-IDF Bar List */}
                             <div className="space-y-3">
                               <h5 className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
@@ -1301,6 +1683,74 @@ function ColumnTable({ profile, sessionId }: { profile: DatasetProfile; sessionI
                                   })
                                 )}
                               </div>
+                            </div>
+
+                            {/* Sentiment Summary Card */}
+                            <div className="space-y-4 p-4 rounded-xl border border-border/80 bg-card/45 flex flex-col justify-between">
+                              <div>
+                                <h5 className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2">
+                                  Sentiment Distribution (VADER)
+                                </h5>
+                                {loadingSentimentCols[c.name] ? (
+                                  <div className="flex items-center justify-center h-28 text-muted-foreground">
+                                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent mr-2" />
+                                    <span className="font-mono text-[10px]">Analyzing sentiment...</span>
+                                  </div>
+                                ) : sentimentAnalysisData[c.name] ? (
+                                  <div className="flex items-center gap-4">
+                                    {/* Donut Chart */}
+                                    <div className="h-28 w-28 shrink-0 relative flex items-center justify-center">
+                                      <ResponsiveContainer width="100%" height="100%">
+                                        <PieChart>
+                                          <Pie
+                                            data={[
+                                              { name: "Positive", value: sentimentAnalysisData[c.name].pct_positive },
+                                              { name: "Neutral", value: sentimentAnalysisData[c.name].pct_neutral },
+                                              { name: "Negative", value: sentimentAnalysisData[c.name].pct_negative }
+                                            ]}
+                                            cx="50%"
+                                            cy="50%"
+                                            innerRadius={28}
+                                            outerRadius={42}
+                                            paddingAngle={3}
+                                            dataKey="value"
+                                          >
+                                            <Cell fill="#22C55E" />
+                                            <Cell fill="#64748B" />
+                                            <Cell fill="#EF4444" />
+                                          </Pie>
+                                        </PieChart>
+                                      </ResponsiveContainer>
+                                      <div className="absolute text-center">
+                                        <span className="text-[8px] text-muted-foreground block font-mono">Avg Compound</span>
+                                        <span className="text-xs font-bold text-white font-mono">
+                                          {sentimentAnalysisData[c.name].avg_compound >= 0 ? "+" : ""}{sentimentAnalysisData[c.name].avg_compound.toFixed(2)}
+                                        </span>
+                                      </div>
+                                    </div>
+                                    {/* Stats List */}
+                                    <div className="flex-1 space-y-1.5 text-xs">
+                                      <div className="flex items-center justify-between text-emerald-400 font-semibold">
+                                        <span>Positive</span>
+                                        <span className="font-mono">{sentimentAnalysisData[c.name].pct_positive.toFixed(1)}%</span>
+                                      </div>
+                                      <div className="flex items-center justify-between text-slate-400 font-semibold">
+                                        <span>Neutral</span>
+                                        <span className="font-mono">{sentimentAnalysisData[c.name].pct_neutral.toFixed(1)}%</span>
+                                      </div>
+                                      <div className="flex items-center justify-between text-rose-400 font-semibold">
+                                        <span>Negative</span>
+                                        <span className="font-mono">{sentimentAnalysisData[c.name].pct_negative.toFixed(1)}%</span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <p className="text-xs text-red-400 py-4">Failed to load sentiment analysis.</p>
+                                )}
+                              </div>
+                              <p className="text-[10px] text-muted-foreground leading-normal mt-2 border-t border-border/30 pt-2">
+                                Sentiment is scored using **VADER** lexicon polarity rules: Positive (compound &ge; 0.05), Negative (compound &le; -0.05), and Neutral.
+                              </p>
                             </div>
 
                             {/* Descriptive Stats */}
@@ -1391,11 +1841,14 @@ function PreviewTable({ profile }: { profile: DatasetProfile }) {
 /* ─── Insights ─── */
 function Insights({
   insights, profile, hasBlurredRef, analysis,
+  cleaningSuggestions, onApplySuggestion,
 }: {
   insights: { text: string; why?: string; confidence: number; tag: string }[];
   profile: DatasetProfile;
   hasBlurredRef: React.MutableRefObject<string>;
   analysis: AnalysisResult | null;
+  cleaningSuggestions?: any[];
+  onApplySuggestion?: (suggestion: any) => void;
 }) {
   const trustScore = analysis ? analysis.trust_score : undefined;
   const trustColor = trustScore !== undefined
@@ -1560,6 +2013,58 @@ function Insights({
           </div>
         </div>
       </div>
+
+      {cleaningSuggestions && cleaningSuggestions.length > 0 && (
+        <div className="surface-card p-5">
+          <h3 className="mb-4 flex items-center gap-2 text-sm font-semibold">
+            <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary/10">
+              <Sparkles className="h-4 w-4 text-primary" />
+            </div>
+            AI Data Cleaning Suggestions
+          </h3>
+          <div className="space-y-3">
+            {cleaningSuggestions.map((s, idx) => {
+              const severityColor = s.severity === "high"
+                ? "text-red-400 border-red-500/20 bg-red-500/5"
+                : s.severity === "medium"
+                  ? "text-amber-400 border-amber-500/20 bg-amber-500/5"
+                  : "text-slate-400 border-slate-500/20 bg-slate-500/5";
+
+              return (
+                <div
+                  key={idx}
+                  className="flex items-center justify-between gap-4 p-3.5 rounded-lg border border-border bg-background/30 hover:border-primary/20 transition-all text-left"
+                >
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className={`text-[9px] px-1.5 py-0.5 font-bold uppercase rounded border font-mono ${severityColor}`}>
+                        {s.severity}
+                      </span>
+                      {s.column && (
+                        <span className="text-[10px] text-primary bg-primary/5 px-2 py-0.5 rounded font-mono font-bold">
+                          {s.column}
+                        </span>
+                      )}
+                      <span className="text-xs font-bold text-slate-300">
+                        {s.issue}
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Action: {s.suggested_action.replace("_", " ")}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => onApplySuggestion?.(s)}
+                    className="px-2.5 py-1 text-[10px] font-bold text-white bg-primary hover:bg-primary-hover active:scale-95 transition-all rounded-md cursor-pointer shrink-0"
+                  >
+                    Apply
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       <div className="grid gap-4 lg:grid-cols-2">
         <div className="surface-card p-5">
@@ -2644,24 +3149,32 @@ function ReportTab({
         )}
       </div>
 
-      {/* Export PDF card */}
+      {/* Export card */}
       <div className="surface-card relative overflow-hidden p-6">
         <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-accent/5" />
         <div className="relative flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
             <h3 className="text-sm font-semibold flex items-center gap-2">
-              <Download className="h-4 w-4 text-primary" /> Export full PDF report
+              <Download className="h-4 w-4 text-primary" /> Export full report
             </h3>
             <p className="mt-1 text-xs text-muted-foreground max-w-lg">
               Includes overview, narrative, insights with "why this matters", risks, contradictions, recommendations, column profile, and the data story.
             </p>
           </div>
-          <button
-            onClick={() => exportReportPDF({ profile, fileName, insights, story, narrative, analysis })}
-            className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-primary to-accent px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-[0_0_30px_-6px_var(--color-primary)] transition-all duration-200 hover:opacity-90 hover:scale-105 active:scale-95"
-          >
-            <Download className="h-4 w-4" /> Download PDF
-          </button>
+          <div className="flex items-center gap-3 flex-wrap">
+            <button
+              onClick={() => exportReportPDF({ profile, fileName, insights, story, narrative, analysis })}
+              className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-primary to-accent px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-[0_0_30px_-6px_var(--color-primary)] transition-all duration-200 hover:opacity-90 hover:scale-105 active:scale-95"
+            >
+              <Download className="h-4 w-4" /> Download PDF
+            </button>
+            <button
+              onClick={() => exportHtmlReport({ profile, fileName, insights, story, narrative, analysis })}
+              className="inline-flex items-center gap-2 rounded-lg border border-primary/40 bg-primary/10 px-5 py-2.5 text-sm font-semibold text-primary transition-all duration-200 hover:bg-primary/20 hover:border-primary/70 hover:scale-105 active:scale-95"
+            >
+              <Download className="h-4 w-4" /> Export as HTML
+            </button>
+          </div>
         </div>
       </div>
     </div>

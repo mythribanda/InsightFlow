@@ -7,6 +7,8 @@ class ModelRequest(BaseModel):
     data: Dict[str, Any]  # CSV data as dict or base64-encoded CSV string
     excluded_features: Optional[List[str]] = None
     cv_splits: Optional[int] = 5
+    model_selection: Optional[List[str]] = None  # e.g. ["baseline", "randomforest", "catboost"]
+    project_id: Optional[str] = None  # If set, training results are persisted to experiment_runs
 
 
 class ModelResponse(BaseModel):
@@ -16,6 +18,7 @@ class ModelResponse(BaseModel):
     results: List[Dict[str, Any]]
     best: Dict[str, Any]
     class_imbalance: Dict[str, Any]  # {majority_share: float, imbalanced: bool, message: str|None}
+    baseline_coefficients: Optional[Dict[str, Any]] = None
 
 
 class ExportCodeRequest(BaseModel):
@@ -85,10 +88,17 @@ class AnalyzeStatusResponse(BaseModel):
     error: Optional[str] = None
 
 
+class ColumnFilter(BaseModel):
+    column: str
+    type: str
+    value: Any
+
 class VisualizationRequest(BaseModel):
     column1: str
     column2: Optional[str] = None
     chart_type: str
+    filters: Optional[List[ColumnFilter]] = None
+
 
 
 class CodeExportRequest(BaseModel):
@@ -122,9 +132,80 @@ class CalcColumnRequest(BaseModel):
     name: str
     formula: str
     data: Dict[str, Any]
+    project_id: Optional[str] = None  # If set, a new version snapshot will be written
 
 
 class CalcColumnResponse(BaseModel):
     success: bool
     preview: Optional[List[Any]] = None
     error: Optional[str] = None
+
+
+class TuneRequest(BaseModel):
+    """Request body for POST /tune/{session_id}."""
+    model_name: str                               # e.g. "HistGradientBoostingClassifier"
+    search_type: str = "random"                   # "grid" | "random"
+    param_grid: Optional[Dict[str, Any]] = None   # optional override; keys must use model__ prefix
+    n_iter: int = 20                              # random search only
+    cv_splits: int = 5
+
+
+class TuneResponse(BaseModel):
+    """Response body for POST /tune/{session_id}."""
+    model_name: str
+    search_type: str
+    best_params: Dict[str, Any]
+    best_score: float
+    baseline_score: Optional[float] = None        # CV score from original train_models run
+    scoring_metric: str
+    n_candidates: int
+    search_duration_s: float
+    cv_results_summary: List[Dict[str, Any]]
+    tuned_pipeline_key: str                       # model_store key for the refit pipeline
+
+
+class StatsRequest(BaseModel):
+    """Request schema for statistical hypothesis testing."""
+    test_type: str                  # "t_test" | "anova" | "chi_square" | "confidence_interval"
+    column: str                     # Primary dependent column
+    group_column: Optional[str] = None  # Grouping independent column (required for t-test/anova)
+    confidence: Optional[float] = 0.95  # Confidence level (for confidence_interval, e.g. 0.95)
+
+
+class StatsResponse(BaseModel):
+    """Response schema for statistical hypothesis testing."""
+    statistic: float
+    p_value: float
+    significant: bool
+    interpretation: str
+    extra_info: Optional[Dict[str, Any]] = None
+
+
+class DecomposeRequest(BaseModel):
+    date_column: str
+    value_column: str
+
+
+class DecomposeResponse(BaseModel):
+    dates: List[str]
+    observed: List[float]
+    trend: List[float]
+    seasonal: List[float]
+    residual: List[float]
+    rolling_mean: List[float]
+    rolling_std: List[float]
+
+
+class ForecastRequest(BaseModel):
+    method: str  # "arima" | "sarima" | "prophet"
+    date_column: str
+    value_column: str
+    periods: int
+
+
+class ForecastResponse(BaseModel):
+    dates: List[str]
+    forecast: List[float]
+    lower_bound: List[float]
+    upper_bound: List[float]
+

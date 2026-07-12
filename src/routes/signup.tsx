@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { ErrorComponent } from "./__root";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Brain, Loader2, Mail, Lock, Eye, EyeOff, Phone, User } from "lucide-react";
@@ -7,6 +8,7 @@ import { DataPointsBackground } from "@/components/DataPointsBackground";
 
 export const Route = createFileRoute("/signup")({
   component: SignupPage,
+  errorComponent: ErrorComponent,
 });
 
 function SignupPage() {
@@ -33,7 +35,7 @@ function SignupPage() {
 
   // Validation
   const isStep1Valid = fullName.trim().length > 0 && mobile.trim().length > 0 && email.trim().length > 0;
-  const isStep2Valid = otp.length === 6;
+  const isStep2Valid = otp.length === 8;
   const isStep3Valid = password.length >= 8 && confirmPassword === password;
 
   // Get password strength
@@ -231,7 +233,7 @@ function SignupPage() {
               {step === "details"
                 ? "Enter your details to get started"
                 : step === "otp"
-                ? "Enter the 6-digit code sent to your email"
+                ? "Enter the 8-digit code sent to your email"
                 : "Create a strong password"}
             </p>
 
@@ -426,10 +428,10 @@ function SignupPage() {
                   <input
                     type="text"
                     value={otp}
-                    onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                    placeholder="123456"
+                    onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 8))}
+                    placeholder="12345678"
                     disabled={loading}
-                    maxLength={6}
+                    maxLength={8}
                     className="w-full text-center text-2xl tracking-widest py-3 rounded-xl text-white placeholder:text-muted-foreground/30 outline-none transition-all bg-white/5 border border-white/10"
                     onFocus={(e) => {
                       e.currentTarget.style.borderColor = "var(--color-primary)";
@@ -440,7 +442,7 @@ function SignupPage() {
                       e.currentTarget.style.boxShadow = "none";
                     }}
                     onKeyDown={(e) => {
-                      if (e.key === "Enter" && otp.length === 6) handleVerifyOtp();
+                      if (e.key === "Enter" && otp.length === 8) handleVerifyOtp();
                     }}
                   />
                 </div>

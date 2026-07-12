@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Outlet, Link, createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
+import { Outlet, Link, createRootRoute, HeadContent, Scripts, ErrorComponentProps } from "@tanstack/react-router";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "@/contexts/AuthContext";
 
@@ -19,6 +19,47 @@ function NotFoundComponent() {
           <Link
             to="/"
             className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+          >
+            Go home
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function ErrorComponent({ error, reset }: ErrorComponentProps) {
+  let message = "An unexpected error occurred.";
+  if (error instanceof Error) {
+    message = error.message;
+  } else if (typeof error === "string") {
+    message = error;
+  } else if (error && typeof error === "object" && "message" in error && typeof (error as any).message === "string") {
+    message = (error as any).message;
+  }
+
+  if (!message || message.includes("stack") || message.includes("at ") || message.includes("react-dom")) {
+    message = "An unexpected error occurred.";
+  }
+
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-background px-4">
+      <div className="max-w-md text-center animate-fade-in">
+        <h1 className="text-7xl font-bold text-foreground bg-gradient-to-r from-red-500 to-[#8B5CF6] bg-clip-text text-transparent">Error</h1>
+        <h2 className="mt-4 text-xl font-semibold text-foreground">Something went wrong</h2>
+        <p className="mt-2 text-sm text-muted-foreground break-words max-w-sm mx-auto">
+          {message}
+        </p>
+        <div className="mt-6 flex items-center justify-center gap-4">
+          <button
+            onClick={() => reset()}
+            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 cursor-pointer shadow-md"
+          >
+            Try again
+          </button>
+          <Link
+            to="/"
+            className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent/10 hover:text-accent-foreground shadow-sm"
           >
             Go home
           </Link>
@@ -53,6 +94,7 @@ export const Route = createRootRoute({
   shellComponent: RootShell,
   component: RootComponent,
   notFoundComponent: NotFoundComponent,
+  errorComponent: ErrorComponent,
 });
 
 function RootShell({ children }: { children: React.ReactNode }) {
@@ -69,14 +111,20 @@ function RootShell({ children }: { children: React.ReactNode }) {
   );
 }
 
+import { CommandPalette } from "@/components/CommandPalette";
+import { ThemeProvider } from "@/contexts/ThemeContext";
+
 function RootComponent() {
   const [queryClient] = useState(() => new QueryClient());
 
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <Outlet />
-        <Toaster />
+        <ThemeProvider>
+          <Outlet />
+          <Toaster />
+          <CommandPalette />
+        </ThemeProvider>
       </AuthProvider>
     </QueryClientProvider>
   );

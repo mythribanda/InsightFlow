@@ -301,3 +301,115 @@ def verify_numbers_grounded(markdown_text: str, source_json: Dict[str, Any]) -> 
             pass
             
     return mismatches
+
+
+def generate_cleaning_suggestions(
+    profile: List[Dict[str, Any]],
+    trust_breakdown: List[Dict[str, Any]],
+    api_key: str
+) -> List[Dict[str, Any]]:
+    url = "https://api.groq.com/openai/v1/chat/completions"
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+        "User-Agent": "Mozilla/5.0"
+    }
+
+    # Format column stats concisely to save prompt context token overhead
+    simplified_profile = []
+    for c in profile:
+        simplified_profile.append({
+            "name": c.get("name"),
+            "type": c.get("type"),
+            "missingPct": c.get("missingPct", 0.0),
+            "constant": c.get("constant", False),
+            "highCardinality": c.get("highCardinality", False),
+            "unique": c.get("unique", 0)
+        })
+
+    prompt = f"""You are a strict data cleaning assistant.
+Your task is to analyze the following dataset column profile and trust score breakdown, and suggest actionable data cleaning steps.
+
+Column Profiles:
+{json.dumps(simplified_profile, indent=2)}
+
+Trust Score Breakdown:
+{json.dumps(trust_breakdown, indent=2)}
+
+You MUST return a JSON object with a single key "suggestions" containing a list of objects.
+Each object in the list MUST have exactly these keys:
+- "column": name of the column (use null if it applies to the whole dataset)
+- "issue": a clear description of the data quality issue (e.g. "45% missing values", "Constant value feature", etc.)
+- "suggested_action": the exact action to fix this issue (must be one of: "drop_column", "impute_missing", "drop_duplicates", or a custom formula suggestion)
+- "severity": "low", "medium", or "high"
+
+You MUST follow these strict rules:
+1. Output MUST be a valid JSON object of the format: {{"suggestions": [...]}}
+2. Use ONLY numbers, percentages, names, and metrics that are explicitly present in the provided profile/trust breakdown.
+3. Absolutely DO NOT invent or hallucinate any numbers, column names, or facts.
+4. The entire output must consist ONLY of the JSON object. Do not include introductory or concluding conversational text.
+"""
+
+    data = {
+        "model": "llama-3.1-8b-instant",
+        "messages": [
+            {"role": "user", "content": prompt}
+        ],
+        "temperature": 0.0,
+        "response_format": {"type": "json_object"}
+    }
+
+    req = urllib.request.Request(
+        url,
+        data=json.dumps(data).encode("utf-8"),
+        headers=headers,
+        method="POST"
+    )
+
+    try:
+        with urllib.request.urlopen(req) as response:
+            res_data = json.loads(response.read().decode("utf-8"))
+            content = res_data["choices"][0]["message"]["content"]
+            parsed = json.loads(content)
+            if "suggestions" in parsed:
+                return parsed["suggestions"]
+            elif isinstance(parsed, list):
+                return parsed
+            else:
+                raise ValueError("JSON response does not contain 'suggestions' key")
+    except Exception as e:
+        logger.error(f"Failed to generate cleaning suggestions from Groq: {e}, falling back to heuristics")
+        # Fallback to deterministic rules
+        fallback_suggestions = []
+        for col_info in profile:
+            col = col_info.get("name")
+            missing_pct = col_info.get("missingPct", 0.0)
+            if missing_pct > 40.0:
+                fallback_suggestions.append({
+                    "column": col,
+                    "issue": f"Severe missingness ({missing_pct:.1f}% missing values)",
+                    "suggested_action": "drop_column",
+                    "severity": "high"
+                })
+            elif missing_pct > 5.0:
+                fallback_suggestions.append({
+                    "column": col,
+                    "issue": f"Missing values ({missing_pct:.1f}% missing values)",
+                    "suggested_action": "impute_missing",
+                    "severity": "medium"
+                })
+            if col_info.get("constant", False):
+                fallback_suggestions.append({
+                    "column": col,
+                    "issue": "Constant value feature",
+                    "suggested_action": "drop_column",
+                    "severity": "high"
+                })
+            if col_info.get("highCardinality", False):
+                fallback_suggestions.append({
+                    "column": col,
+                    "issue": "High cardinality categorical column",
+                    "suggested_action": "group_rare_categories",
+                    "severity": "low"
+                })
+        return fallback_suggestions

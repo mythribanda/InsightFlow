@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { ErrorComponent } from "./__root";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Brain, Loader2, Phone, User, Mail } from "lucide-react";
@@ -7,6 +8,7 @@ import { DataPointsBackground } from "@/components/DataPointsBackground";
 
 export const Route = createFileRoute("/complete-google-profile")({
   component: CompleteGoogleProfile,
+  errorComponent: ErrorComponent,
 });
 
 function CompleteGoogleProfile() {

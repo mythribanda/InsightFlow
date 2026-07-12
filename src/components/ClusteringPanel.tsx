@@ -24,6 +24,8 @@ import {
 } from "recharts";
 import { Target, AlertTriangle, Layers, Activity, HelpCircle, Info, Download } from "lucide-react";
 import { toast } from "sonner";
+import { motion } from "framer-motion";
+import { panelVariants } from "@/hooks/useAnimationVariants";
 
 interface ClusteringPanelProps {
   sessionId: string;
@@ -143,7 +145,12 @@ export const ClusteringPanel: React.FC<ClusteringPanelProps> = ({ sessionId, pro
   const hasMultipleDimensions = selectedCols.length > 2;
 
   return (
-    <div className="space-y-6">
+    <motion.div
+      className="space-y-6"
+      variants={panelVariants}
+      initial="hidden"
+      animate="visible"
+    >
       <Card className="border border-border bg-card/60 backdrop-blur-md">
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -561,6 +568,6 @@ export const ClusteringPanel: React.FC<ClusteringPanelProps> = ({ sessionId, pro
           )}
         </CardContent>
       </Card>
-    </div>
+    </motion.div>
   );
 };

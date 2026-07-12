@@ -4,6 +4,7 @@ Follows CURATED ML pipeline design with emphasis on avoiding data leakage via pe
 """
 
 import warnings
+import time
 from typing import Dict, List, Tuple, Any, Optional
 import numpy as np
 import pandas as pd
@@ -17,7 +18,12 @@ from sklearn.compose import ColumnTransformer
 from sklearn.preprocessing import StandardScaler, OneHotEncoder
 from sklearn.impute import SimpleImputer
 from sklearn.linear_model import LogisticRegression, LinearRegression
-from sklearn.ensemble import HistGradientBoostingClassifier, HistGradientBoostingRegressor
+from sklearn.ensemble import (
+    HistGradientBoostingClassifier, HistGradientBoostingRegressor,
+    RandomForestClassifier, RandomForestRegressor
+)
+from sklearn.svm import SVC, SVR
+from sklearn.neighbors import KNeighborsClassifier, KNeighborsRegressor
 from sklearn.metrics import (
     mean_absolute_error, mean_squared_error, r2_score, mean_absolute_percentage_error,
     accuracy_score, precision_score, recall_score, f1_score, roc_auc_score, balanced_accuracy_score
@@ -39,6 +45,11 @@ class ModelResult:
     metrics: Dict[str, float]
     std: Dict[str, float]
     fold_scores: Dict[str, List[float]]
+    # Wall-clock timing measured via time.perf_counter().
+    # training_time_seconds: total seconds spent in .fit() summed across all CV folds.
+    # inference_time_ms: mean per-sample inference latency in milliseconds across all CV folds.
+    training_time_seconds: float = 0.0
+    inference_time_ms: float = 0.0
 
 @dataclass
 class ModelingOutput:
@@ -356,14 +367,204 @@ class LeakageSafePipeline:
             ("model", estimator)
         ])
 
+    @staticmethod
+    def build_random_forest_pipeline(X_sample: pd.DataFrame, y_sample: pd.Series, task: str) -> Pipeline:
+        """Builds a pipeline with RandomForest (SimpleImputer -> StandardScaler/OHE -> model)."""
+        numeric_cols = X_sample.select_dtypes(include=[np.number]).columns.tolist()
+        categorical_cols = X_sample.select_dtypes(exclude=[np.number]).columns.tolist()
+
+        transformers = []
+        if numeric_cols:
+            transformers.append(
+                ("num", Pipeline([
+                    ("imp", SimpleImputer(strategy="median")),
+                    ("sc", StandardScaler())
+                ]), numeric_cols)
+            )
+        if categorical_cols:
+            transformers.append(
+                ("cat", Pipeline([
+                    ("imp", SimpleImputer(strategy="most_frequent")),
+                    ("oh", OneHotEncoder(handle_unknown="ignore", sparse_output=False))
+                ]), categorical_cols)
+            )
+
+        preprocessor = ColumnTransformer(transformers=transformers, remainder="drop")
+
+        if task == "classification":
+            estimator = RandomForestClassifier(n_estimators=100, random_state=42, n_jobs=1)
+        else:
+            estimator = RandomForestRegressor(n_estimators=100, random_state=42, n_jobs=1)
+
+        return Pipeline([
+            ("preprocessor", preprocessor),
+            ("model", estimator)
+        ])
+
+    @staticmethod
+    def build_svm_pipeline(X_sample: pd.DataFrame, y_sample: pd.Series, task: str) -> Pipeline:
+        """Builds a pipeline with SVM (SimpleImputer -> StandardScaler/OHE -> SVC/SVR).
+
+        SVC is instantiated with probability=True so predict_proba is available for
+        classification metrics (roc_auc) during cross-validation scoring.
+        """
+        numeric_cols = X_sample.select_dtypes(include=[np.number]).columns.tolist()
+        categorical_cols = X_sample.select_dtypes(exclude=[np.number]).columns.tolist()
+
+        transformers = []
+        if numeric_cols:
+            transformers.append(
+                ("num", Pipeline([
+                    ("imp", SimpleImputer(strategy="median")),
+                    ("sc", StandardScaler())
+                ]), numeric_cols)
+            )
+        if categorical_cols:
+            transformers.append(
+                ("cat", Pipeline([
+                    ("imp", SimpleImputer(strategy="most_frequent")),
+                    ("oh", OneHotEncoder(handle_unknown="ignore", sparse_output=False))
+                ]), categorical_cols)
+            )
+
+        preprocessor = ColumnTransformer(transformers=transformers, remainder="drop")
+
+        if task == "classification":
+            # probability=True enables predict_proba (required for roc_auc scoring)
+            estimator = SVC(kernel="rbf", random_state=42, probability=True)
+        else:
+            estimator = SVR(kernel="rbf")
+
+        return Pipeline([
+            ("preprocessor", preprocessor),
+            ("model", estimator)
+        ])
+
+    @staticmethod
+    def build_knn_pipeline(X_sample: pd.DataFrame, y_sample: pd.Series, task: str) -> Pipeline:
+        """Builds a pipeline with KNN (SimpleImputer -> StandardScaler/OHE -> KNN).
+
+        KNN is distance-based and therefore highly sensitive to feature scale;
+        StandardScaler is essential here.
+        """
+        numeric_cols = X_sample.select_dtypes(include=[np.number]).columns.tolist()
+        categorical_cols = X_sample.select_dtypes(exclude=[np.number]).columns.tolist()
+
+        transformers = []
+        if numeric_cols:
+            transformers.append(
+                ("num", Pipeline([
+                    ("imp", SimpleImputer(strategy="median")),
+                    ("sc", StandardScaler())
+                ]), numeric_cols)
+            )
+        if categorical_cols:
+            transformers.append(
+                ("cat", Pipeline([
+                    ("imp", SimpleImputer(strategy="most_frequent")),
+                    ("oh", OneHotEncoder(handle_unknown="ignore", sparse_output=False))
+                ]), categorical_cols)
+            )
+
+        preprocessor = ColumnTransformer(transformers=transformers, remainder="drop")
+
+        if task == "classification":
+            estimator = KNeighborsClassifier(n_neighbors=5, n_jobs=1)
+        else:
+            estimator = KNeighborsRegressor(n_neighbors=5, n_jobs=1)
+
+        return Pipeline([
+            ("preprocessor", preprocessor),
+            ("model", estimator)
+        ])
+
+    @staticmethod
+    def build_catboost_pipeline(X_sample: pd.DataFrame, y_sample: pd.Series, task: str) -> Pipeline:
+        """Builds a pipeline with CatBoost, which handles categorical features natively.
+
+        Preprocessing:
+          - Numeric columns: SimpleImputer(median) only (no StandardScaler needed for trees).
+          - Categorical columns: SimpleImputer(most_frequent) only — NO OneHotEncoder.
+            CatBoost receives raw string/category values and processes them internally.
+
+        The ColumnTransformer places numeric columns first, then categorical.
+        The resulting positional indices for categorical columns are passed to the
+        CatBoost estimator via the `cat_features` constructor argument so CatBoost
+        can apply its own gradient-based categorical encoding per fold.
+        """
+        try:
+            from catboost import CatBoostClassifier, CatBoostRegressor
+        except ImportError as exc:
+            raise ImportError(
+                "CatBoost is not installed. Add 'catboost' to requirements.txt and "
+                "run 'pip install catboost'."
+            ) from exc
+
+        numeric_cols = X_sample.select_dtypes(include=[np.number]).columns.tolist()
+        categorical_cols = X_sample.select_dtypes(exclude=[np.number]).columns.tolist()
+
+        transformers = []
+        if numeric_cols:
+            transformers.append(
+                ("num", Pipeline([
+                    ("imp", SimpleImputer(strategy="median"))
+                ]), numeric_cols)
+            )
+        if categorical_cols:
+            # Impute only — CatBoost handles encoding natively.
+            transformers.append(
+                ("cat", Pipeline([
+                    ("imp", SimpleImputer(strategy="most_frequent"))
+                ]), categorical_cols)
+            )
+
+        preprocessor = ColumnTransformer(transformers=transformers, remainder="drop")
+
+        # After ColumnTransformer, numeric cols occupy indices [0, len(numeric_cols))
+        # and categorical cols occupy indices [len(numeric_cols), len(numeric_cols) + len(categorical_cols)).
+        cat_feature_indices = list(range(len(numeric_cols), len(numeric_cols) + len(categorical_cols)))
+
+        if task == "classification":
+            estimator = CatBoostClassifier(
+                iterations=100,
+                random_seed=42,
+                verbose=0,
+                cat_features=cat_feature_indices if cat_feature_indices else None,
+            )
+        else:
+            estimator = CatBoostRegressor(
+                iterations=100,
+                random_seed=42,
+                verbose=0,
+                cat_features=cat_feature_indices if cat_feature_indices else None,
+            )
+
+        return Pipeline([
+            ("preprocessor", preprocessor),
+            ("model", estimator)
+        ])
+
 def evaluate_model_cv(
     pipeline: Pipeline,
     X: pd.DataFrame,
     y: pd.Series,
     task: str,
     cv_splits: int = 5
-) -> Tuple[Dict[str, float], Dict[str, float], Dict[str, List[float]]]:
-    """Evaluates the pipeline using StratifiedKFold or KFold cross-validation."""
+) -> Tuple[Dict[str, float], Dict[str, float], Dict[str, List[float]], float, float]:
+    """
+    Evaluates the pipeline using StratifiedKFold or KFold cross-validation.
+
+    Returns
+    -------
+    mean_metrics, std_metrics, fold_scores, total_training_s, mean_inference_ms
+
+    Timing methodology
+    ------------------
+    * training_time_seconds  — sum of time.perf_counter() deltas around pipeline.fit()
+                               across ALL folds (total wall-clock fit time).
+    * inference_time_ms      — mean per-sample latency in milliseconds, computed as
+                               (predict_time / n_test_samples * 1000) averaged over folds.
+    """
     if task == "classification":
         class_counts = y.value_counts()
         if (class_counts < cv_splits).any():
@@ -375,24 +576,37 @@ def evaluate_model_cv(
     else:
         cv = KFold(n_splits=cv_splits, shuffle=True, random_state=42)
         metrics_to_compute = ["mae", "rmse", "r2", "mape"]
-        
+
     fold_scores = {metric: [] for metric in metrics_to_compute}
-    
+
+    # Timing accumulators
+    total_training_s: float = 0.0
+    per_fold_inference_ms: List[float] = []
+
     for train_idx, test_idx in cv.split(X, y if task == "classification" else None):
         X_train, X_test = X.iloc[train_idx], X.iloc[test_idx]
         y_train, y_test = y.iloc[train_idx], y.iloc[test_idx]
-        
-        # Fit inside fold (leakage-safe)
+
+        # ── Fit (leakage-safe) — measure wall-clock training time ──
+        _t0_fit = time.perf_counter()
         pipeline.fit(X_train, y_train)
+        total_training_s += time.perf_counter() - _t0_fit
+
+        # ── Predict — measure per-sample inference latency ──
+        _t0_pred = time.perf_counter()
         y_pred = pipeline.predict(X_test)
-        
+        _pred_elapsed = time.perf_counter() - _t0_pred
+        n_test = len(X_test)
+        if n_test > 0:
+            per_fold_inference_ms.append(_pred_elapsed / n_test * 1000.0)
+
         if task == "classification":
             y_pred_proba = pipeline.predict_proba(X_test)
             fold_scores["accuracy"].append(accuracy_score(y_test, y_pred))
             fold_scores["precision"].append(precision_score(y_test, y_pred, average="weighted", zero_division=0))
             fold_scores["recall"].append(recall_score(y_test, y_pred, average="weighted", zero_division=0))
             fold_scores["f1"].append(f1_score(y_test, y_pred, average="weighted", zero_division=0))
-            
+
             n_classes = len(np.unique(y_test))
             if n_classes == 2:
                 fold_scores["roc_auc"].append(roc_auc_score(y_test, y_pred_proba[:, 1]))
@@ -406,13 +620,13 @@ def evaluate_model_cv(
             fold_scores["mae"].append(mean_absolute_error(y_test, y_pred))
             fold_scores["rmse"].append(np.sqrt(mean_squared_error(y_test, y_pred)))
             fold_scores["r2"].append(r2_score(y_test, y_pred))
-            
+
             mask = y_test != 0
             if mask.sum() > 0:
                 fold_scores["mape"].append(mean_absolute_percentage_error(y_test[mask], y_pred[mask]))
             else:
                 fold_scores["mape"].append(np.nan)
-                
+
     mean_metrics = {}
     std_metrics = {}
     for metric, scores in fold_scores.items():
@@ -423,8 +637,10 @@ def evaluate_model_cv(
         else:
             mean_metrics[metric] = 0.0
             std_metrics[metric] = 0.0
-            
-    return mean_metrics, std_metrics, fold_scores
+
+    mean_inference_ms = float(np.mean(per_fold_inference_ms)) if per_fold_inference_ms else 0.0
+
+    return mean_metrics, std_metrics, fold_scores, total_training_s, mean_inference_ms
 
 def check_class_imbalance(y: pd.Series, task: str) -> Dict[str, Any]:
     """
@@ -454,50 +670,125 @@ def check_class_imbalance(y: pd.Series, task: str) -> Dict[str, Any]:
     )
     return {"majority_share": round(majority_share, 4), "imbalanced": imbalanced, "message": message}
 
+# ---------------------------------------------------------------------------
+# Model registry: maps canonical string keys -> (builder, clf_name, reg_name)
+# Keeping this at module level lets the router import it for SHAP dispatch.
+# ---------------------------------------------------------------------------
+_MODEL_REGISTRY: Dict[str, Any] = {
+    "baseline": (
+        LeakageSafePipeline.build_pipeline,
+        "LogisticRegression",
+        "LinearRegression",
+    ),
+    "histgradientboosting": (
+        LeakageSafePipeline.build_boosting_pipeline,
+        "HistGradientBoostingClassifier",
+        "HistGradientBoostingRegressor",
+    ),
+    "randomforest": (
+        LeakageSafePipeline.build_random_forest_pipeline,
+        "RandomForestClassifier",
+        "RandomForestRegressor",
+    ),
+    "svm": (
+        LeakageSafePipeline.build_svm_pipeline,
+        "SVC",
+        "SVR",
+    ),
+    "knn": (
+        LeakageSafePipeline.build_knn_pipeline,
+        "KNeighborsClassifier",
+        "KNeighborsRegressor",
+    ),
+    "catboost": (
+        LeakageSafePipeline.build_catboost_pipeline,
+        "CatBoostClassifier",
+        "CatBoostRegressor",
+    ),
+}
+
+# Ordered list defines the run order when model_selection=None (all models).
+_DEFAULT_MODEL_ORDER = [
+    "baseline",
+    "histgradientboosting",
+    "randomforest",
+    "svm",
+    "knn",
+    "catboost",
+]
+
+
 def train_models(
     X: pd.DataFrame,
     y: pd.Series,
     task: str,
     excluded_features: Optional[List[str]] = None,
-    cv_splits: int = 5
+    cv_splits: int = 5,
+    model_selection: Optional[List[str]] = None,
 ) -> List[ModelResult]:
-    """Train exactly 2 models: a linear/logistic baseline and HistGradientBoosting."""
+    """Train one or more leakage-safe pipelines and return cross-validated results.
+
+    Parameters
+    ----------
+    X : pd.DataFrame
+        Feature matrix (target column already removed).
+    y : pd.Series
+        Target vector.
+    task : str
+        ``"classification"`` or ``"regression"``.
+    excluded_features : list[str] | None
+        Feature columns to drop before training (e.g. leakage-flagged columns).
+    cv_splits : int
+        Number of cross-validation folds (default 5).
+    model_selection : list[str] | None
+        Which models to run, specified as keys from ``_MODEL_REGISTRY``:
+        ``"baseline"``, ``"histgradientboosting"``, ``"randomforest"``,
+        ``"svm"``, ``"knn"``, ``"catboost"``.
+        When ``None`` or empty, **all** models are trained (backward-compatible).
+    """
     if excluded_features:
         X = X.drop(columns=[col for col in excluded_features if col in X.columns])
-        
+
     n_samples = len(X)
     if n_samples < 2:
         raise ValueError(f"Dataset must have at least 2 rows to train models (found {n_samples} rows).")
-        
-    # Dynamically adjust cv_splits if dataset has fewer than 5 samples
+
+    # Dynamically adjust cv_splits if dataset has fewer than cv_splits samples
     adjusted_cv = cv_splits
     if n_samples < adjusted_cv:
         adjusted_cv = max(2, n_samples)
-        
+
+    # Resolve which models to run
+    if not model_selection:
+        keys_to_run = _DEFAULT_MODEL_ORDER
+    else:
+        # Normalise to lowercase; silently skip unknown keys
+        normalised = [k.strip().lower() for k in model_selection]
+        keys_to_run = [k for k in normalised if k in _MODEL_REGISTRY]
+        if not keys_to_run:
+            # Fall back to all models if every key was unrecognised
+            keys_to_run = _DEFAULT_MODEL_ORDER
+
     results = []
-    
-    # Model 1: Baseline
-    pipeline_baseline = LeakageSafePipeline.build_pipeline(X, y, task)
-    mean_metrics, std_metrics, fold_scores = evaluate_model_cv(pipeline_baseline, X, y, task, adjusted_cv)
-    model_name_baseline = "LogisticRegression" if task == "classification" else "LinearRegression"
-    results.append(ModelResult(
-        model_name=model_name_baseline,
-        metrics=mean_metrics,
-        std=std_metrics,
-        fold_scores=fold_scores
-    ))
-    
-    # Model 2: HistGradientBoosting
-    pipeline_boosting = LeakageSafePipeline.build_boosting_pipeline(X, y, task)
-    mean_metrics, std_metrics, fold_scores = evaluate_model_cv(pipeline_boosting, X, y, task, adjusted_cv)
-    model_name_boosting = "HistGradientBoostingClassifier" if task == "classification" else "HistGradientBoostingRegressor"
-    results.append(ModelResult(
-        model_name=model_name_boosting,
-        metrics=mean_metrics,
-        std=std_metrics,
-        fold_scores=fold_scores
-    ))
-    
+    for key in keys_to_run:
+        builder, clf_name, reg_name = _MODEL_REGISTRY[key]
+        try:
+            pipeline = builder(X, y, task)
+            mean_metrics, std_metrics, fold_scores, training_s, inference_ms = evaluate_model_cv(
+                pipeline, X, y, task, adjusted_cv
+            )
+            model_name = clf_name if task == "classification" else reg_name
+            results.append(ModelResult(
+                model_name=model_name,
+                metrics=mean_metrics,
+                std=std_metrics,
+                fold_scores=fold_scores,
+                training_time_seconds=round(training_s, 4),
+                inference_time_ms=round(inference_ms, 4),
+            ))
+        except Exception as exc:
+            warnings.warn(f"Model '{key}' failed and was skipped: {exc}")
+
     return results
 
 def determine_best_model(results: List[ModelResult], task: str) -> Dict[str, Any]:
@@ -527,7 +818,8 @@ def run_modeling_pipeline(
     y: pd.Series,
     target_col: str,
     excluded_features: Optional[List[str]] = None,
-    cv_splits: int = 5
+    cv_splits: int = 5,
+    model_selection: Optional[List[str]] = None,
 ) -> ModelingOutput:
     """Complete modeling workflow following §4 exactly."""
     # Ensure consistent string representation for categorical/non-numeric columns (preserving NaNs)
@@ -549,15 +841,17 @@ def run_modeling_pipeline(
     # Run Leakage scan
     leakage_flags = LeakageScan.scan(X, y, task, cv_splits=adjusted_cv)
     
-    # Train both models
-    model_results = train_models(X, y, task, excluded_features, adjusted_cv)
+    # Train selected (or all) models
+    model_results = train_models(X, y, task, excluded_features, adjusted_cv, model_selection)
     
     results_dict = [
         {
             "model": r.model_name,
             "metrics": r.metrics,
             "std": r.std,
-            "fold_scores": r.fold_scores
+            "fold_scores": r.fold_scores,
+            "training_time_seconds": r.training_time_seconds,
+            "inference_time_ms": r.inference_time_ms,
         }
         for r in model_results
     ]

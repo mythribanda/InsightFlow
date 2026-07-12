@@ -11,12 +11,15 @@ interface Msg { role: "user" | "assistant"; content: string }
 
 export function ChatPanel({
   profile, persona, suggestions, sessionId, analysis,
+  initialStory, initialSourceJson,
 }: {
   profile: DatasetProfile;
   persona: string;
   suggestions: string[];
   sessionId: string;
   analysis: any;
+  initialStory?: string;
+  initialSourceJson?: any;
 }) {
   const ask = useServerFn(askDataset);
   const runGetStory = useServerFn(getStory);
@@ -34,7 +37,15 @@ export function ChatPanel({
   // Chat features are completely disabled until backend analysis compiles,
   // preventing discrepant or ungrounded responses.
   useEffect(() => {
-    if (sessionId && analysis) {
+    if (initialStory) {
+      setSourceJson(initialSourceJson || null);
+      setMessages([
+        {
+          role: "assistant",
+          content: initialStory
+        }
+      ]);
+    } else if (sessionId && analysis) {
       setLoadingStory(true);
       runGetStory({ data: { session_id: sessionId } })
         .then((res) => {
@@ -54,7 +65,7 @@ export function ChatPanel({
           setLoadingStory(false);
         });
     }
-  }, [sessionId, analysis]);
+  }, [sessionId, analysis, initialStory, initialSourceJson]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });

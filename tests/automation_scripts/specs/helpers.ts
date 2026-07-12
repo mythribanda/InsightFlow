@@ -48,7 +48,7 @@ export async function mockAuthEndpoints(page: any) {
         status: 200,
         contentType: "application/json",
         body: JSON.stringify({
-          id: "e2e-test-user-id",
+          id: "cebe4295-cbcf-4bf2-9d13-c0e51bbfdb8c",
           display_name: "E2E Test User",
           phone: "1234567890",
           email: "insightflow_e2e_test@gmail.com"
@@ -89,7 +89,7 @@ export async function mockAuthEndpoints(page: any) {
         body: JSON.stringify({
           access_token: "mock-access-token",
           token_type: "bearer",
-          user: { id: "e2e-test-user-id", email: "insightflow_e2e_test@gmail.com" }
+          user: { id: "cebe4295-cbcf-4bf2-9d13-c0e51bbfdb8c", email: "insightflow_e2e_test@gmail.com" }
         })
       });
     }
@@ -103,7 +103,7 @@ export async function mockAuthEndpoints(page: any) {
       body: JSON.stringify({
         access_token: "mock-access-token",
         token_type: "bearer",
-        user: { id: "e2e-test-user-id", email: "insightflow_e2e_test@gmail.com" }
+        user: { id: "cebe4295-cbcf-4bf2-9d13-c0e51bbfdb8c", email: "insightflow_e2e_test@gmail.com" }
       })
     });
   });
@@ -125,7 +125,7 @@ export async function mockAuthEndpoints(page: any) {
         body: JSON.stringify({
           access_token: "mock-access-token",
           token_type: "bearer",
-          user: { id: "e2e-test-user-id", email: "insightflow_e2e_test@gmail.com" }
+          user: { id: "cebe4295-cbcf-4bf2-9d13-c0e51bbfdb8c", email: "insightflow_e2e_test@gmail.com" }
         })
       });
     }
@@ -150,7 +150,7 @@ export async function bypassAuth(page: any) {
         expires_in: 3600,
         refresh_token: "mock-refresh-token",
         user: {
-          id: "e2e-test-user-id",
+          id: "cebe4295-cbcf-4bf2-9d13-c0e51bbfdb8c",
           email: "insightflow_e2e_test@gmail.com",
           role: "authenticated",
           aud: "authenticated"

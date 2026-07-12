@@ -160,7 +160,7 @@ async def get_story(session_id: str, x_user_id: str = Header(None)):
         model_result = model_results_store.get(session_id)
         anomaly_result = anomaly_results_store.get(session_id)
 
-        from src.insights import build_insights, generate_narrative_from_json, verify_numbers_grounded
+        from src.insights import build_insights, generate_narrative_from_json, verify_numbers_grounded, generate_cleaning_suggestions
         
         insights_json = build_insights(
             df=df,
@@ -185,15 +185,26 @@ async def get_story(session_id: str, x_user_id: str = Header(None)):
             )
 
         narrative = generate_narrative_from_json(insights_json, api_key)
+        cleaning_suggestions = generate_cleaning_suggestions(
+            profile=result["columns"],
+            trust_breakdown=result["trust_breakdown"],
+            api_key=api_key
+        )
 
-        # Grounding check
+        # Grounding check for narrative
         mismatches = verify_numbers_grounded(narrative, insights_json)
         if mismatches:
             logger.warning(f"[{session_id}] Grounding validation warning: Markdown narrative contains numbers not in source_json: {mismatches}")
 
+        # Grounding check for cleaning suggestions
+        suggestion_mismatches = verify_numbers_grounded(json.dumps(cleaning_suggestions), insights_json)
+        if suggestion_mismatches:
+            logger.warning(f"[{session_id}] Grounding validation warning: Cleaning suggestions contain numbers not in source_json: {suggestion_mismatches}")
+
         return {
             "narrative": narrative,
-            "source_json": insights_json
+            "source_json": insights_json,
+            "cleaning_suggestions": cleaning_suggestions
         }
 
     except HTTPException:

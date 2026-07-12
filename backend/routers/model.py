@@ -33,6 +33,7 @@ from src.modeling_extensions import (
     check_target_suitability,
     recommend_features,
 )
+from src.supabase_client import supabase_request
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -178,7 +179,8 @@ async def train_model(session_id: str, request: ModelRequest, x_user_id: str = H
             y=y,
             target_col=request.target,
             excluded_features=request.excluded_features,
-            cv_splits=request.cv_splits or 5
+            cv_splits=request.cv_splits or 5,
+            model_selection=request.model_selection,
         )
         
         # REUSE COMPUTATION: Train best model on full data for SHAP (§4.6)
@@ -195,13 +197,81 @@ async def train_model(session_id: str, request: ModelRequest, x_user_id: str = H
         
         # Build and fit best model
         from src.modeling import LeakageSafePipeline
-        if best_model_name == "LogisticRegression" or best_model_name == "LinearRegression":
-            best_pipeline = LeakageSafePipeline.build_pipeline(X_clean, y, output.task)
-        else:
-            best_pipeline = LeakageSafePipeline.build_boosting_pipeline(X_clean, y, output.task)
+        # Dispatch to the correct builder for every supported model name.
+        # Falls back to build_boosting_pipeline for any unrecognised name.
+        _PIPELINE_BUILDERS = {
+            "LogisticRegression": LeakageSafePipeline.build_pipeline,
+            "LinearRegression": LeakageSafePipeline.build_pipeline,
+            "HistGradientBoostingClassifier": LeakageSafePipeline.build_boosting_pipeline,
+            "HistGradientBoostingRegressor": LeakageSafePipeline.build_boosting_pipeline,
+            "RandomForestClassifier": LeakageSafePipeline.build_random_forest_pipeline,
+            "RandomForestRegressor": LeakageSafePipeline.build_random_forest_pipeline,
+            "SVC": LeakageSafePipeline.build_svm_pipeline,
+            "SVR": LeakageSafePipeline.build_svm_pipeline,
+            "KNeighborsClassifier": LeakageSafePipeline.build_knn_pipeline,
+            "KNeighborsRegressor": LeakageSafePipeline.build_knn_pipeline,
+            "CatBoostClassifier": LeakageSafePipeline.build_catboost_pipeline,
+            "CatBoostRegressor": LeakageSafePipeline.build_catboost_pipeline,
+        }
+        builder_fn = _PIPELINE_BUILDERS.get(
+            best_model_name, LeakageSafePipeline.build_boosting_pipeline
+        )
+        best_pipeline = builder_fn(X_clean, y, output.task)
         
         best_pipeline.fit(X_clean, y)
         
+        # Extract baseline model coefficients (Linear/Logistic Regression)
+        baseline_coefficients = None
+        try:
+            logger.info(f"[{session_id}] Training baseline model to extract coefficients...")
+            baseline_pipeline = LeakageSafePipeline.build_pipeline(X_clean, y, output.task)
+            baseline_pipeline.fit(X_clean, y)
+            
+            model = baseline_pipeline.named_steps["model"]
+            preprocessor = baseline_pipeline.named_steps["preprocessor"]
+            
+            def clean_feature_name(name: str) -> str:
+                if name.startswith("num__"):
+                    return name[5:]
+                if name.startswith("cat__"):
+                    inner = name[5:]
+                    parts = inner.rsplit("_", 1)
+                    if len(parts) == 2:
+                        return f"{parts[0]} ({parts[1]})"
+                    return inner
+                return name
+
+            raw_features = list(preprocessor.get_feature_names_out())
+            feature_names = [clean_feature_name(f) for f in raw_features]
+            coefs = model.coef_
+            
+            if len(coefs.shape) > 1:
+                if coefs.shape[0] == 1:
+                    coef_values = coefs[0].tolist()
+                else:
+                    coef_values = coefs[0].tolist()
+            else:
+                coef_values = coefs.tolist()
+                
+            intercept = float(model.intercept_[0]) if hasattr(model.intercept_, "__len__") else float(model.intercept_)
+            
+            coefficients_list = []
+            for feat, val in zip(feature_names, coef_values):
+                coefficients_list.append({
+                    "feature": feat,
+                    "coefficient": float(val)
+                })
+                
+            coefficients_list.sort(key=lambda x: abs(x["coefficient"]), reverse=True)
+            
+            baseline_coefficients = {
+                "intercept": intercept,
+                "coefficients": coefficients_list
+            }
+            logger.info(f"[{session_id}] Successfully extracted {len(coefficients_list)} baseline coefficients.")
+        except Exception as coef_err:
+            logger.warning(f"[{session_id}] Failed to extract baseline coefficients: {coef_err}", exc_info=True)
+
         # Store for SHAP analysis
         model_store[f"{session_id}_best_pipeline"] = best_pipeline
         model_store[f"{session_id}_X"] = X_clean
@@ -214,9 +284,43 @@ async def train_model(session_id: str, request: ModelRequest, x_user_id: str = H
             "leakage": output.leakage_flags,
             "results": output.results,
             "best": output.best,
-            "class_imbalance": output.class_imbalance
+            "class_imbalance": output.class_imbalance,
+            "baseline_coefficients": baseline_coefficients,
         }
-        
+
+        # ── Persist experiment runs to Supabase (fire-and-forget) ─────────
+        # Only runs when the session is tied to a saved project (project_id provided).
+        # Uses raise_on_error=False so a Supabase failure never breaks the training response.
+        if request.project_id:
+            primary_metric = output.best.get("primary_metric", "")
+            try:
+                for r in output.results:
+                    model_primary_score = r.get("metrics", {}).get(primary_metric, 0.0) or 0.0
+                    supabase_request(
+                        "POST",
+                        "experiment_runs",
+                        body={
+                            "project_id": request.project_id,
+                            "model_name": r.get("model", ""),
+                            "hyperparameters": {},  # defaults; tuned params stored separately
+                            "metrics": r.get("metrics", {}),
+                            "task": output.task,
+                            "primary_metric": primary_metric,
+                            "primary_score": float(model_primary_score),
+                        },
+                        headers={"Prefer": "return=minimal"},
+                        raise_on_error=False,
+                    )
+                logger.info(
+                    f"[{session_id}] Persisted {len(output.results)} experiment run(s) "
+                    f"for project {request.project_id}"
+                )
+            except Exception as _persist_err:
+                # Log but never surface to the caller — training results are primary.
+                logger.warning(
+                    f"[{session_id}] Failed to persist experiment runs: {_persist_err}"
+                )
+
         logger.info(f"[{session_id}] Pipeline complete. Task: {output.task}, Leakage flags: {len(output.leakage_flags)}")
         
         return ModelResponse(
@@ -224,7 +328,8 @@ async def train_model(session_id: str, request: ModelRequest, x_user_id: str = H
             leakage=output.leakage_flags,
             results=output.results,
             best=output.best,
-            class_imbalance=output.class_imbalance
+            class_imbalance=output.class_imbalance,
+            baseline_coefficients=baseline_coefficients,
         )
     
     except HTTPException:

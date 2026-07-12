@@ -8,5 +8,10 @@ python-multipart==0.0.12
 matplotlib==3.9.2
 shap==0.46.0
 duckdb==1.2.0
+catboost
+statsmodels
+prophet
+torch
+vaderSentiment
 
 

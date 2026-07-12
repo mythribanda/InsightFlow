@@ -11,6 +11,41 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
+def apply_filters(df: pd.DataFrame, filters: list) -> pd.DataFrame:
+    if not filters:
+        return df
+    filtered_df = df.copy()
+    for f in filters:
+        if hasattr(f, "dict"):
+            f_dict = f.dict()
+        else:
+            f_dict = f
+            
+        col = f_dict.get("column")
+        ftype = f_dict.get("type")
+        val = f_dict.get("value")
+        
+        if not col or col not in filtered_df.columns or val is None:
+            continue
+            
+        if ftype == "numeric":
+            if isinstance(val, (list, tuple)) and len(val) == 2:
+                try:
+                    low = float(val[0])
+                    high = float(val[1])
+                    filtered_df = filtered_df[(filtered_df[col] >= low) & (filtered_df[col] <= high)]
+                except Exception as e:
+                    logger.error(f"Error applying numeric filter for {col}: {e}")
+        elif ftype == "categorical":
+            if isinstance(val, list):
+                if len(val) > 0:
+                    try:
+                        filtered_df = filtered_df[filtered_df[col].isin(val)]
+                    except Exception as e:
+                        logger.error(f"Error applying categorical filter for {col}: {e}")
+    return filtered_df
+
+
 @router.post("/visualize/{session_id}")
 async def get_visualization(session_id: str, request: VisualizationRequest, x_user_id: str = Header(None)):
     verify_session_owner(session_id, x_user_id)
@@ -27,6 +62,10 @@ async def get_visualization(session_id: str, request: VisualizationRequest, x_us
                 status_code=404,
                 detail="No dataset found for this session. Please upload a dataset first."
             )
+            
+        if request.filters:
+            df = apply_filters(df, request.filters)
+
             
         col1 = request.column1
         col2 = request.column2

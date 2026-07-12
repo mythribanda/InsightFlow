@@ -1,15 +1,90 @@
 import jsPDF from "jspdf";
 import type { DatasetProfile } from "./profiler";
+import type { AnalysisResult } from "@/server/analysis";
 
-export function exportReportPDF(opts: {
+/* ─── Shared types ─── */
+
+export interface ReportInsight {
+  text: string;
+  why?: string;
+  confidence: number;
+  tag: string;
+}
+
+export interface ReportOpts {
   profile: DatasetProfile;
   fileName: string;
-  insights: { text: string; why?: string; confidence: number; tag: string }[];
+  insights: ReportInsight[];
   story?: string;
   narrative?: string;
-  analysis?: any;
-}) {
-  const { profile, fileName, insights, story, narrative, analysis } = opts;
+  analysis?: AnalysisResult | null;
+}
+
+/* ─── Shared data-shaping helper ─── */
+
+export interface ReportData {
+  fileName: string;
+  generatedAt: string;
+  trustScore: number | null;
+  trustColor: string;
+  trustBreakdown: AnalysisResult["trust_breakdown"] | null;
+  stats: { label: string; value: string }[];
+  narrative: string;
+  insights: ReportInsight[];
+  risks: string[];
+  contradictions: string[];
+  humanErrors: string[];
+  recommendedActions: string[];
+  columns: DatasetProfile["columns"];
+  story: string;
+}
+
+export function buildReportData(opts: ReportOpts): ReportData {
+  const { profile, fileName, insights, story = "", narrative = "", analysis } = opts;
+
+  const trustScore = analysis ? analysis.trust_score : null;
+  const trustColor =
+    trustScore === null
+      ? "#94a3b8"
+      : trustScore >= 80
+        ? "#10b981"
+        : trustScore >= 55
+          ? "#f59e0b"
+          : "#ef4444";
+
+  const stats: { label: string; value: string }[] = [
+    { label: "Rows", value: profile.rowCount.toLocaleString() },
+    { label: "Columns", value: String(profile.colCount) },
+    { label: "Duplicates", value: String(profile.duplicateRows) },
+    { label: "Missing", value: `${profile.missingPct.toFixed(1)}%` },
+    { label: "Trust Score", value: analysis ? `${analysis.trust_score}/100` : "Pending" },
+  ];
+
+  return {
+    fileName,
+    generatedAt: new Date().toLocaleString(),
+    trustScore,
+    trustColor,
+    trustBreakdown: analysis?.trust_breakdown ?? null,
+    stats,
+    narrative,
+    insights,
+    risks: profile.risks,
+    contradictions: profile.contradictions,
+    humanErrors: profile.humanErrors,
+    recommendedActions: profile.recommendedActions,
+    columns: profile.columns.slice(0, 50),
+    story,
+  };
+}
+
+/* ─── PDF exporter ─── */
+
+export function exportReportPDF(opts: ReportOpts) {
+  const { fileName, analysis } = opts;
+  const { profile, insights, story, narrative } = opts;
+  const data = buildReportData(opts);
+
   const doc = new jsPDF({ unit: "pt", format: "a4" });
   const W = doc.internal.pageSize.getWidth();
   const H = doc.internal.pageSize.getHeight();
@@ -79,7 +154,7 @@ export function exportReportPDF(opts: {
   doc.text(fileName, M, 100);
 
   // Trust badge on cover
-  const trustScore = analysis ? analysis.trust_score : null;
+  const trustScore = data.trustScore;
   const trustColor = trustScore !== null ? (trustScore >= 80 ? [16, 185, 129] : trustScore >= 55 ? [245, 158, 11] : [239, 68, 68]) : [180, 190, 210];
   doc.setFontSize(11);
   doc.setTextColor(180, 190, 210);
@@ -104,62 +179,55 @@ export function exportReportPDF(opts: {
   doc.setFillColor(245, 247, 250);
   doc.roundedRect(M, y - 4, W - M * 2, 36, 4, 4, "F");
   doc.setFontSize(10);
-  const stats = [
-    `Rows: ${profile.rowCount.toLocaleString()}`,
-    `Columns: ${profile.colCount}`,
-    `Duplicates: ${profile.duplicateRows}`,
-    `Missing: ${profile.missingPct.toFixed(1)}%`,
-    `Trust: ${analysis ? `${analysis.trust_score}/100` : "Pending"}`,
-  ];
-  const statWidth = (W - M * 2) / stats.length;
-  stats.forEach((s, i) => {
-    doc.text(s, M + 8 + i * statWidth, y + 14);
+  const statWidth = (W - M * 2) / data.stats.length;
+  data.stats.forEach((s, i) => {
+    doc.text(`${s.label}: ${s.value}`, M + 8 + i * statWidth, y + 14);
   });
   y += 44;
 
   // ── Behavior Narrative ──
-  if (narrative) { heading("Behavior Narrative"); writeWrapped(narrative); }
+  if (data.narrative) { heading("Behavior Narrative"); writeWrapped(data.narrative); }
 
   // ── Key Insights ──
   heading("Key Insights");
-  for (const i of insights) {
+  for (const i of data.insights) {
     writeWrapped(`• [${i.tag} · ${(i.confidence * 100).toFixed(0)}%] ${i.text}`);
     if (i.why) writeWrapped(`    Why this matters: ${i.why}`, 10, 3, [100, 100, 120]);
     y += 2;
   }
 
   // ── Risks ──
-  if (profile.risks.length) {
+  if (data.risks.length) {
     heading("Risks");
-    for (const r of profile.risks) writeWrapped(`• ${r}`);
+    for (const r of data.risks) writeWrapped(`• ${r}`);
   }
 
   // ── Contradictions ──
-  if (profile.contradictions.length) {
+  if (data.contradictions.length) {
     heading("Contradictions");
-    for (const r of profile.contradictions) writeWrapped(`⚠ ${r}`);
+    for (const r of data.contradictions) writeWrapped(`⚠ ${r}`);
   }
 
   // ── Human-Error Signals ──
-  if (profile.humanErrors.length) {
+  if (data.humanErrors.length) {
     heading("Human-Error Signals");
-    for (const r of profile.humanErrors) writeWrapped(`⚠ ${r}`);
+    for (const r of data.humanErrors) writeWrapped(`⚠ ${r}`);
   }
 
   // ── Recommended Actions ──
-  if (profile.recommendedActions.length) {
+  if (data.recommendedActions.length) {
     heading("Recommended Actions");
-    for (const r of profile.recommendedActions) writeWrapped(`→ ${r}`);
+    for (const r of data.recommendedActions) writeWrapped(`→ ${r}`);
   }
 
   // ── Column Profile ──
   heading("Column Profile");
-  for (const c of profile.columns.slice(0, 30)) {
+  for (const c of data.columns) {
     writeWrapped(`${c.name}  —  ${c.type}, missing ${c.missingPct.toFixed(1)}%, unique ${c.unique}`, 10, 2);
   }
 
   // ── Data Story ──
-  if (story) { heading("Data Story"); writeWrapped(story); }
+  if (data.story) { heading("Data Story"); writeWrapped(data.story); }
 
   // ── Footer on every page ──
   const pageCount = doc.getNumberOfPages();
@@ -172,4 +240,371 @@ export function exportReportPDF(opts: {
   }
 
   doc.save(`${fileName.replace(/\.[^.]+$/, "")}-insightflow-report.pdf`);
+}
+
+/* ─── HTML exporter ─── */
+
+export function exportHtmlReport(opts: ReportOpts): void {
+  const data = buildReportData(opts);
+  const stripMd = (s: string) =>
+    s
+      .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+      .replace(/`(.*?)`/g, "<code>$1</code>")
+      .replace(/^#{1,6}\s+(.+)$/gm, "<b>$1</b>")
+      .replace(/\n/g, "<br>");
+
+  /* ── inline CSS ── */
+  const css = `
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{
+      --bg:#0b0f19;--surface:#111827;--surface2:#1a2235;
+      --border:#1e2d45;--primary:#14b8c8;--accent:#6366f1;
+      --text:#e2e8f0;--muted:#8892a4;--success:#10b981;
+      --warning:#f59e0b;--danger:#ef4444;
+      --font:'Inter','Segoe UI',system-ui,sans-serif;
+    }
+    body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:14px;line-height:1.6;-webkit-font-smoothing:antialiased}
+    a{color:var(--primary);text-decoration:none}
+    code{background:#1e293b;padding:2px 6px;border-radius:4px;font-size:12px;font-family:monospace}
+    strong{color:#fff;font-weight:600}
+
+    /* layout */
+    .page{max-width:960px;margin:0 auto;padding:48px 32px}
+
+    /* hero */
+    .hero{
+      background:linear-gradient(135deg,#0d1526 0%,#0b1a2e 60%,#0a1520 100%);
+      border:1px solid var(--border);border-radius:20px;padding:48px 40px;
+      position:relative;overflow:hidden;margin-bottom:40px;
+    }
+    .hero::before{
+      content:'';position:absolute;inset:0;
+      background:radial-gradient(ellipse at 80% 50%,rgba(20,184,200,.12) 0%,transparent 70%),
+                 radial-gradient(ellipse at 20% 80%,rgba(99,102,241,.08) 0%,transparent 60%);
+      pointer-events:none;
+    }
+    .hero-top{display:flex;justify-content:space-between;align-items:flex-start;gap:24px;position:relative}
+    .hero-badge{
+      display:inline-flex;align-items:center;gap:6px;
+      background:rgba(20,184,200,.1);border:1px solid rgba(20,184,200,.3);
+      border-radius:9999px;padding:4px 12px;font-size:11px;color:var(--primary);
+      font-weight:600;letter-spacing:.06em;text-transform:uppercase;margin-bottom:14px;
+    }
+    .hero h1{font-size:32px;font-weight:800;background:linear-gradient(135deg,#fff 0%,var(--primary) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:6px}
+    .hero-sub{font-size:13px;color:var(--muted)}
+    .trust-badge{
+      background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:16px;
+      padding:20px 28px;text-align:center;min-width:130px;flex-shrink:0;
+    }
+    .trust-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
+    .trust-number{font-size:48px;font-weight:800;line-height:1}
+    .trust-denom{font-size:16px;color:var(--muted);font-weight:400}
+
+    /* stat bar */
+    .stat-bar{
+      display:flex;gap:0;margin-top:32px;border:1px solid var(--border);border-radius:14px;overflow:hidden;
+      position:relative;
+    }
+    .stat{flex:1;padding:16px 18px;border-right:1px solid var(--border);position:relative}
+    .stat:last-child{border-right:none}
+    .stat-label{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:4px}
+    .stat-value{font-size:18px;font-weight:700;color:#fff}
+
+    /* sections */
+    .section{margin-bottom:36px}
+    .section-header{
+      display:flex;align-items:center;gap:10px;margin-bottom:16px;
+      padding-bottom:10px;border-bottom:1px solid var(--border);
+    }
+    .section-icon{
+      width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;
+      background:linear-gradient(135deg,rgba(20,184,200,.2),rgba(99,102,241,.2));
+      font-size:16px;flex-shrink:0;
+    }
+    .section-title{font-size:15px;font-weight:700;color:#fff}
+    .section-count{font-size:11px;color:var(--muted);background:var(--surface2);border:1px solid var(--border);border-radius:9999px;padding:2px 10px;margin-left:auto}
+
+    /* card */
+    .card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px 24px;margin-bottom:12px;transition:border-color .2s}
+
+    /* insight cards */
+    .insight-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px 20px;margin-bottom:10px}
+    .insight-header{display:flex;align-items:flex-start;gap:10px}
+    .insight-tag{
+      font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+      border-radius:9999px;padding:3px 10px;flex-shrink:0;margin-top:2px;
+    }
+    .tag-quality{background:rgba(99,102,241,.15);color:#818cf8}
+    .tag-risk{background:rgba(239,68,68,.12);color:#f87171}
+    .tag-pattern{background:rgba(20,184,200,.12);color:var(--primary)}
+    .tag-default{background:rgba(255,255,255,.06);color:var(--muted)}
+    .insight-conf{font-size:11px;color:var(--muted);margin-left:auto;white-space:nowrap;padding-top:3px}
+    .insight-text{font-size:13px;color:var(--text);margin-top:6px;line-height:1.55}
+    .insight-why{font-size:12px;color:var(--muted);margin-top:8px;padding:10px 14px;background:rgba(255,255,255,.03);border-left:3px solid var(--primary);border-radius:0 6px 6px 0}
+
+    /* list items */
+    .list-item{padding:10px 0;border-bottom:1px solid var(--border);font-size:13px;display:flex;gap:10px;align-items:flex-start}
+    .list-item:last-child{border-bottom:none}
+    .list-bullet{width:20px;flex-shrink:0;margin-top:1px;color:var(--primary);font-weight:700}
+    .list-bullet.warn{color:var(--warning)}
+    .list-bullet.danger{color:var(--danger)}
+    .list-bullet.action{color:var(--success)}
+
+    /* trust breakdown table */
+    .tb-table{width:100%;border-collapse:collapse;font-size:13px}
+    .tb-table th{text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);padding:8px 12px;border-bottom:1px solid var(--border);font-weight:600}
+    .tb-table td{padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.04);vertical-align:middle}
+    .tb-table tr:last-child td{border-bottom:none}
+    .tb-score-bar{height:6px;border-radius:9999px;background:var(--border);overflow:hidden;min-width:80px;max-width:140px}
+    .tb-score-fill{height:100%;border-radius:9999px}
+
+    /* column profile table */
+    .col-table{width:100%;border-collapse:collapse;font-size:12px}
+    .col-table th{text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);padding:8px 10px;border-bottom:1px solid var(--border);font-weight:600}
+    .col-table td{padding:9px 10px;border-bottom:1px solid rgba(255,255,255,.04);vertical-align:middle}
+    .col-table tr:hover td{background:rgba(255,255,255,.02)}
+    .col-table tr:last-child td{border-bottom:none}
+    .type-badge{font-size:10px;font-weight:600;padding:2px 8px;border-radius:9999px;letter-spacing:.04em}
+    .type-numeric{background:rgba(20,184,200,.12);color:var(--primary)}
+    .type-categorical{background:rgba(99,102,241,.15);color:#818cf8}
+    .type-datetime{background:rgba(245,158,11,.12);color:var(--warning)}
+    .type-boolean{background:rgba(16,185,129,.12);color:var(--success)}
+    .type-text{background:rgba(255,255,255,.06);color:var(--muted)}
+    .type-id{background:rgba(239,68,68,.1);color:#f87171}
+    .miss-bar{height:4px;border-radius:9999px;overflow:hidden;background:var(--border);margin-top:3px;min-width:60px}
+    .miss-fill{height:100%;border-radius:9999px;background:var(--warning)}
+
+    /* narrative */
+    .narrative-box{background:linear-gradient(135deg,rgba(20,184,200,.06),rgba(99,102,241,.06));border:1px solid rgba(20,184,200,.2);border-radius:14px;padding:20px 24px;font-size:13px;line-height:1.7;color:var(--text)}
+
+    /* story */
+    .story-box{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:24px 28px;font-size:14px;line-height:1.8;color:var(--text)}
+    .story-box h2,h3{color:var(--primary);margin:20px 0 8px;font-size:15px;font-weight:700}
+    .story-box p{margin-bottom:12px}
+    .story-box li{margin-left:20px;margin-bottom:6px}
+
+    /* footer */
+    .footer{margin-top:56px;padding-top:20px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--muted)}
+    .footer-brand{display:flex;align-items:center;gap:6px;font-weight:700;color:var(--primary)}
+
+    @media(max-width:600px){
+      .hero-top{flex-direction:column}.stat-bar{flex-wrap:wrap}
+      .stat{border-right:none;border-bottom:1px solid var(--border);flex:1 0 45%}
+    }
+    @media print{
+      body{background:#fff;color:#111}
+      .hero{background:#f8fafc;border-color:#e2e8f0}
+      .hero h1{-webkit-text-fill-color:#1e293b;color:#1e293b}
+      .card,.insight-card{background:#f8fafc;border-color:#e2e8f0}
+    }
+  `;
+
+  /* ── helpers ── */
+  const esc = (s: string) =>
+    s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
+  const tagClass = (tag: string): string => {
+    const t = tag.toLowerCase();
+    if (t.includes("quality") || t.includes("completeness")) return "tag-quality";
+    if (t.includes("risk") || t.includes("error") || t.includes("anomal")) return "tag-danger";
+    if (t.includes("pattern") || t.includes("insight")) return "tag-pattern";
+    return "tag-default";
+  };
+
+  const typeClass = (t: string) => {
+    const map: Record<string, string> = {
+      numeric: "type-numeric", categorical: "type-categorical",
+      datetime: "type-datetime", boolean: "type-boolean",
+      text: "type-text", id: "type-id",
+    };
+    return map[t] ?? "type-text";
+  };
+
+  const scoreColor = (s: number) =>
+    s >= 80 ? "#10b981" : s >= 55 ? "#f59e0b" : "#ef4444";
+
+  const sectionHtml = (icon: string, title: string, count: number | null, content: string) => `
+    <div class="section">
+      <div class="section-header">
+        <div class="section-icon">${icon}</div>
+        <span class="section-title">${esc(title)}</span>
+        ${count !== null ? `<span class="section-count">${count}</span>` : ""}
+      </div>
+      ${content}
+    </div>`;
+
+  /* ── trust badge ── */
+  const trustNumHtml = data.trustScore !== null
+    ? `<span class="trust-number" style="color:${data.trustColor}">${data.trustScore}</span><span class="trust-denom">/100</span>`
+    : `<span class="trust-number" style="color:var(--muted)">—</span>`;
+
+  /* ── stat bar ── */
+  const statBarHtml = data.stats.map(s => `
+    <div class="stat">
+      <div class="stat-label">${esc(s.label)}</div>
+      <div class="stat-value">${esc(s.value)}</div>
+    </div>`).join("");
+
+  /* ── insights ── */
+  const insightsHtml = data.insights.length
+    ? data.insights.map(i => `
+      <div class="insight-card">
+        <div class="insight-header">
+          <span class="insight-tag ${tagClass(i.tag)}">${esc(i.tag)}</span>
+          <div class="insight-text" style="flex:1">${stripMd(esc(i.text))}</div>
+          <span class="insight-conf">${(i.confidence * 100).toFixed(0)}% conf.</span>
+        </div>
+        ${i.why ? `<div class="insight-why">💡 <strong>Why this matters:</strong> ${stripMd(esc(i.why))}</div>` : ""}
+      </div>`).join("")
+    : "<p style='color:var(--muted);font-size:13px'>No insights generated yet.</p>";
+
+  /* ── risks / contradictions / human errors ── */
+  const listHtml = (items: string[], bulletChar: string, bulletClass: string) =>
+    items.length
+      ? `<div class="card">${items.map(r => `<div class="list-item"><span class="list-bullet ${bulletClass}">${bulletChar}</span><span>${stripMd(esc(r))}</span></div>`).join("")}</div>`
+      : "";
+
+  /* ── recommended actions ── */
+  const actionsHtml = data.recommendedActions.length
+    ? `<div class="card">${data.recommendedActions.map(r =>
+        `<div class="list-item"><span class="list-bullet action">→</span><span>${stripMd(esc(r))}</span></div>`).join("")}</div>`
+    : "";
+
+  /* ── trust breakdown table ── */
+  const tbHtml = data.trustBreakdown?.length
+    ? `<div class="card" style="padding:0;overflow:hidden">
+        <table class="tb-table">
+          <thead><tr><th>Dimension</th><th>Score</th><th>Weight</th><th>Note</th></tr></thead>
+          <tbody>
+            ${data.trustBreakdown.map(t => `
+              <tr>
+                <td><strong>${esc(t.label)}</strong></td>
+                <td>
+                  <div style="display:flex;align-items:center;gap:10px">
+                    <span style="font-weight:700;color:${scoreColor(t.score)};min-width:28px">${t.score}</span>
+                    <div class="tb-score-bar">
+                      <div class="tb-score-fill" style="width:${t.score}%;background:${scoreColor(t.score)}"></div>
+                    </div>
+                  </div>
+                </td>
+                <td style="color:var(--muted)">${(t.weight * 100).toFixed(0)}%</td>
+                <td style="color:var(--muted);font-size:12px">${esc(t.note)}</td>
+              </tr>`).join("")}
+          </tbody>
+        </table>
+      </div>`
+    : "";
+
+  /* ── column profile table ── */
+  const colHtml = `
+    <div class="card" style="padding:0;overflow-x:auto">
+      <table class="col-table">
+        <thead>
+          <tr>
+            <th>Column</th><th>Type</th><th>Missing</th><th>Unique</th>
+            <th>Min</th><th>Max</th><th>Mean</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${data.columns.map(c => `
+            <tr>
+              <td><strong style="color:#fff">${esc(c.name)}</strong></td>
+              <td><span class="type-badge ${typeClass(c.type)}">${esc(c.type)}</span></td>
+              <td>
+                <div>${c.missingPct.toFixed(1)}%</div>
+                <div class="miss-bar"><div class="miss-fill" style="width:${Math.min(c.missingPct, 100)}%"></div></div>
+              </td>
+              <td>${c.unique.toLocaleString()}</td>
+              <td style="color:var(--muted);font-size:12px">${c.min !== undefined ? c.min.toLocaleString(undefined, { maximumFractionDigits: 3 }) : "—"}</td>
+              <td style="color:var(--muted);font-size:12px">${c.max !== undefined ? c.max.toLocaleString(undefined, { maximumFractionDigits: 3 }) : "—"}</td>
+              <td style="color:var(--muted);font-size:12px">${c.mean !== undefined ? c.mean.toLocaleString(undefined, { maximumFractionDigits: 3 }) : "—"}</td>
+            </tr>`).join("")}
+        </tbody>
+      </table>
+    </div>`;
+
+  /* ── narrative ── */
+  const narrativeHtml = data.narrative
+    ? sectionHtml("📖", "Behavior Narrative", null,
+        `<div class="narrative-box">${stripMd(esc(data.narrative))}</div>`)
+    : "";
+
+  /* ── story ── */
+  const storyHtml = data.story
+    ? sectionHtml("✨", "Data Story", null,
+        `<div class="story-box">${stripMd(esc(data.story))}</div>`)
+    : "";
+
+  /* ── full HTML ── */
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>InsightFlow Report — ${esc(data.fileName)}</title>
+  <meta name="description" content="InsightFlow data quality and profiling report for ${esc(data.fileName)}" />
+  <style>${css}</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Hero -->
+  <div class="hero">
+    <div class="hero-top">
+      <div>
+        <div class="hero-badge">🔍 InsightFlow Report</div>
+        <h1>Data Profile Report</h1>
+        <div class="hero-sub">
+          <strong style="color:var(--text)">${esc(data.fileName)}</strong>
+          &nbsp;·&nbsp; Generated ${esc(data.generatedAt)}
+        </div>
+      </div>
+      <div class="trust-badge">
+        <div class="trust-label">Trust Score</div>
+        ${trustNumHtml}
+      </div>
+    </div>
+    <div class="stat-bar">${statBarHtml}</div>
+  </div>
+
+  ${narrativeHtml}
+
+  <!-- Key Insights -->
+  ${sectionHtml("💡", "Key Insights", data.insights.length, insightsHtml)}
+
+  ${data.trustBreakdown?.length ? sectionHtml("🛡️", "Trust Score Breakdown", null, tbHtml) : ""}
+
+  ${data.risks.length ? sectionHtml("⚠️", "Risks", data.risks.length, listHtml(data.risks, "•", "warn")) : ""}
+
+  ${data.contradictions.length ? sectionHtml("❗", "Contradictions", data.contradictions.length, listHtml(data.contradictions, "⚠", "danger")) : ""}
+
+  ${data.humanErrors.length ? sectionHtml("🧑‍💻", "Human-Error Signals", data.humanErrors.length, listHtml(data.humanErrors, "⚠", "danger")) : ""}
+
+  ${data.recommendedActions.length ? sectionHtml("✅", "Recommended Actions", data.recommendedActions.length, actionsHtml) : ""}
+
+  <!-- Column Profile -->
+  ${sectionHtml("🗂️", "Column Profile", data.columns.length, colHtml)}
+
+  ${storyHtml}
+
+  <!-- Footer -->
+  <div class="footer">
+    <div class="footer-brand">⚡ InsightFlow</div>
+    <div>${esc(data.fileName)} · ${esc(data.generatedAt)}</div>
+  </div>
+
+</div>
+</body>
+</html>`;
+
+  /* ── trigger download ── */
+  const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${data.fileName.replace(/\.[^.]+$/, "")}-insightflow-report.html`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }

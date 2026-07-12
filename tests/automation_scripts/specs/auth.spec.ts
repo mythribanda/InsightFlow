@@ -217,8 +217,8 @@ test.describe("Authentication Flows", () => {
     expect(bodyText.includes("Verify") || bodyText.includes("Error") || bodyText.includes("failed") || bodyText.includes("rate limit")).toBe(true);
   });
 
-  test.skip("TC_OTP_002: Verify correct 6-digit OTP logs user in", async () => {
-    // TC_OTP_002: Verify correct 6-digit OTP logs user in
+  test.skip("TC_OTP_002: Verify correct 8-digit OTP logs user in", async () => {
+    // TC_OTP_002: Verify correct 8-digit OTP logs user in
     // Reason for Skip: Requires real-time email intercepting to fetch the actual OTP token.
   });
 
@@ -267,7 +267,7 @@ test.describe("Authentication Flows", () => {
     
     const bodyText = await page.locator("body").innerText();
     if (bodyText.includes("Verify your email")) {
-      const codeInput = page.locator("input[placeholder='123456']");
+      const codeInput = page.locator("input[placeholder='12345678']");
       
       // Try entering letters
       await codeInput.fill("abc");
@@ -277,7 +277,7 @@ test.describe("Authentication Flows", () => {
       // Try entering too many digits
       await codeInput.fill("123456789");
       const valAfterExcess = await codeInput.inputValue();
-      expect(valAfterExcess).toBe("123456"); // capped at 6 digits
+      expect(valAfterExcess).toBe("12345678"); // capped at 8 digits
     }
   });
 

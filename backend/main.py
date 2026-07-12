@@ -38,6 +38,13 @@ from routers import (
     clustering,
     profile,
     session,
+    projects,
+    tuning,
+    experiments,
+    statistics,
+    timeseries,
+    dashboards,
+    saved_queries,
 )
 
 # FastAPI app
@@ -76,7 +83,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
     allow_credentials=False,
-    allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
+    allow_methods=["GET", "POST", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["Content-Type", "x-user-id", "X-User-Id", "x-internal-secret", "X-Internal-Secret"],
 )
 
@@ -103,6 +110,13 @@ app.include_router(chat.router)
 app.include_router(clustering.router)
 app.include_router(profile.router)
 app.include_router(session.router)
+app.include_router(projects.router)
+app.include_router(tuning.router)
+app.include_router(experiments.router)
+app.include_router(statistics.router)
+app.include_router(timeseries.router)
+app.include_router(dashboards.router)
+app.include_router(saved_queries.router)
 
 
 @app.get("/health")

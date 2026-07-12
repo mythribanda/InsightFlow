@@ -14,9 +14,11 @@
  */
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, Suspense, lazy, useState, useCallback } from "react";
+import { ErrorComponent } from "./__root";
 import { Canvas } from "@react-three/fiber";
 import { useAuth } from "@/contexts/AuthContext";
-import { Brain } from "lucide-react";
+import { Brain, Sun, Moon } from "lucide-react";
+import { useTheme } from "@/contexts/ThemeContext";
 import { CinematicPreloader }  from "../components/landing/CinematicPreloader";
 import { GrainOverlay }        from "../components/landing/GrainOverlay";
 import { CustomCursor }        from "../components/landing/CustomCursor";
@@ -36,6 +38,7 @@ function Navbar({
   onJump: (index: number) => void;
   onLaunch: () => void;
 }) {
+  const { theme, toggleTheme } = useTheme();
   const sections = [
     { label: "Home", index: 0 },
     { label: "Trust Score", index: 1 },
@@ -75,6 +78,14 @@ function Navbar({
 
       {/* Action Buttons */}
       <div className="flex items-center gap-3">
+        <button
+          onClick={toggleTheme}
+          className="flex h-7 w-7 items-center justify-center rounded-full border border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20 transition-all text-slate-300 hover:text-white cursor-pointer shrink-0"
+          title={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
+        >
+          {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+        </button>
+
         <Link
           to="/login"
           className="rounded-full px-4 py-1.5 border border-white/10 hover:border-white/20 text-xs font-mono font-medium text-slate-300 hover:text-white transition-all bg-white/5"
@@ -112,6 +123,7 @@ const LandingSections = lazy(() =>
 export const Route = createFileRoute("/")({
   // R3F uses WebGL — client-only components are gated/deferred to prevent SSR issues.
   component: RootGate,
+  errorComponent: ErrorComponent,
 });
 
 // ─── Auth gate ────────────────────────────────────────────────────────────────
@@ -239,7 +251,7 @@ function ReducedMotionSections({ onLaunch }: { onLaunch: () => void }) {
         </section>
       ))}
       <section
-        style={{ minHeight: "100dvh", display: "flex", flexDirection: "column", alignItems: "center", justifyCenter: "center", background: "#0A0A0F", padding: 32 }}
+        style={{ minHeight: "100dvh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: "#0A0A0F", padding: 32 }}
       >
         <h2 style={{ fontFamily: "monospace", fontSize: "clamp(28px, 4vw, 56px)", color: "var(--foreground)", textAlign: "center", margin: "0 0 40px", whiteSpace: "pre-line" }}>
           Upload your dataset.{"\n"}Get the truth.

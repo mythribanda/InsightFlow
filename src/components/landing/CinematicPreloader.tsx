@@ -16,12 +16,12 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import { Canvas } from "@react-three/fiber";
-import { useProgress } from "@react-three/drei";
 import { gsap } from "gsap";
 import { DependencyGraph3D } from "./DependencyGraph3D";
 
 const SESSION_KEY = "insightflow_preloader_seen";
 const FAST_DURATION = 450; // ms
+const FULL_DURATION = 2000; // ms
 
 // ─── WireframePass: the low-detail graph assembling itself ────────────────────
 
@@ -114,9 +114,6 @@ export function CinematicPreloader({ onComplete }: Props) {
   const [done, setDone] = useState(false);
   const hasFiredRef = useRef(false);
 
-  // drei's useProgress — real asset progress
-  const { progress: realProgress } = useProgress();
-
   // Detect fast-path (repeat session visit)
   const isFast = typeof window !== "undefined" &&
     sessionStorage.getItem(SESSION_KEY) === "1";
@@ -142,21 +139,33 @@ export function CinematicPreloader({ onComplete }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isFast]);
 
-  // ── full path: track real asset loading ───────────────────────────────────
+  // ── full path: simulated progress animation ────────────────────────────────
   useEffect(() => {
     if (isFast) return;
-    const pct = Math.round(realProgress);
-    setDisplayPct(pct);
-    // Graph assembles slightly ahead of counter for visual effect
-    setGraphProgress(Math.min(1, (realProgress + 15) / 100));
-    if (pct >= 100 && !hasFiredRef.current) {
-      hasFiredRef.current = true;
-      // Small settle delay before wipe
-      const timer = setTimeout(() => exitAnimation(), 300);
-      return () => clearTimeout(timer);
+    let frame = 0;
+    let timer: NodeJS.Timeout;
+    const target = Date.now() + FULL_DURATION;
+    function tick() {
+      const remaining = target - Date.now();
+      const pct = Math.min(100, Math.round(100 - (remaining / FULL_DURATION) * 100));
+      setDisplayPct(pct);
+      // Graph assembles slightly ahead of counter for visual effect
+      setGraphProgress(Math.min(1, (pct + 15) / 100));
+      if (pct < 100) {
+        frame = requestAnimationFrame(tick);
+      } else if (!hasFiredRef.current) {
+        hasFiredRef.current = true;
+        // Small settle delay before wipe
+        timer = setTimeout(() => exitAnimation(), 300);
+      }
     }
+    frame = requestAnimationFrame(tick);
+    return () => {
+      cancelAnimationFrame(frame);
+      if (timer) clearTimeout(timer);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [realProgress, isFast]);
+  }, [isFast]);
 
   // ── exit animation: clip-path wipe up ─────────────────────────────────────
   const exitAnimation = useCallback(() => {

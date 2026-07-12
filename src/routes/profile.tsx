@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
+import { ErrorComponent } from "./__root";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,6 +24,7 @@ import {
 
 export const Route = createFileRoute("/profile")({
   component: ProfilePage,
+  errorComponent: ErrorComponent,
 });
 
 function ProfilePage() {

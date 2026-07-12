@@ -22,6 +22,9 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ShieldAlert, AlertTriangle, ChevronDown, ChevronUp, BarChart3, Info } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
+import { motion } from "framer-motion";
+import { Skeleton, SkeletonCardHeader } from "@/components/ui/Skeleton";
+import { panelVariants, containerVariants, listItemVariants } from "@/hooks/useAnimationVariants";
 
 interface AnomalyPanelProps {
   sessionId: string;
@@ -62,17 +65,29 @@ export const AnomalyPanel: React.FC<AnomalyPanelProps> = ({ sessionId }) => {
   if (isLoading) {
     return (
       <Card className="border border-border bg-card/50">
-        <CardHeader>
-          <CardTitle>Anomaly Detection</CardTitle>
-          <CardDescription>Identifying out-of-distribution rows using Isolation Forest...</CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col items-center justify-center p-12 space-y-4">
-          <span className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-          <p className="text-sm text-muted-foreground">Running Isolation Forest on preprocessed matrix...</p>
+        <SkeletonCardHeader />
+        <CardContent className="p-6 pt-4 space-y-3">
+          {/* Table header skeleton */}
+          <div className="grid grid-cols-5 gap-3 px-1 pb-2 border-b border-border">
+            {["Row", "Score", "Risk", "Drivers", ""].map((_, i) => (
+              <Skeleton key={i} className="h-3" />
+            ))}
+          </div>
+          {/* 6 skeleton rows */}
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="grid grid-cols-5 gap-3 px-1 py-1.5">
+              <Skeleton className="h-4 w-10" />
+              <Skeleton className="h-4 w-16" />
+              <Skeleton className="h-5 w-14 rounded-full" />
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-6 w-16 rounded" />
+            </div>
+          ))}
         </CardContent>
       </Card>
     );
   }
+
 
   if (error) {
     return (
@@ -89,8 +104,14 @@ export const AnomalyPanel: React.FC<AnomalyPanelProps> = ({ sessionId }) => {
   const hasAnomalies = anomalies && anomalies.length > 0;
 
   return (
-    <div className="space-y-6">
+    <motion.div
+      className="space-y-6"
+      variants={panelVariants}
+      initial="hidden"
+      animate="visible"
+    >
       <Card>
+
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
@@ -258,6 +279,7 @@ export const AnomalyPanel: React.FC<AnomalyPanelProps> = ({ sessionId }) => {
           )}
         </CardContent>
       </Card>
-    </div>
+    </motion.div>
   );
 };
+

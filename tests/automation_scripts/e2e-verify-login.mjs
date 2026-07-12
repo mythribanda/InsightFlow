@@ -79,10 +79,10 @@ const TIMEOUT = 15_000;
     if (bodyText.includes("Verify your email") || bodyText.includes("Verify")) {
       console.log("  ✅ SUCCESS: Transitioned to OTP verification step!");
 
-      // Enter an incorrect 6-digit code
-      const codeInput = page.locator("input[placeholder='123456']");
-      await codeInput.fill("999999");
-      console.log("  Filled incorrect code: '999999'");
+      // Enter an incorrect 8-digit code
+      const codeInput = page.locator("input[placeholder='12345678']");
+      await codeInput.fill("99999999");
+      console.log("  Filled incorrect code: '99999999'");
 
       const verifyBtn = page.locator("button:has-text('Verify')");
       await verifyBtn.click();

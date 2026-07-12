@@ -4,6 +4,7 @@ import numpy as np
 from fastapi import APIRouter, HTTPException, Header
 
 from sklearn.feature_extraction.text import TfidfVectorizer
+from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 
 from state import session_data_store, parse_request_data, verify_session_owner
 from schemas import CalcColumnRequest, CalcColumnResponse
@@ -51,6 +52,69 @@ async def analyze_text_column(session_id: str, column: str, x_user_id: str = Hea
         raise HTTPException(status_code=500, detail=f"Text analysis failed: {str(e)}")
 
 
+@router.get("/sentiment-analysis/{session_id}/{column}")
+async def analyze_sentiment_column(session_id: str, column: str, x_user_id: str = Header(None)):
+    verify_session_owner(session_id, x_user_id)
+    """
+    GET /sentiment-analysis/{session_id}/{column} -> VADER sentiment scores for a text column.
+    """
+    try:
+        df = session_data_store.get(session_id)
+        if df is None:
+            raise HTTPException(status_code=404, detail=f"No dataset found for session '{session_id}'.")
+        if column not in df.columns:
+            raise HTTPException(status_code=404, detail=f"Column '{column}' not found.")
+
+        texts = df[column].dropna().astype(str).tolist()
+        if len(texts) < 5:
+            raise HTTPException(status_code=400, detail="Not enough non-null text values to analyze.")
+
+        analyzer = SentimentIntensityAnalyzer()
+        results = []
+        pos_count = 0
+        neg_count = 0
+        neu_count = 0
+        total_compound = 0.0
+
+        for text in texts:
+            scores = analyzer.polarity_scores(text)
+            results.append({
+                "text": text[:200],  # cap preview size
+                "pos": float(scores["pos"]),
+                "neu": float(scores["neu"]),
+                "neg": float(scores["neg"]),
+                "compound": float(scores["compound"])
+            })
+            compound = scores["compound"]
+            total_compound += compound
+            if compound >= 0.05:
+                pos_count += 1
+            elif compound <= -0.05:
+                neg_count += 1
+            else:
+                neu_count += 1
+
+        total = len(texts)
+        avg_compound = total_compound / total if total > 0 else 0.0
+        pct_positive = (pos_count / total) * 100 if total > 0 else 0.0
+        pct_negative = (neg_count / total) * 100 if total > 0 else 0.0
+        pct_neutral = (neu_count / total) * 100 if total > 0 else 0.0
+
+        return {
+            "avg_compound": round(avg_compound, 3),
+            "pct_positive": round(pct_positive, 1),
+            "pct_negative": round(pct_negative, 1),
+            "pct_neutral": round(pct_neutral, 1),
+            "per_row_scores": results[:100],  # cap list to prevent payload bloating
+            "total_count": total
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"[{session_id}] Sentiment analysis failed: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Sentiment analysis failed: {str(e)}")
+
+
 @router.post("/calc-column/{session_id}", response_model=CalcColumnResponse)
 async def add_calc_column(session_id: str, request: CalcColumnRequest, x_user_id: str = Header(None)) -> CalcColumnResponse:
     verify_session_owner(session_id, x_user_id)
@@ -76,6 +140,21 @@ async def add_calc_column(session_id: str, request: CalcColumnRequest, x_user_id
         # Sync update background analysis so dashboard is immediately updated!
         from routers.analyze import run_analysis
         run_analysis(session_id, updated_df)
+
+        # Write a version snapshot if a project_id was supplied
+        if request.project_id:
+            try:
+                from routers.projects import write_project_version
+                analysis_job = __import__("state", fromlist=["analysis_jobs"]).analysis_jobs.get(session_id)
+                analysis_result = analysis_job.get("result") if analysis_job else None
+                write_project_version(
+                    request.project_id,
+                    updated_df,
+                    analysis_result,
+                    f"Added column '{request.name}'"
+                )
+            except Exception as ve:
+                logger.warning(f"[{session_id}] Failed to write calc-column version: {ve}")
         
         logger.info(f"[{session_id}] Calculated column '{request.name}' successfully added and session analysis updated.")
         return CalcColumnResponse(success=True, preview=preview_values)
@@ -85,3 +164,4 @@ async def add_calc_column(session_id: str, request: CalcColumnRequest, x_user_id
     except Exception as e:
         logger.error(f"[{session_id}] Calculated column execution crashed: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Internal server error evaluating column: {str(e)}")
+

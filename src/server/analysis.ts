@@ -101,6 +101,13 @@ export const startAnalysis = createServerFn({ method: "POST" })
     }
   });
 
+export type CleaningSuggestion = {
+  column: string | null;
+  issue: string;
+  suggested_action: string;
+  severity: "low" | "medium" | "high";
+};
+
 export const getStory = createServerFn({ method: "POST" })
   .inputValidator((v: unknown) => {
     if (typeof v === "object" && v !== null && "session_id" in v) {
@@ -109,38 +116,51 @@ export const getStory = createServerFn({ method: "POST" })
     throw new Error("Invalid story request");
   })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ data: request, context }): Promise<{ narrative: string; source_json: any }> => {
-    if (!context?.userId) {
-      throw new Response("Unauthorized", { status: 401 });
-    }
-    const BACKEND_URL = process.env.MODELING_API_URL || "http://localhost:8000";
-    try {
-      const response = await fetch(`${BACKEND_URL}/story/${request.session_id}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-user-id": context.userId,
-          "x-internal-secret": process.env.INTERNAL_API_SECRET || "",
-        },
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        const detail = errorData.detail;
-        const msg = typeof detail === "string"
-          ? detail
-          : `Backend error: ${response.statusText}`;
-        throw new Error(msg);
+  .handler(
+    async ({
+      data: request,
+      context,
+    }): Promise<{
+      narrative: string;
+      source_json: any;
+      cleaning_suggestions?: CleaningSuggestion[];
+    }> => {
+      if (!context?.userId) {
+        throw new Response("Unauthorized", { status: 401 });
       }
+      const BACKEND_URL = process.env.MODELING_API_URL || "http://localhost:8000";
+      try {
+        const response = await fetch(`${BACKEND_URL}/story/${request.session_id}`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-user-id": context.userId,
+            "x-internal-secret": process.env.INTERNAL_API_SECRET || "",
+          },
+        });
 
-      return (await response.json()) as { narrative: string; source_json: any };
-    } catch (error) {
-      console.error("Get story error:", error);
-      throw new Error(
-        `Failed to generate data story: ${error instanceof Error ? error.message : "Unknown error"}`
-      );
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          const detail = errorData.detail;
+          const msg = typeof detail === "string"
+            ? detail
+            : `Backend error: ${response.statusText}`;
+          throw new Error(msg);
+        }
+
+        return (await response.json()) as {
+          narrative: string;
+          source_json: any;
+          cleaning_suggestions?: CleaningSuggestion[];
+        };
+      } catch (error) {
+        console.error("Get story error:", error);
+        throw new Error(
+          `Failed to generate data story: ${error instanceof Error ? error.message : "Unknown error"}`
+        );
+      }
     }
-  });
+  );
 
 export const getAnalysisStatus = createServerFn({ method: "GET" })
   .inputValidator((v: unknown) => {
@@ -203,6 +223,7 @@ export const addCalcColumn = createServerFn({ method: "POST" })
         name: string;
         formula: string;
         data: Record<string, unknown[]>;
+        project_id?: string;
       };
     }
     throw new Error("Invalid add calculated column request");
@@ -231,6 +252,7 @@ export const addCalcColumn = createServerFn({ method: "POST" })
               name: request.name,
               formula: request.formula,
               data: request.data,
+              project_id: request.project_id,
             }),
           }
         );
