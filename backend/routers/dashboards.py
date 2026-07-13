@@ -1,5 +1,7 @@
 import logging
 from typing import Any, List
+import uuid
+from urllib.parse import quote
 from fastapi import APIRouter, HTTPException, Header
 from pydantic import BaseModel
 
@@ -13,6 +15,14 @@ class SaveDashboardRequest(BaseModel):
     name: str
     layout_json: Any
 
+def validate_uuid(val: str, name: str = "ID"):
+    if not val:
+        raise HTTPException(status_code=400, detail=f"Missing {name}")
+    try:
+        uuid.UUID(str(val))
+    except ValueError:
+        raise HTTPException(status_code=400, detail=f"Invalid {name} format (must be a valid UUID)")
+
 @router.get("/dashboards/{project_id}")
 async def list_dashboards(project_id: str, x_user_id: str = Header(None)):
     """
@@ -21,14 +31,16 @@ async def list_dashboards(project_id: str, x_user_id: str = Header(None)):
     """
     if not x_user_id:
         raise HTTPException(status_code=401, detail="Unauthorized")
+    validate_uuid(project_id, "Project ID")
+    validate_uuid(x_user_id, "User ID")
     
     # 1. Verify user owns the project
-    project = supabase_request("GET", f"projects?id=eq.{project_id}&user_id=eq.{x_user_id}")
+    project = supabase_request("GET", f"projects?id=eq.{quote(project_id)}&user_id=eq.{quote(x_user_id)}")
     if not project:
         raise HTTPException(status_code=403, detail="Forbidden: You do not own this project")
     
     # 2. Query dashboards
-    dashboards = supabase_request("GET", f"dashboards?project_id=eq.{project_id}&order=created_at.desc")
+    dashboards = supabase_request("GET", f"dashboards?project_id=eq.{quote(project_id)}&order=created_at.desc")
     return dashboards or []
 
 @router.post("/dashboards")
@@ -38,14 +50,16 @@ async def save_dashboard(request: SaveDashboardRequest, x_user_id: str = Header(
     """
     if not x_user_id:
         raise HTTPException(status_code=401, detail="Unauthorized")
+    validate_uuid(request.project_id, "Project ID")
+    validate_uuid(x_user_id, "User ID")
         
     # Verify user owns the project
-    project = supabase_request("GET", f"projects?id=eq.{request.project_id}&user_id=eq.{x_user_id}")
+    project = supabase_request("GET", f"projects?id=eq.{quote(request.project_id)}&user_id=eq.{quote(x_user_id)}")
     if not project:
         raise HTTPException(status_code=403, detail="Forbidden: You do not own this project")
 
     # Upsert logic: if a dashboard with same project_id and name exists, update it. Otherwise insert.
-    existing = supabase_request("GET", f"dashboards?project_id=eq.{request.project_id}&name=eq.{request.name}")
+    existing = supabase_request("GET", f"dashboards?project_id=eq.{quote(request.project_id)}&name=eq.{quote(request.name)}")
     
     dashboard_payload = {
         "project_id": request.project_id,
@@ -56,7 +70,8 @@ async def save_dashboard(request: SaveDashboardRequest, x_user_id: str = Header(
     headers = {"Prefer": "return=representation"}
     if existing:
         dashboard_id = existing[0]["id"]
-        updated = supabase_request("PATCH", f"dashboards?id=eq.{dashboard_id}", body=dashboard_payload, headers=headers)
+        validate_uuid(dashboard_id, "Dashboard ID")
+        updated = supabase_request("PATCH", f"dashboards?id=eq.{quote(dashboard_id)}", body=dashboard_payload, headers=headers)
         if not updated:
             raise HTTPException(status_code=500, detail="Failed to update dashboard")
         logger.info(f"Updated dashboard {dashboard_id} for project {request.project_id}")
@@ -75,19 +90,22 @@ async def delete_dashboard(dashboard_id: str, x_user_id: str = Header(None)):
     """
     if not x_user_id:
         raise HTTPException(status_code=401, detail="Unauthorized")
+    validate_uuid(dashboard_id, "Dashboard ID")
+    validate_uuid(x_user_id, "User ID")
         
     # Get dashboard to check project_id
-    dashboard = supabase_request("GET", f"dashboards?id=eq.{dashboard_id}")
+    dashboard = supabase_request("GET", f"dashboards?id=eq.{quote(dashboard_id)}")
     if not dashboard:
         raise HTTPException(status_code=404, detail="Dashboard not found")
         
     project_id = dashboard[0]["project_id"]
+    validate_uuid(project_id, "Project ID")
     
     # Verify user owns the project
-    project = supabase_request("GET", f"projects?id=eq.{project_id}&user_id=eq.{x_user_id}")
+    project = supabase_request("GET", f"projects?id=eq.{quote(project_id)}&user_id=eq.{quote(x_user_id)}")
     if not project:
         raise HTTPException(status_code=403, detail="Forbidden: You do not own this project")
         
-    deleted = supabase_request("DELETE", f"dashboards?id=eq.{dashboard_id}")
+    deleted = supabase_request("DELETE", f"dashboards?id=eq.{quote(dashboard_id)}")
     logger.info(f"Deleted dashboard {dashboard_id}")
     return {"success": True}

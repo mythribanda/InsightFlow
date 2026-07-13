@@ -3,15 +3,15 @@ uvicorn==0.30.6
 pydantic==2.8.2
 pandas==2.2.3
 numpy==1.26.4
+scipy==1.16.3
 scikit-learn==1.5.2
 python-multipart==0.0.12
 matplotlib==3.9.2
 shap==0.46.0
 duckdb==1.2.0
-catboost
-statsmodels
-prophet
-torch
-vaderSentiment
-
-
+catboost==1.2.7
+statsmodels==0.14.4
+prophet==1.1.6
+vaderSentiment==3.3.2
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.2.2+cpu

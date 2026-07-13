@@ -166,9 +166,9 @@ class TuneResponse(BaseModel):
 
 class StatsRequest(BaseModel):
     """Request schema for statistical hypothesis testing."""
-    test_type: str                  # "t_test" | "anova" | "chi_square" | "confidence_interval"
+    test_type: str                  # "t_test" | "z_test" | "anova" | "chi_square" | "confidence_interval"
     column: str                     # Primary dependent column
-    group_column: Optional[str] = None  # Grouping independent column (required for t-test/anova)
+    group_column: Optional[str] = None  # Grouping independent column (required for t-test/z-test/anova)
     confidence: Optional[float] = 0.95  # Confidence level (for confidence_interval, e.g. 0.95)
 
 

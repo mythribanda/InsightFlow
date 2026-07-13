@@ -30,6 +30,14 @@ export default defineConfig(({ command }) => ({
     host: "::",
     port: 8080,
   },
+  ssr: {
+    noExternal: [
+      "@tanstack/react-start",
+      "@tanstack/react-start-server",
+      "@tanstack/start-server-core",
+      "@tanstack/react-router",
+    ],
+  },
   plugins: [
     tailwindcss(),
     tsConfigPaths({ projects: ["./tsconfig.json"] }),

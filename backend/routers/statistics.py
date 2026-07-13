@@ -16,6 +16,7 @@ from src.statistics import (
     run_anova,
     run_chi_square,
     run_confidence_interval,
+    run_z_test,
 )
 
 logger = logging.getLogger(__name__)
@@ -60,6 +61,14 @@ async def run_statistical_test(
                     detail="group_column is required for a t-test",
                 )
             result = run_t_test(df, col, group_col)
+
+        elif test_type == "z_test":
+            if not group_col:
+                raise HTTPException(
+                    status_code=400,
+                    detail="group_column is required for a z-test",
+                )
+            result = run_z_test(df, col, group_col)
 
         elif test_type == "anova":
             if not group_col:

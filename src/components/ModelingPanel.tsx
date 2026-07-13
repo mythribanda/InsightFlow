@@ -89,6 +89,21 @@ export const ModelingPanel: React.FC<ModelingPanelProps> = ({
   const [excludedFeatures, setExcludedFeatures] = useState<Set<string>>(
     new Set(initialExcludedFeatures || [])
   );
+  const [selectedModels, setSelectedModels] = useState<Set<string>>(
+    new Set(["baseline", "histgradientboosting", "randomforest", "svm", "knn", "catboost"])
+  );
+
+  const toggleModelSelection = (modelKey: string) => {
+    setSelectedModels((prev) => {
+      const next = new Set(prev);
+      if (next.has(modelKey)) {
+        next.delete(modelKey);
+      } else {
+        next.add(modelKey);
+      }
+      return next;
+    });
+  };
 
   React.useEffect(() => {
     if (initialExcludedFeatures && initialExcludedFeatures.length > 0) {
@@ -213,6 +228,7 @@ export const ModelingPanel: React.FC<ModelingPanelProps> = ({
           cv_splits: 5,
           session_id: sessionId,
           project_id: projectId,
+          model_selection: Array.from(selectedModels),
         }
       });
     },
@@ -614,14 +630,55 @@ export const ModelingPanel: React.FC<ModelingPanelProps> = ({
                 );
               })()}
 
+              {/* Select Models Checklist */}
+              <div className="space-y-3 pt-2">
+                <label className="block text-sm font-semibold flex items-center gap-1.5">
+                  <Settings2 className="h-4 w-4 text-primary" /> Select Models to Train
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  {[
+                    { key: "baseline", name: "Baseline (Linear/Logistic)" },
+                    { key: "histgradientboosting", name: "Histogram Gradient Boosting" },
+                    { key: "randomforest", name: "Random Forest" },
+                    { key: "svm", name: "Support Vector Machine (SVM)" },
+                    { key: "knn", name: "K-Nearest Neighbors (KNN)" },
+                    { key: "catboost", name: "CatBoost" },
+                  ].map((model) => {
+                    const isSelected = selectedModels.has(model.key);
+                    return (
+                      <label
+                        key={model.key}
+                        className={`flex items-center gap-3 rounded-lg border p-3 cursor-pointer transition-all select-none ${
+                          isSelected
+                            ? "border-primary/50 bg-primary/5 text-foreground shadow-[0_0_12px_rgba(20,184,200,0.05)]"
+                            : "border-border/60 hover:bg-secondary/40 text-muted-foreground"
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          className="h-4 w-4 rounded border-border text-primary focus:ring-primary focus:ring-offset-background accent-primary cursor-pointer"
+                          checked={isSelected}
+                          onChange={() => toggleModelSelection(model.key)}
+                          disabled={modelingMutation.isPending}
+                        />
+                        <span className="text-xs font-medium">{model.name}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  At least one model must be selected. De-select complex models (e.g., SVM, CatBoost) on large datasets to keep execution fast.
+                </p>
+              </div>
+
               <div className="flex flex-col sm:flex-row gap-3">
                 <ClickSpark sparkCount={10} sparkColor="var(--color-primary)" sparkRadius={56} className="flex-1">
                   <Button
                     onClick={() => modelingMutation.mutate()}
-                    disabled={modelingMutation.isPending}
+                    disabled={modelingMutation.isPending || selectedModels.size === 0}
                     className="w-full"
                   >
-                    {modelingMutation.isPending ? "Training..." : "Train Both Models"}
+                    {modelingMutation.isPending ? "Training..." : "Train Selected Models"}
                   </Button>
                 </ClickSpark>
 

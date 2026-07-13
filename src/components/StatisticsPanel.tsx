@@ -50,7 +50,7 @@ interface StatisticsPanelProps {
   profile: DatasetProfile | null;
 }
 
-type TestType = "t_test" | "anova" | "chi_square" | "confidence_interval";
+type TestType = "t_test" | "z_test" | "anova" | "chi_square" | "confidence_interval";
 
 export const StatisticsPanel: React.FC<StatisticsPanelProps> = ({
   sessionId,
@@ -101,7 +101,7 @@ export const StatisticsPanel: React.FC<StatisticsPanelProps> = ({
       setErrorMsg(null);
       if (!selectedColumn) throw new Error("Please select the primary column");
       if (
-        (testType === "t_test" || testType === "anova" || testType === "chi_square") &&
+        (testType === "t_test" || testType === "z_test" || testType === "anova" || testType === "chi_square") &&
         !selectedGroupCol
       ) {
         throw new Error(
@@ -177,6 +177,7 @@ export const StatisticsPanel: React.FC<StatisticsPanelProps> = ({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="t_test">Independent Samples T-Test</SelectItem>
+                  <SelectItem value="z_test">Two-Sample Z-Test</SelectItem>
                   <SelectItem value="anova">One-Way ANOVA</SelectItem>
                   <SelectItem value="chi_square">Chi-Square Independence</SelectItem>
                   <SelectItem value="confidence_interval">Confidence Interval</SelectItem>
@@ -339,11 +340,13 @@ export const StatisticsPanel: React.FC<StatisticsPanelProps> = ({
                         label={
                           testType === "t_test"
                             ? "T-Statistic"
-                            : testType === "anova"
-                              ? "F-Statistic"
-                              : testType === "chi_square"
-                                ? "Chi-Square (χ²)"
-                                : "Estimated Mean"
+                            : testType === "z_test"
+                              ? "Z-Statistic"
+                              : testType === "anova"
+                                ? "F-Statistic"
+                                : testType === "chi_square"
+                                  ? "Chi-Square (χ²)"
+                                  : "Estimated Mean"
                         }
                         value={statsResult.statistic.toFixed(4)}
                         icon={Binary}
@@ -389,7 +392,7 @@ export const StatisticsPanel: React.FC<StatisticsPanelProps> = ({
                     </div>
 
                     {/* Extra visualization/tables based on test type */}
-                    {testType === "t_test" && info && (
+                    {(testType === "t_test" || testType === "z_test") && info && (
                       <div className="space-y-2">
                         <h4 className="text-sm font-semibold text-left">Group Means Comparison</h4>
                         <div className="rounded-lg border border-border overflow-hidden">

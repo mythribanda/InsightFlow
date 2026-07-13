@@ -6,6 +6,8 @@ import urllib.error
 from typing import Any, Dict, List, Optional
 from io import StringIO
 import pandas as pd
+import uuid
+from urllib.parse import quote
 
 from fastapi import APIRouter, HTTPException, Header, Response
 from pydantic import BaseModel
@@ -19,6 +21,14 @@ router = APIRouter()
 
 # Load environment variables (such as SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY)
 load_env()
+
+def validate_uuid(val: str, name: str = "ID"):
+    if not val:
+        raise HTTPException(status_code=400, detail=f"Missing {name}")
+    try:
+        uuid.UUID(str(val))
+    except ValueError:
+        raise HTTPException(status_code=400, detail=f"Invalid {name} format (must be a valid UUID)")
 
 class CreateProjectRequest(BaseModel):
     name: str
@@ -78,9 +88,10 @@ async def list_projects(x_user_id: str = Header(None)):
     """
     if not x_user_id:
         raise HTTPException(status_code=401, detail="Unauthorized: Missing calling user credentials")
+    validate_uuid(x_user_id, "User ID")
     
     # Query projects table filtered by user_id
-    projects = supabase_request("GET", f"projects?user_id=eq.{x_user_id}&order=created_at.desc")
+    projects = supabase_request("GET", f"projects?user_id=eq.{quote(x_user_id)}&order=created_at.desc")
     return projects or []
 
 
@@ -92,6 +103,7 @@ async def create_project(request: CreateProjectRequest, x_user_id: str = Header(
     """
     if not x_user_id:
         raise HTTPException(status_code=401, detail="Unauthorized: Missing calling user credentials")
+    validate_uuid(x_user_id, "User ID")
     
     # Verify the calling user is the owner of the active session
     verify_session_owner(request.session_id, x_user_id)
@@ -166,6 +178,8 @@ async def update_project(project_id: str, request: UpdateProjectRequest, x_user_
     """
     if not x_user_id:
         raise HTTPException(status_code=401, detail="Unauthorized: Missing calling user credentials")
+    validate_uuid(project_id, "Project ID")
+    validate_uuid(x_user_id, "User ID")
         
     body = {}
     if request.name is not None:
@@ -181,7 +195,7 @@ async def update_project(project_id: str, request: UpdateProjectRequest, x_user_
     headers = {"Prefer": "return=representation"}
     updated = supabase_request(
         "PATCH",
-        f"projects?id=eq.{project_id}&user_id=eq.{x_user_id}",
+        f"projects?id=eq.{quote(project_id)}&user_id=eq.{quote(x_user_id)}",
         body=body,
         headers=headers
     )
@@ -198,12 +212,14 @@ async def delete_project(project_id: str, x_user_id: str = Header(None)):
     """
     if not x_user_id:
         raise HTTPException(status_code=401, detail="Unauthorized: Missing calling user credentials")
+    validate_uuid(project_id, "Project ID")
+    validate_uuid(x_user_id, "User ID")
         
     # Delete project record from projects table
     headers = {"Prefer": "return=representation"}
     deleted = supabase_request(
         "DELETE",
-        f"projects?id=eq.{project_id}&user_id=eq.{x_user_id}",
+        f"projects?id=eq.{quote(project_id)}&user_id=eq.{quote(x_user_id)}",
         headers=headers
     )
     if not deleted:
@@ -220,15 +236,17 @@ async def load_project(project_id: str, request: LoadProjectRequest, x_user_id: 
     """
     if not x_user_id:
         raise HTTPException(status_code=401, detail="Unauthorized: Missing calling user credentials")
+    validate_uuid(project_id, "Project ID")
+    validate_uuid(x_user_id, "User ID")
         
     # 1. Retrieve the project to verify ownership
-    projects = supabase_request("GET", f"projects?id=eq.{project_id}&user_id=eq.{x_user_id}")
+    projects = supabase_request("GET", f"projects?id=eq.{quote(project_id)}&user_id=eq.{quote(x_user_id)}")
     if not projects:
         raise HTTPException(status_code=404, detail="Project not found or unauthorized")
     project = projects[0]
     
     # 2. Retrieve project dataset (CSV data) and analysis result
-    datasets = supabase_request("GET", f"project_datasets?project_id=eq.{project_id}")
+    datasets = supabase_request("GET", f"project_datasets?project_id=eq.{quote(project_id)}")
     if not datasets:
         raise HTTPException(status_code=404, detail="Project dataset not found")
     dataset = datasets[0]
@@ -253,7 +271,7 @@ async def load_project(project_id: str, request: LoadProjectRequest, x_user_id: 
     try:
         supabase_request(
             "PATCH",
-            f"projects?id=eq.{project_id}&user_id=eq.{x_user_id}",
+            f"projects?id=eq.{quote(project_id)}&user_id=eq.{quote(x_user_id)}",
             body={"last_opened_at": datetime.utcnow().isoformat() + "Z"}
         )
     except Exception as e:
@@ -275,16 +293,18 @@ async def list_project_versions(project_id: str, x_user_id: str = Header(None)):
     """
     if not x_user_id:
         raise HTTPException(status_code=401, detail="Unauthorized: Missing calling user credentials")
+    validate_uuid(project_id, "Project ID")
+    validate_uuid(x_user_id, "User ID")
 
     # Verify project ownership
-    projects = supabase_request("GET", f"projects?id=eq.{project_id}&user_id=eq.{x_user_id}")
+    projects = supabase_request("GET", f"projects?id=eq.{quote(project_id)}&user_id=eq.{quote(x_user_id)}")
     if not projects:
         raise HTTPException(status_code=404, detail="Project not found or unauthorized")
 
     # Fetch versions — exclude the large dataset_snapshot to keep response lightweight
     versions = supabase_request(
         "GET",
-        f"project_versions?project_id=eq.{project_id}&select=id,project_id,version_number,change_note,created_at,analysis_result&order=version_number.desc"
+        f"project_versions?project_id=eq.{quote(project_id)}&select=id,project_id,version_number,change_note,created_at,analysis_result&order=version_number.desc"
     )
     return versions or []
 
@@ -297,15 +317,18 @@ async def get_version_snapshot(project_id: str, version_id: str, x_user_id: str 
     """
     if not x_user_id:
         raise HTTPException(status_code=401, detail="Unauthorized: Missing calling user credentials")
+    validate_uuid(project_id, "Project ID")
+    validate_uuid(version_id, "Version ID")
+    validate_uuid(x_user_id, "User ID")
 
     # Verify project ownership
-    projects = supabase_request("GET", f"projects?id=eq.{project_id}&user_id=eq.{x_user_id}")
+    projects = supabase_request("GET", f"projects?id=eq.{quote(project_id)}&user_id=eq.{quote(x_user_id)}")
     if not projects:
         raise HTTPException(status_code=404, detail="Project not found or unauthorized")
 
     versions = supabase_request(
         "GET",
-        f"project_versions?id=eq.{version_id}&project_id=eq.{project_id}&select=id,version_number,change_note,created_at,dataset_snapshot"
+        f"project_versions?id=eq.{quote(version_id)}&project_id=eq.{quote(project_id)}&select=id,version_number,change_note,created_at,dataset_snapshot"
     )
     if not versions:
         raise HTTPException(status_code=404, detail="Version not found")
@@ -344,16 +367,19 @@ async def restore_project_version(
     """
     if not x_user_id:
         raise HTTPException(status_code=401, detail="Unauthorized: Missing calling user credentials")
+    validate_uuid(project_id, "Project ID")
+    validate_uuid(version_id, "Version ID")
+    validate_uuid(x_user_id, "User ID")
 
     # Verify project ownership
-    projects = supabase_request("GET", f"projects?id=eq.{project_id}&user_id=eq.{x_user_id}")
+    projects = supabase_request("GET", f"projects?id=eq.{quote(project_id)}&user_id=eq.{quote(x_user_id)}")
     if not projects:
         raise HTTPException(status_code=404, detail="Project not found or unauthorized")
 
     # Fetch the specific version
     versions = supabase_request(
         "GET",
-        f"project_versions?id=eq.{version_id}&project_id=eq.{project_id}"
+        f"project_versions?id=eq.{quote(version_id)}&project_id=eq.{quote(project_id)}"
     )
     if not versions:
         raise HTTPException(status_code=404, detail="Version not found")
@@ -381,11 +407,11 @@ async def restore_project_version(
 
     # Update project_datasets (the live snapshot used by /load)
     csv_data = version["dataset_snapshot"]
-    existing_datasets = supabase_request("GET", f"project_datasets?project_id=eq.{project_id}")
+    existing_datasets = supabase_request("GET", f"project_datasets?project_id=eq.{quote(project_id)}")
     if existing_datasets:
         supabase_request(
             "PATCH",
-            f"project_datasets?project_id=eq.{project_id}",
+            f"project_datasets?project_id=eq.{quote(project_id)}",
             body={"csv_data": csv_data, "analysis_result": analysis_result}
         )
     else:
@@ -406,7 +432,7 @@ async def restore_project_version(
     from datetime import datetime
     supabase_request(
         "PATCH",
-        f"projects?id=eq.{project_id}&user_id=eq.{x_user_id}",
+        f"projects?id=eq.{quote(project_id)}&user_id=eq.{quote(x_user_id)}",
         body={
             "dataset_metadata": new_metadata,
             "last_opened_at": datetime.utcnow().isoformat() + "Z"

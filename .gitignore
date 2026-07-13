@@ -63,3 +63,13 @@ venv/
 .env
 scratch/
 supabase/.temp/
+
+# Skills & Testing
+.agents/skills/
+skills-lock.json
+testing/test-results/results.json
+playwright-report/
+playwright-report/**
+test-results/
+test-results/**
+playwright/.cache/

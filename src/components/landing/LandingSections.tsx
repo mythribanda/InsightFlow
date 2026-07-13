@@ -243,7 +243,7 @@ function TrustScoreSection({ active }: { active: boolean }) {
       <Panel align="right" justify="center">
         <p style={LABEL} data-reveal-body>01 — Trust Score</p>
         <h2 style={HEADLINE} data-reveal-heading>
-          Five components. {"\n"} One defensible number.
+          Five components.{"\n"}One defensible number.
         </h2>
         <p style={BODY} data-reveal-body>
           Completeness, validity, consistency, uniqueness, timeliness — weighted

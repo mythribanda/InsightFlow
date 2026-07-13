@@ -11,7 +11,6 @@ import {
   DashboardItem,
 } from "@/server/dashboards";
 import { toast } from "sonner";
-// @ts-ignore
 import GridLayout, { WidthProvider } from "react-grid-layout";
 import {
   ResponsiveContainer,
@@ -64,7 +63,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 
 import "react-grid-layout/css/styles.css";
-import "react-grid-layout/css/resizable.css";
+import "react-resizable/css/styles.css";
 
 const ReactGridLayout = WidthProvider(GridLayout);
 

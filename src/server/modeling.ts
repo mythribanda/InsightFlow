@@ -204,7 +204,7 @@ export const getRecommendations = createServerFn({ method: "POST" })
 export const callModelingAPI = createServerFn({ method: "POST" })
   .inputValidator((v: unknown) => {
     if (typeof v === "object" && v !== null && "target" in v) {
-      return v as { target: string; data: Record<string, unknown[]>; excluded_features?: string[]; cv_splits?: number; session_id?: string; project_id?: string };
+      return v as { target: string; data: Record<string, unknown[]>; excluded_features?: string[]; cv_splits?: number; session_id?: string; project_id?: string; model_selection?: string[] };
     }
     throw new Error("Invalid model request");
   })
@@ -230,6 +230,7 @@ export const callModelingAPI = createServerFn({ method: "POST" })
           excluded_features: request.excluded_features || [],
           cv_splits: request.cv_splits || 5,
           project_id: request.project_id || null,
+          model_selection: request.model_selection || null,
         }),
       });
 

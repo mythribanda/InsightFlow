@@ -102,6 +102,98 @@ def run_t_test(df: pd.DataFrame, col: str, group_col: str) -> Dict[str, Any]:
     }
 
 
+def run_z_test(df: pd.DataFrame, col: str, group_col: str) -> Dict[str, Any]:
+    """
+    Performs an independent two-sample Z-test.
+    Compares the mean of a numeric column `col` across exactly two groups in `group_col`.
+    Assumes standard deviations are estimated from the sample.
+    """
+    if col not in df.columns:
+        raise ValueError(f"Column '{col}' not found in dataset")
+    if group_col not in df.columns:
+        raise ValueError(f"Grouping column '{group_col}' not found in dataset")
+
+    # Drop missing values
+    clean_df = df[[col, group_col]].dropna()
+
+    if not pd.api.types.is_numeric_dtype(clean_df[col]):
+        raise ValueError(f"Column '{col}' must be numeric for a z-test")
+
+    # Get groups
+    unique_groups = clean_df[group_col].unique()
+    if len(unique_groups) != 2:
+        raise ValueError(
+            f"Grouping column '{group_col}' must have exactly 2 unique values. "
+            f"Found: {list(unique_groups)}"
+        )
+
+    g1_val, g2_val = unique_groups
+    group1 = clean_df[clean_df[group_col] == g1_val][col]
+    group2 = clean_df[clean_df[group_col] == g2_val][col]
+
+    n1, n2 = len(group1), len(group2)
+    if n1 < 2 or n2 < 2:
+        raise ValueError("Each group must contain at least 2 observations")
+
+    mean1, mean2 = float(group1.mean()), float(group2.mean())
+    var1, var2 = float(group1.var(ddof=1)), float(group2.var(ddof=1))
+
+    # Avoid divide-by-zero if variance is zero
+    denom = np.sqrt(var1 / n1 + var2 / n2)
+    if denom == 0:
+        z_stat = 0.0
+        p_val = 1.0
+    else:
+        z_stat = (mean1 - mean2) / denom
+        # Two-tailed p-value using norm survival function (sf = 1 - cdf)
+        p_val = 2.0 * stats.norm.sf(abs(z_stat))
+
+    # Check for NaN results
+    if np.isnan(z_stat) or np.isnan(p_val):
+        z_stat = 0.0
+        p_val = 1.0
+
+    significant = bool(p_val < 0.05)
+
+    # Narrative interpretation
+    sig_text = "statistically significant" if significant else "not statistically significant"
+    comparison = (
+        "is higher than" if mean1 > mean2 else "is lower than"
+    ) if mean1 != mean2 else "is equal to"
+
+    interpretation = (
+        f"An independent two-sample Z-test reveals a {sig_text} difference in "
+        f"'{col}' between the two groups of '{group_col}'.\n"
+        f"• Group '{g1_val}' mean: {mean1:.4f} (N={n1})\n"
+        f"• Group '{g2_val}' mean: {mean2:.4f} (N={n2})\n"
+    )
+    if significant:
+        interpretation += (
+            f"The average '{col}' for group '{g1_val}' ({mean1:.4f}) {comparison} "
+            f"group '{g2_val}' ({mean2:.4f}) (p = {p_val:.4g}, z = {z_stat:.4f})."
+        )
+    else:
+        interpretation += (
+            f"The observed difference in averages is likely due to random sampling variance "
+            f"(p = {p_val:.4g}, z = {z_stat:.4f})."
+        )
+
+    return {
+        "statistic": float(z_stat),
+        "p_value": float(p_val),
+        "significant": significant,
+        "interpretation": interpretation,
+        "extra_info": {
+            "group1_name": str(g1_val),
+            "group1_mean": mean1,
+            "group1_count": n1,
+            "group2_name": str(g2_val),
+            "group2_mean": mean2,
+            "group2_count": n2,
+        },
+    }
+
+
 def run_anova(df: pd.DataFrame, col: str, group_col: str) -> Dict[str, Any]:
     """
     Performs a one-way analysis of variance (ANOVA).
