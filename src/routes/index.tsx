@@ -17,7 +17,7 @@ import { useEffect, Suspense, lazy, useState, useCallback } from "react";
 import { ErrorComponent } from "./__root";
 import { Canvas } from "@react-three/fiber";
 import { useAuth } from "@/contexts/AuthContext";
-import { Brain, Sun, Moon } from "lucide-react";
+import { Brain } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { CinematicPreloader }  from "../components/landing/CinematicPreloader";
 import { GrainOverlay }        from "../components/landing/GrainOverlay";
@@ -38,7 +38,6 @@ function Navbar({
   onJump: (index: number) => void;
   onLaunch: () => void;
 }) {
-  const { theme, toggleTheme } = useTheme();
   const sections = [
     { label: "Home", index: 0 },
     { label: "Trust Score", index: 1 },
@@ -78,14 +77,6 @@ function Navbar({
 
       {/* Action Buttons */}
       <div className="flex items-center gap-3">
-        <button
-          onClick={toggleTheme}
-          className="flex h-7 w-7 items-center justify-center rounded-full border border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20 transition-all text-slate-300 hover:text-white cursor-pointer shrink-0"
-          title={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
-        >
-          {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-        </button>
-
         <Link
           to="/login"
           className="rounded-full px-4 py-1.5 border border-white/10 hover:border-white/20 text-xs font-mono font-medium text-slate-300 hover:text-white transition-all bg-white/5"
@@ -200,12 +191,12 @@ function ReducedMotionSections({ onLaunch }: { onLaunch: () => void }) {
   const sections = [
     {
       label: "Data intelligence platform",
-      headline: "Honest analysis.\nNo pretense.",
+      headline: "Honest analysis.\n No pretense.",
       body: "Upload a spreadsheet. Get a trust-scored, leakage-aware, SHAP-explained analysis.",
     },
     {
       label: "01 — Trust Score",
-      headline: "Five components.\nOne defensible number.",
+      headline: "Five components.\n One defensible number.",
       body: "Completeness, validity, consistency, uniqueness, timeliness — weighted transparently.",
     },
     {
@@ -274,6 +265,15 @@ function LandingPage() {
   const [preloaderDone, setPreloaderDone]  = useState(false);
   const [ctaTriggered,  setCtaTriggered]   = useState(false);
   const [reducedMotion, setReducedMotion]  = useState(false);
+  const { theme: currentTheme, setTheme } = useTheme();
+
+  useEffect(() => {
+    const originalTheme = currentTheme;
+    setTheme("dark");
+    return () => {
+      setTheme(originalTheme);
+    };
+  }, []);
 
   useEffect(() => {
     setReducedMotion(window.matchMedia("(prefers-reduced-motion: reduce)").matches);
