@@ -42,6 +42,7 @@ const HEADLINE: React.CSSProperties = {
   color: "var(--foreground)",
   letterSpacing: "-0.03em",
   margin: "0 0 24px",
+  whiteSpace: "pre-line",
 };
 
 const BODY: React.CSSProperties = {
@@ -60,16 +61,59 @@ const EASE = "cubic-bezier(0.22, 1, 0.36, 1)";
 // results for headline reveals.
 
 function splitIntoChars(el: HTMLElement): HTMLSpanElement[] {
-  const text = el.textContent ?? "";
+  const charsList: HTMLSpanElement[] = [];
+  const childNodes = Array.from(el.childNodes);
   el.innerHTML = "";
-  return text.split("").map((ch) => {
-    const span = document.createElement("span");
-    span.textContent = ch === " " ? "\u00A0" : ch;
-    span.style.display = "inline-block";
-    span.style.overflow = "hidden";
-    el.appendChild(span);
-    return span;
+
+  function processText(text: string, targetEl: HTMLElement) {
+    const lines = text.split("\n");
+    lines.forEach((line, lineIdx) => {
+      const words = line.split(" ");
+      words.forEach((word, wordIdx) => {
+        if (word.length > 0) {
+          const wordSpan = document.createElement("span");
+          wordSpan.style.display = "inline-block";
+          wordSpan.style.whiteSpace = "nowrap";
+
+          const chars = word.split("");
+          chars.forEach((ch) => {
+            const span = document.createElement("span");
+            span.textContent = ch;
+            span.style.display = "inline-block";
+            span.style.overflow = "hidden";
+            wordSpan.appendChild(span);
+            charsList.push(span);
+          });
+
+          targetEl.appendChild(wordSpan);
+        }
+
+        if (wordIdx < words.length - 1) {
+          const spaceNode = document.createTextNode(" ");
+          targetEl.appendChild(spaceNode);
+        }
+      });
+
+      if (lineIdx < lines.length - 1) {
+        const br = document.createElement("br");
+        targetEl.appendChild(br);
+      }
+    });
+  }
+
+  childNodes.forEach((node) => {
+    if (node.nodeType === Node.TEXT_NODE) {
+      processText(node.textContent ?? "", el);
+    } else if (node.nodeType === Node.ELEMENT_NODE) {
+      const element = node as HTMLElement;
+      const text = element.textContent ?? "";
+      element.innerHTML = "";
+      processText(text, element);
+      el.appendChild(element);
+    }
   });
+
+  return charsList;
 }
 
 function useSectionReveal(
@@ -199,7 +243,7 @@ function TrustScoreSection({ active }: { active: boolean }) {
       <Panel align="right" justify="center">
         <p style={LABEL} data-reveal-body>01 — Trust Score</p>
         <h2 style={HEADLINE} data-reveal-heading>
-          Five components.{"\n"}One defensible number.
+          Five components. {"\n"} One defensible number.
         </h2>
         <p style={BODY} data-reveal-body>
           Completeness, validity, consistency, uniqueness, timeliness — weighted

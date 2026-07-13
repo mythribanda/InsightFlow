@@ -49,6 +49,9 @@ function CompleteGoogleProfile() {
         setFullName(
           user.user_metadata?.full_name ||
           user.user_metadata?.name ||
+          user.user_metadata?.global_name || // Discord display name
+          user.user_metadata?.user_name ||   // GitHub username
+          user.user_metadata?.username ||    // Discord username
           ""
         );
       } catch (err) {
