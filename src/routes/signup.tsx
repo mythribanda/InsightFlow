@@ -250,21 +250,15 @@ function SignupPage() {
           >
             <Brain className="w-7 h-7 text-white" />
           </div>
-          <h1 className="text-3xl font-bold tracking-tight text-white">
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">
             Insight<span className="bg-gradient-to-r from-[#8B5CF6] to-[#A855F7] bg-clip-text text-transparent">Flow</span>
           </h1>
         </div>
 
         {/* Glass card */}
-        <div
-          className="rounded-3xl p-8 border border-white/8 backdrop-blur-md shadow-2xl"
-          style={{
-            background: "linear-gradient(rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.05)), #15151F",
-            boxShadow: "0 25px 60px -25px rgba(0, 0, 0, 0.85), inset 0 0 0 1px rgba(255, 255, 255, 0.02)",
-          }}
-        >
+        <div className="surface-card rounded-3xl p-8 shadow-2xl">
           <div className="text-center mb-6">
-            <h2 className="text-xl font-semibold text-white mb-1">
+            <h2 className="text-xl font-semibold text-foreground mb-1">
               {step === "details"
                 ? "Create your account"
                 : step === "otp"
@@ -287,7 +281,7 @@ function SignupPage() {
                   className={`h-1 flex-1 rounded-full transition-all duration-300 ${
                     s <= (step === "details" ? 1 : step === "otp" ? 2 : 3)
                       ? "bg-primary"
-                      : "bg-white/5"
+                      : "bg-foreground/5"
                   }`}
                 />
               ))}
@@ -304,7 +298,7 @@ function SignupPage() {
           <div className="space-y-4">
             {step === "details" ? (
               <>
-                {/* Full Name */}
+                 {/* Full Name */}
                 <div>
                   <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider">
                     Full Name *
@@ -317,15 +311,7 @@ function SignupPage() {
                       onChange={(e) => setFullName(e.target.value)}
                       placeholder="John Doe"
                       disabled={loading}
-                      className="w-full pl-10 pr-4 py-3 rounded-xl text-white placeholder:text-muted-foreground/30 outline-none transition-all bg-white/5 border border-white/10"
-                      onFocus={(e) => {
-                        e.currentTarget.style.borderColor = "var(--color-primary)";
-                        e.currentTarget.style.boxShadow = "var(--shadow-glow)";
-                      }}
-                      onBlur={(e) => {
-                        e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.1)";
-                        e.currentTarget.style.boxShadow = "none";
-                      }}
+                      className="w-full pl-10 pr-4 py-3 rounded-xl text-foreground placeholder:text-muted-foreground/30 outline-none transition-all bg-foreground/5 border border-border focus:border-primary focus:ring-1 focus:ring-primary"
                     />
                   </div>
                 </div>
@@ -343,15 +329,7 @@ function SignupPage() {
                       onChange={(e) => setMobile(e.target.value)}
                       placeholder="+91 98765 43210"
                       disabled={loading}
-                      className="w-full pl-10 pr-4 py-3 rounded-xl text-white placeholder:text-muted-foreground/30 outline-none transition-all bg-white/5 border border-white/10"
-                      onFocus={(e) => {
-                        e.currentTarget.style.borderColor = "var(--color-primary)";
-                        e.currentTarget.style.boxShadow = "var(--shadow-glow)";
-                      }}
-                      onBlur={(e) => {
-                        e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.1)";
-                        e.currentTarget.style.boxShadow = "none";
-                      }}
+                      className="w-full pl-10 pr-4 py-3 rounded-xl text-foreground placeholder:text-muted-foreground/30 outline-none transition-all bg-foreground/5 border border-border focus:border-primary focus:ring-1 focus:ring-primary"
                     />
                   </div>
                 </div>
@@ -369,15 +347,7 @@ function SignupPage() {
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="your@email.com"
                       disabled={loading}
-                      className="w-full pl-10 pr-4 py-3 rounded-xl text-white placeholder:text-muted-foreground/30 outline-none transition-all bg-white/5 border border-white/10"
-                      onFocus={(e) => {
-                        e.currentTarget.style.borderColor = "var(--color-primary)";
-                        e.currentTarget.style.boxShadow = "var(--shadow-glow)";
-                      }}
-                      onBlur={(e) => {
-                        e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.1)";
-                        e.currentTarget.style.boxShadow = "none";
-                      }}
+                      className="w-full pl-10 pr-4 py-3 rounded-xl text-foreground placeholder:text-muted-foreground/30 outline-none transition-all bg-foreground/5 border border-border focus:border-primary focus:ring-1 focus:ring-primary"
                     />
                   </div>
                 </div>
@@ -412,13 +382,13 @@ function SignupPage() {
                   )}
                 </button>
 
-                {/* Divider */}
+                 {/* Divider */}
                 <div className="relative py-1">
                   <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t border-white/5" />
+                    <div className="w-full border-t border-border/50" />
                   </div>
                   <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-[#15151F] px-2 text-muted-foreground uppercase tracking-widest font-bold text-[10px]">Or</span>
+                    <span className="bg-card px-2 text-muted-foreground uppercase tracking-widest font-bold text-[10px]">Or</span>
                   </div>
                 </div>
 
@@ -426,7 +396,7 @@ function SignupPage() {
                 <button
                   onClick={handleGoogleSignUp}
                   disabled={loading}
-                  className="w-full py-3 rounded-full font-semibold border border-white/10 bg-white/5 hover:bg-white/10 text-xs text-foreground transition-all hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-3 cursor-pointer shadow-sm"
+                  className="w-full py-3 rounded-full font-semibold border border-border bg-foreground/5 hover:bg-foreground/10 text-xs text-foreground transition-all hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-3 cursor-pointer shadow-sm"
                 >
                   <svg className="w-4 h-4" viewBox="0 0 24 24">
                     <path
@@ -452,7 +422,7 @@ function SignupPage() {
                 <button
                   onClick={handleGithubSignIn}
                   disabled={loading}
-                  className="w-full py-2.5 rounded-full font-semibold border border-white/10 bg-white/5 hover:bg-white/10 text-xs text-foreground transition-all hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2.5 cursor-pointer shadow-sm"
+                  className="w-full py-2.5 rounded-full font-semibold border border-border bg-foreground/5 hover:bg-foreground/10 text-xs text-foreground transition-all hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2.5 cursor-pointer shadow-sm"
                 >
                   <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
                     <path fillRule="evenodd" clipRule="evenodd" d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.865 8.167 6.839 9.49.5.092.682-.217.682-.482 0-.237-.008-.866-.013-1.7-2.782.603-3.369-1.34-3.369-1.34-.454-1.156-1.11-1.464-1.11-1.464-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.579.688.481C19.137 20.164 22 16.418 22 12c0-5.523-4.477-10-10-10z" />
@@ -463,7 +433,7 @@ function SignupPage() {
                 <button
                   onClick={handleDiscordSignIn}
                   disabled={loading}
-                  className="w-full py-2.5 rounded-full font-semibold border border-white/10 bg-white/5 hover:bg-white/10 text-xs text-foreground transition-all hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2.5 cursor-pointer shadow-sm"
+                  className="w-full py-2.5 rounded-full font-semibold border border-border bg-foreground/5 hover:bg-foreground/10 text-xs text-foreground transition-all hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2.5 cursor-pointer shadow-sm"
                 >
                   <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="#5865F2">
                     <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.894.077.077 0 0 1-.008-.128c.126-.093.252-.19.372-.287a.075.075 0 0 1 .077-.011c3.92 1.793 8.18 1.793 12.061 0a.073.073 0 0 1 .078.009c.12.099.246.195.373.289a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.894.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.156-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.156 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.156-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.156 2.418z" />
@@ -496,15 +466,7 @@ function SignupPage() {
                     placeholder="12345678"
                     disabled={loading}
                     maxLength={8}
-                    className="w-full text-center text-2xl tracking-widest py-3 rounded-xl text-white placeholder:text-muted-foreground/30 outline-none transition-all bg-white/5 border border-white/10"
-                    onFocus={(e) => {
-                      e.currentTarget.style.borderColor = "var(--color-primary)";
-                      e.currentTarget.style.boxShadow = "var(--shadow-glow)";
-                    }}
-                    onBlur={(e) => {
-                      e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.1)";
-                      e.currentTarget.style.boxShadow = "none";
-                    }}
+                    className="w-full text-center text-2xl tracking-widest py-3 rounded-xl text-foreground placeholder:text-muted-foreground/30 outline-none transition-all bg-foreground/5 border border-border focus:border-primary focus:ring-1 focus:ring-primary"
                     onKeyDown={(e) => {
                       if (e.key === "Enter" && otp.length === 8) handleVerifyOtp();
                     }}
@@ -549,7 +511,7 @@ function SignupPage() {
                     setError(null);
                   }}
                   disabled={loading}
-                  className="w-full py-3.5 rounded-full font-bold transition-all flex items-center justify-center gap-2 border border-white/10 text-muted-foreground hover:text-white bg-transparent cursor-pointer text-xs"
+                  className="w-full py-3.5 rounded-full font-bold transition-all flex items-center justify-center gap-2 border border-border text-muted-foreground hover:text-foreground bg-transparent cursor-pointer text-xs"
                 >
                   Back
                 </button>
@@ -569,15 +531,7 @@ function SignupPage() {
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="••••••••"
                       disabled={loading}
-                      className="w-full pl-10 pr-10 py-3 rounded-xl text-white placeholder:text-muted-foreground/30 outline-none transition-all bg-white/5 border border-white/10"
-                      onFocus={(e) => {
-                        e.currentTarget.style.borderColor = "var(--color-primary)";
-                        e.currentTarget.style.boxShadow = "var(--shadow-glow)";
-                      }}
-                      onBlur={(e) => {
-                        e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.1)";
-                        e.currentTarget.style.boxShadow = "none";
-                      }}
+                      className="w-full pl-10 pr-10 py-3 rounded-xl text-foreground placeholder:text-muted-foreground/30 outline-none transition-all bg-foreground/5 border border-border focus:border-primary focus:ring-1 focus:ring-primary"
                     />
                     <button
                       onClick={() => setShowPassword(!showPassword)}
@@ -598,7 +552,7 @@ function SignupPage() {
                           <div
                             key={i}
                             className={`h-1 w-6 rounded-full transition-all duration-300 ${
-                              i < passwordStrength ? "bg-primary" : "bg-white/5"
+                              i < passwordStrength ? "bg-primary" : "bg-foreground/5"
                             }`}
                           />
                         ))}
@@ -623,15 +577,7 @@ function SignupPage() {
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       placeholder="••••••••"
                       disabled={loading}
-                      className="w-full pl-10 pr-10 py-3 rounded-xl text-white placeholder:text-muted-foreground/30 outline-none transition-all bg-white/5 border border-white/10"
-                      onFocus={(e) => {
-                        e.currentTarget.style.borderColor = "var(--color-primary)";
-                        e.currentTarget.style.boxShadow = "var(--shadow-glow)";
-                      }}
-                      onBlur={(e) => {
-                        e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.1)";
-                        e.currentTarget.style.boxShadow = "none";
-                      }}
+                      className="w-full pl-10 pr-10 py-3 rounded-xl text-foreground placeholder:text-muted-foreground/30 outline-none transition-all bg-foreground/5 border border-border focus:border-primary focus:ring-1 focus:ring-primary"
                       onKeyDown={(e) => {
                         if (e.key === "Enter" && isStep3Valid) handleCreateAccount();
                       }}

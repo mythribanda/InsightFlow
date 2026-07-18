@@ -308,7 +308,7 @@ function LoginPage() {
               </div>
 
               {/* Pedestal solid disc */}
-              <div className="absolute w-[180px] h-[15px] rounded-full bg-[#15151F] border border-white/5"
+              <div className="absolute w-[180px] h-[15px] rounded-full bg-card border border-border"
                 style={{
                   transform: "rotateX(60deg) rotateZ(-30deg) translate3d(0, 100px, 6px)",
                   boxShadow: "0 10px 30px rgba(0, 0, 0, 0.8), inset 0 2px 2px rgba(255,255,255,0.05)",
@@ -325,7 +325,7 @@ function LoginPage() {
               {/* Floating Hologram: Line Chart */}
               <div className="absolute animate-float-hologram pointer-events-none" style={{ transformStyle: 'preserve-3d', zIndex: 10 }}>
                 {/* Holographic container */}
-                <div className="relative w-44 h-48 rounded-xl bg-[#15151F]/45 border border-primary/20 backdrop-blur-md flex flex-col p-4 shadow-3xl"
+                <div className="relative w-44 h-48 rounded-xl bg-card/45 border border-primary/20 backdrop-blur-md flex flex-col p-4 shadow-3xl"
                   style={{
                     transformStyle: 'preserve-3d',
                     boxShadow: '0 20px 40px rgba(0,0,0,0.6), inset 0 0 15px rgba(139,92,246,0.15)',
@@ -371,21 +371,21 @@ function LoginPage() {
 
               {/* Floating Widget 1: Bar Chart (Left) */}
               <div className="absolute animate-float-widget-bar" style={{ transformStyle: 'preserve-3d' }}>
-                <div className="w-20 h-20 bg-[#15151F]/45 border border-primary/20 backdrop-blur-md rounded-xl p-3 flex flex-col justify-between shadow-2xl">
+                <div className="w-20 h-20 bg-card/45 border border-primary/20 backdrop-blur-md rounded-xl p-3 flex flex-col justify-between shadow-2xl">
                   <div className="flex gap-1 items-end h-10 w-full">
                     <div className="w-2.5 h-[40%] bg-primary/40 rounded-sm" />
                     <div className="w-2.5 h-[70%] bg-primary/70 rounded-sm" />
                     <div className="w-2.5 h-[50%] bg-primary/50 rounded-sm" />
                     <div className="w-2.5 h-[90%] bg-primary rounded-sm" />
                   </div>
-                  <div className="h-2 w-10 bg-white/5 rounded" />
+                  <div className="h-2 w-10 bg-foreground/5 rounded" />
                 </div>
               </div>
 
               {/* Floating Widget 2: Donut Chart (Right) */}
               <div className="absolute animate-float-widget-donut" style={{ transformStyle: 'preserve-3d' }}>
-                <div className="w-20 h-20 bg-[#15151F]/45 border border-secondary/20 backdrop-blur-md rounded-xl p-3 flex items-center justify-center shadow-2xl">
-                  <div className="relative w-12 h-12 rounded-full border-[6.5px] border-white/5 flex items-center justify-center">
+                <div className="w-20 h-20 bg-card/45 border border-secondary/20 backdrop-blur-md rounded-xl p-3 flex items-center justify-center shadow-2xl">
+                  <div className="relative w-12 h-12 rounded-full border-[6.5px] border-foreground/5 flex items-center justify-center">
                     {/* Ring layers representing segments */}
                     <div className="absolute inset-[-6.5px] rounded-full border-[6.5px] border-secondary border-t-transparent border-l-transparent" />
                     <div className="absolute inset-[-6.5px] rounded-full border-[6.5px] border-success border-b-transparent border-r-transparent rotate-45" />
@@ -395,16 +395,16 @@ function LoginPage() {
 
               {/* Floating Widget 3: Bullet points card (Bottom Right) */}
               <div className="absolute animate-float-widget-list" style={{ transformStyle: 'preserve-3d' }}>
-                <div className="w-24 bg-[#15151F]/45 border border-white/5 backdrop-blur-md rounded-xl p-3 space-y-2 shadow-2xl">
-                  <div className="h-1.5 w-12 bg-white/10 rounded" />
+                <div className="w-24 bg-card/45 border border-border backdrop-blur-md rounded-xl p-3 space-y-2 shadow-2xl">
+                  <div className="h-1.5 w-12 bg-foreground/10 rounded" />
                   <div className="space-y-1">
                     <div className="flex gap-1.5 items-center">
                       <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                      <div className="h-1 w-10 bg-white/5 rounded" />
+                      <div className="h-1 w-10 bg-foreground/5 rounded" />
                     </div>
                     <div className="flex gap-1.5 items-center">
                       <div className="w-1.5 h-1.5 rounded-full bg-secondary" />
-                      <div className="h-1 w-12 bg-white/5 rounded" />
+                      <div className="h-1 w-12 bg-foreground/5 rounded" />
                     </div>
                   </div>
                 </div>
@@ -413,13 +413,13 @@ function LoginPage() {
             </div>
 
             {/* Three Pillars columns */}
-            <div className="grid grid-cols-3 gap-6 pt-6 border-t border-slate-900/60 max-w-xl">
+            <div className="grid grid-cols-3 gap-6 pt-6 border-t border-border max-w-xl">
               <div className="space-y-1.5">
                 <div className="flex items-center gap-1.5">
                   <Activity className="w-4 h-4 text-cyan-400" />
-                  <h4 className="text-xs font-bold text-slate-200">Instant Insights</h4>
+                  <h4 className="text-xs font-bold text-foreground">Instant Insights</h4>
                 </div>
-                <p className="text-[10px] text-slate-400 leading-relaxed">
+                <p className="text-[10px] text-muted-foreground leading-relaxed">
                   Get AI-generated insights in seconds.
                 </p>
               </div>
@@ -427,9 +427,9 @@ function LoginPage() {
               <div className="space-y-1.5">
                 <div className="flex items-center gap-1.5">
                   <ShieldCheck className="w-4 h-4 text-purple-400" />
-                  <h4 className="text-xs font-bold text-slate-200">Trust & Security</h4>
+                  <h4 className="text-xs font-bold text-foreground">Trust & Security</h4>
                 </div>
-                <p className="text-[10px] text-slate-400 leading-relaxed">
+                <p className="text-[10px] text-muted-foreground leading-relaxed">
                   Enterprise-grade security for your data.
                 </p>
               </div>
@@ -437,9 +437,9 @@ function LoginPage() {
               <div className="space-y-1.5">
                 <div className="flex items-center gap-1.5">
                   <Brain className="w-4 h-4 text-cyan-400" />
-                  <h4 className="text-xs font-bold text-slate-200">Smarter Decisions</h4>
+                  <h4 className="text-xs font-bold text-foreground">Smarter Decisions</h4>
                 </div>
-                <p className="text-[10px] text-slate-400 leading-relaxed">
+                <p className="text-[10px] text-muted-foreground leading-relaxed">
                   Make confident decisions with clarity.
                 </p>
               </div>
@@ -471,19 +471,16 @@ function LoginPage() {
 
             {/* Glass Login Card */}
             <div
-              className="w-full max-w-md rounded-3xl p-8 border border-white/10 bg-[#15151F]/80 backdrop-blur-xl shadow-2xl transition-all duration-300 hover:border-primary/20 z-10"
-              style={{
-                boxShadow: "0 25px 60px -25px rgba(0, 0, 0, 0.85), inset 0 0 0 1px rgba(255, 255, 255, 0.05)",
-              }}
+              className="w-full max-w-md rounded-3xl p-8 border border-border bg-card/80 backdrop-blur-xl shadow-2xl transition-all duration-300 hover:border-primary/20 z-10"
             >
               
               {step === "credentials" ? (
                 <>
                   <div className="text-center mb-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
-                    <h2 className="text-2xl font-bold text-white mb-1.5 flex items-center justify-center gap-2">
+                    <h2 className="text-2xl font-bold text-foreground mb-1.5 flex items-center justify-center gap-2">
                       Welcome back
                     </h2>
-                    <p className="text-xs text-slate-400">
+                    <p className="text-xs text-muted-foreground">
                       Sign in to continue to InsightFlow
                     </p>
                   </div>
@@ -500,7 +497,7 @@ function LoginPage() {
                     <button
                       onClick={handleGoogleSignIn}
                       disabled={loading}
-                      className="w-full py-2.5 rounded-full font-semibold border border-white/10 bg-white/5 hover:bg-white/10 text-xs text-foreground transition-all hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2.5 cursor-pointer shadow-sm"
+                      className="w-full py-2.5 rounded-full font-semibold border border-border bg-foreground/5 hover:bg-foreground/10 text-xs text-foreground transition-all hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2.5 cursor-pointer shadow-sm"
                     >
                       <svg className="w-3.5 h-3.5" viewBox="0 0 24 24">
                         <path
@@ -526,7 +523,7 @@ function LoginPage() {
                     <button
                       onClick={handleGithubSignIn}
                       disabled={loading}
-                      className="w-full py-2.5 rounded-full font-semibold border border-white/10 bg-white/5 hover:bg-white/10 text-xs text-foreground transition-all hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2.5 cursor-pointer shadow-sm"
+                      className="w-full py-2.5 rounded-full font-semibold border border-border bg-foreground/5 hover:bg-foreground/10 text-xs text-foreground transition-all hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2.5 cursor-pointer shadow-sm"
                     >
                       <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
                         <path fillRule="evenodd" clipRule="evenodd" d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.865 8.167 6.839 9.49.5.092.682-.217.682-.482 0-.237-.008-.866-.013-1.7-2.782.603-3.369-1.34-3.369-1.34-.454-1.156-1.11-1.464-1.11-1.464-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.579.688.481C19.137 20.164 22 16.418 22 12c0-5.523-4.477-10-10-10z" />
@@ -537,7 +534,7 @@ function LoginPage() {
                     <button
                       onClick={handleDiscordSignIn}
                       disabled={loading}
-                      className="w-full py-2.5 rounded-full font-semibold border border-white/10 bg-white/5 hover:bg-white/10 text-xs text-foreground transition-all hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2.5 cursor-pointer shadow-sm"
+                      className="w-full py-2.5 rounded-full font-semibold border border-border bg-foreground/5 hover:bg-foreground/10 text-xs text-foreground transition-all hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2.5 cursor-pointer shadow-sm"
                     >
                       <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="#5865F2">
                         <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.894.077.077 0 0 1-.008-.128c.126-.093.252-.19.372-.287a.075.075 0 0 1 .077-.011c3.92 1.793 8.18 1.793 12.061 0a.073.073 0 0 1 .078.009c.12.099.246.195.373.289a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.894.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.156-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.156 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.156-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.156 2.418z" />
@@ -547,9 +544,9 @@ function LoginPage() {
 
                     {/* Divider */}
                     <div className="relative flex py-1 items-center">
-                      <div className="flex-grow border-t border-white/5" />
+                      <div className="flex-grow border-t border-border/50" />
                       <span className="flex-shrink mx-3 text-[10px] text-muted-foreground uppercase tracking-widest font-bold">or</span>
-                      <div className="flex-grow border-t border-white/5" />
+                      <div className="flex-grow border-t border-border/50" />
                     </div>
                   </div>
 
@@ -567,15 +564,7 @@ function LoginPage() {
                           onChange={(e) => setEmail(e.target.value)}
                           placeholder="name@company.com"
                           disabled={loading}
-                          className="w-full pl-10 pr-4 py-2.5 rounded-xl text-white placeholder:text-muted-foreground/30 outline-none text-xs transition-all bg-white/5 border border-white/10"
-                          onFocus={(e) => {
-                            e.currentTarget.style.borderColor = "#0ea5e9";
-                            e.currentTarget.style.boxShadow = "0 0 0 3px rgba(14,165,233,0.12)";
-                          }}
-                          onBlur={(e) => {
-                            e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.1)";
-                            e.currentTarget.style.boxShadow = "none";
-                          }}
+                          className="w-full pl-10 pr-4 py-2.5 rounded-xl text-foreground placeholder:text-muted-foreground/30 outline-none text-xs transition-all bg-foreground/5 border border-border focus:border-primary focus:ring-1 focus:ring-primary"
                           onKeyDown={(e) => {
                             if (e.key === "Enter") {
                               loginMethod === "password" ? handleCredentialsSubmit() : handleSendOtp();
@@ -608,15 +597,7 @@ function LoginPage() {
                             onChange={(e) => setPassword(e.target.value)}
                             placeholder="Enter your password"
                             disabled={loading}
-                            className="w-full pl-10 pr-10 py-2.5 rounded-xl text-white placeholder:text-muted-foreground/30 outline-none text-xs transition-all bg-white/5 border border-white/10"
-                            onFocus={(e) => {
-                              e.currentTarget.style.borderColor = "var(--color-primary)";
-                              e.currentTarget.style.boxShadow = "var(--shadow-glow)";
-                            }}
-                            onBlur={(e) => {
-                              e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.1)";
-                              e.currentTarget.style.boxShadow = "none";
-                            }}
+                            className="w-full pl-10 pr-10 py-2.5 rounded-xl text-foreground placeholder:text-muted-foreground/30 outline-none text-xs transition-all bg-foreground/5 border border-border focus:border-primary focus:ring-1 focus:ring-primary"
                             onKeyDown={(e) => {
                               if (e.key === "Enter") handleCredentialsSubmit();
                             }}
@@ -736,15 +717,7 @@ function LoginPage() {
                         placeholder="12345678"
                         disabled={loading}
                         maxLength={8}
-                        className="w-full text-center text-xl tracking-widest py-2.5 rounded-xl text-white placeholder:text-muted-foreground/30 outline-none transition-all bg-white/5 border border-white/10"
-                        onFocus={(e) => {
-                          e.currentTarget.style.borderColor = "var(--color-primary)";
-                          e.currentTarget.style.boxShadow = "var(--shadow-glow)";
-                        }}
-                        onBlur={(e) => {
-                          e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.1)";
-                          e.currentTarget.style.boxShadow = "none";
-                        }}
+                        className="w-full text-center text-xl tracking-widest py-2.5 rounded-xl text-foreground placeholder:text-muted-foreground/30 outline-none transition-all bg-foreground/5 border border-border focus:border-primary focus:ring-1 focus:ring-primary"
                         onKeyDown={(e) => {
                           if (e.key === "Enter" && otp.length === 8) handleOtpSubmit();
                         }}
@@ -793,7 +766,7 @@ function LoginPage() {
                         setError(null);
                       }}
                       disabled={loading}
-                      className="w-full py-3 rounded-full font-bold transition-all hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-1.5 border border-white/10 text-muted-foreground hover:text-white bg-transparent cursor-pointer text-xs animate-in fade-in slide-in-from-bottom-2 duration-500"
+                      className="w-full py-3 rounded-full font-bold transition-all hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-1.5 border border-border text-muted-foreground hover:text-foreground bg-transparent cursor-pointer text-xs animate-in fade-in slide-in-from-bottom-2 duration-500"
                       style={{
                         animationDelay: "200ms",
                         animationFillMode: "both"

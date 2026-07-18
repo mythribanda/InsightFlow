@@ -218,7 +218,7 @@ function ProfilePage() {
           <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-secondary shadow-[0_0_24px_-4px_var(--color-primary)]">
             <Brain className="h-6 w-6 text-white" />
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-white">
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">
             Insight<span className="bg-gradient-to-r from-[#8B5CF6] to-[#A855F7] bg-clip-text text-transparent">Flow</span>
           </h1>
           <p className="text-xs text-muted-foreground font-mono uppercase tracking-wider">
@@ -227,17 +227,12 @@ function ProfilePage() {
         </div>
 
         {/* Card */}
-        <Card className="border border-white/8 bg-[#15151F]/90 backdrop-blur-md shadow-2xl rounded-3xl overflow-hidden"
-          style={{
-            background: "linear-gradient(rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.05)), #15151F",
-            boxShadow: "0 25px 60px -25px rgba(0, 0, 0, 0.85), inset 0 0 0 1px rgba(255, 255, 255, 0.02)",
-          }}
-        >
+        <Card className="surface-card rounded-3xl overflow-hidden shadow-2xl">
           <CardHeader className="space-y-1.5 pb-6">
             <div className="flex items-center justify-between">
               <Link
                 to="/app"
-                className="text-xs text-muted-foreground hover:text-white flex items-center gap-1.5 transition-colors font-medium"
+                className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1.5 transition-colors font-medium"
               >
                 <ArrowLeft className="h-3.5 w-3.5" /> Dashboard
               </Link>
@@ -248,7 +243,7 @@ function ProfilePage() {
                 <LogOut className="h-3.5 w-3.5" /> Sign out
               </button>
             </div>
-            <CardTitle className="text-xl font-bold text-center mt-2 text-white">User Profile</CardTitle>
+            <CardTitle className="text-xl font-bold text-center mt-2 text-foreground">User Profile</CardTitle>
             <CardDescription className="text-center text-xs text-muted-foreground">
               Manage your personal workspace account settings
             </CardDescription>
@@ -265,7 +260,7 @@ function ProfilePage() {
             {/* Avatar Section */}
             <div className="flex flex-col items-center space-y-3">
               <div className="relative group">
-                <div className="w-24 h-24 rounded-full border-2 border-white/10 overflow-hidden bg-white/5 flex items-center justify-center shadow-inner relative">
+                <div className="w-24 h-24 rounded-full border-2 border-border overflow-hidden bg-foreground/5 flex items-center justify-center shadow-inner relative">
                   {uploading ? (
                     <Loader2 className="h-6 w-6 animate-spin text-primary" />
                   ) : avatarUrl ? (
@@ -328,7 +323,7 @@ function ProfilePage() {
                     value={displayName}
                     onChange={(e) => setDisplayName(e.target.value)}
                     disabled={loading || uploading}
-                    className="pl-10 h-11 rounded-xl text-white placeholder:text-muted-foreground/30 border-white/10 bg-white/5 focus:border-primary/50 focus:ring-primary/20 text-sm"
+                    className="pl-10 h-11 rounded-xl text-foreground placeholder:text-muted-foreground/30 border-border bg-foreground/5 focus:border-primary/50 focus:ring-primary/20 text-sm"
                   />
                 </div>
               </div>
@@ -346,7 +341,7 @@ function ProfilePage() {
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     disabled={loading || uploading}
-                    className="pl-10 h-11 rounded-xl text-white placeholder:text-muted-foreground/30 border-white/10 bg-white/5 focus:border-primary/50 focus:ring-primary/20 text-sm"
+                    className="pl-10 h-11 rounded-xl text-foreground placeholder:text-muted-foreground/30 border-border bg-foreground/5 focus:border-primary/50 focus:ring-primary/20 text-sm"
                   />
                 </div>
               </div>
@@ -365,7 +360,7 @@ function ProfilePage() {
                     type="email"
                     value={email}
                     disabled
-                    className="pl-10 h-11 rounded-xl text-muted-foreground/60 placeholder:text-muted-foreground/30 border-white/5 bg-white/2 text-sm cursor-not-allowed opacity-70"
+                    className="pl-10 h-11 rounded-xl text-muted-foreground/60 placeholder:text-muted-foreground/30 border-border/50 bg-foreground/[0.02] text-sm cursor-not-allowed opacity-70"
                   />
                 </div>
                 <p className="text-[10px] text-muted-foreground/50 leading-relaxed pt-0.5">

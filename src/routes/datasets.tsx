@@ -405,7 +405,7 @@ function DatasetsGalleryPage() {
           <div className="flex items-center gap-3">
             <button
               onClick={toggleTheme}
-              className="flex h-7 w-7 items-center justify-center rounded-full border border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20 transition-all text-muted-foreground hover:text-foreground cursor-pointer shrink-0"
+              className="flex h-7 w-7 items-center justify-center rounded-full border border-border bg-foreground/5 hover:bg-foreground/10 hover:border-border/80 transition-all text-muted-foreground hover:text-foreground cursor-pointer shrink-0"
               title={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
             >
               {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
@@ -427,11 +427,11 @@ function DatasetsGalleryPage() {
             <p className="text-xs text-muted-foreground font-mono">Retrieving your dataset configurations...</p>
           </div>
         ) : projects.length === 0 ? (
-          <div className="flex-1 flex flex-col items-center justify-center min-h-[400px] border border-dashed border-white/5 rounded-3xl bg-white/[0.01] p-8 text-center">
-            <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-white/5 border border-white/10 text-muted-foreground mb-4">
+          <div className="flex-1 flex flex-col items-center justify-center min-h-[400px] border border-dashed border-border rounded-3xl bg-foreground/[0.01] p-8 text-center">
+            <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-foreground/5 border border-border text-muted-foreground mb-4">
               <Layers className="h-6 w-6" />
             </div>
-            <h3 className="text-base font-bold text-white mb-1">No datasets saved yet</h3>
+            <h3 className="text-base font-bold text-foreground mb-1">No datasets saved yet</h3>
             <p className="text-xs text-muted-foreground max-w-sm mb-6 leading-relaxed">
               Upload a dataset in the console, wait for intelligence profiling, and click "Save Project" to build your gallery.
             </p>
@@ -452,7 +452,7 @@ function DatasetsGalleryPage() {
                     placeholder="Search datasets..."
                     value={searchQuery}
                     onChange={e => setSearchQuery(e.target.value)}
-                    className="pl-9 text-xs font-mono bg-white/5 border-white/5 hover:border-white/10 focus-visible:ring-primary"
+                    className="pl-9 text-xs font-mono bg-foreground/5 border-border hover:border-border/80 focus-visible:ring-primary"
                   />
                 </div>
 
@@ -501,7 +501,7 @@ function DatasetsGalleryPage() {
                           className={`px-3 py-1 rounded-full text-[10px] font-mono font-bold tracking-wide transition-all border cursor-pointer ${
                             isSelected
                               ? "bg-primary border-transparent text-primary-foreground hover:bg-primary/95"
-                              : "bg-white/5 border-white/5 text-muted-foreground hover:border-white/10 hover:text-foreground"
+                              : "bg-foreground/5 border-border text-muted-foreground hover:border-border/80 hover:text-foreground"
                           }`}
                         >
                           {tag}
@@ -588,7 +588,7 @@ function DatasetsGalleryPage() {
               </div>
 
               {filteredAndSortedProjects.length === 0 ? (
-                <div className="text-center py-12 border border-dashed border-white/5 rounded-3xl bg-white/[0.005]">
+                <div className="text-center py-12 border border-dashed border-border rounded-3xl bg-foreground/[0.005]">
                   <p className="text-xs text-muted-foreground font-mono">No datasets matches your filters.</p>
                 </div>
               ) : (
@@ -598,12 +598,12 @@ function DatasetsGalleryPage() {
                     return (
                       <Card
                         key={project.id}
-                        className="border border-white/5 bg-white/[0.01] hover:border-white/10 hover:bg-white/[0.02] transition-all duration-300 shadow-lg flex flex-col justify-between"
+                        className="border border-border bg-card hover:border-border/80 transition-all duration-300 shadow-lg flex flex-col justify-between"
                       >
                         <CardHeader className="p-5 pb-3">
                           <div className="flex items-start justify-between gap-3">
                             <div className="space-y-0.5 min-w-0">
-                              <CardTitle className="text-sm font-bold font-mono text-white truncate" title={project.name}>
+                              <CardTitle className="text-sm font-bold font-mono text-foreground truncate" title={project.name}>
                                 {project.name}
                               </CardTitle>
                               <CardDescription className="text-[10px] truncate max-w-full">
@@ -612,7 +612,7 @@ function DatasetsGalleryPage() {
                             </div>
                             <button
                               onClick={e => handleToggleFavorite(project, e)}
-                              className="p-1.5 rounded-lg hover:bg-white/5 text-muted-foreground hover:text-primary transition-colors cursor-pointer shrink-0"
+                              className="p-1.5 rounded-lg hover:bg-foreground/5 text-muted-foreground hover:text-primary transition-colors cursor-pointer shrink-0"
                             >
                               <Star
                                 className={`h-4.5 w-4.5 ${
@@ -677,7 +677,7 @@ function DatasetsGalleryPage() {
                                       value={newTagInput}
                                       onChange={e => setNewTagInput(e.target.value)}
                                       placeholder="new tag"
-                                      className="h-5 px-1 py-0.5 text-[9px] font-mono bg-white/5 border-white/10 w-16"
+                                      className="h-5 px-1 py-0.5 text-[9px] font-mono bg-foreground/5 border-border w-16"
                                     />
                                     <Button type="submit" size="icon" className="h-5 w-5 bg-primary p-0">
                                       <Plus className="h-2.5 w-2.5" />
@@ -886,7 +886,7 @@ function DatasetsGalleryPage() {
             )}
 
             <div className="flex justify-end">
-              <Button onClick={() => setPreviewVersion(null)} variant="outline" className="text-xs font-mono border-white/10 hover:bg-white/5">
+              <Button onClick={() => setPreviewVersion(null)} variant="outline" className="text-xs font-mono border-border hover:bg-foreground/5">
                 Close
               </Button>
             </div>

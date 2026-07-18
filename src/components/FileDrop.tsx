@@ -20,7 +20,7 @@ export function FileDrop({ onFile, busy }: { onFile: (f: File) => void; busy?: b
       onDrop={onDrop}
       className={cn(
         "relative w-full flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed px-6 py-12 text-center transition-all duration-300 cursor-pointer select-none",
-        "bg-white/2 border-white/10 hover:border-primary/40 hover:bg-white/5",
+        "bg-foreground/[0.02] border-border hover:border-primary/40 hover:bg-foreground/5",
         hover && "border-primary bg-primary/5 scale-[1.01] glow-sm",
         busy && "pointer-events-none opacity-60",
       )}
@@ -36,10 +36,10 @@ export function FileDrop({ onFile, busy }: { onFile: (f: File) => void; busy?: b
         )}
       </div>
       <div className="relative">
-        <p className="text-sm font-bold text-slate-200">
+        <p className="text-sm font-bold text-foreground">
           {busy ? "Analyzing your dataset…" : "Drag & drop your file here"}
         </p>
-        <p className="mt-1 text-[11px] text-slate-400">
+        <p className="mt-1 text-[11px] text-muted-foreground">
           {busy ? "Profiling columns and computing scores..." : "or click to browse"}
         </p>
       </div>

@@ -105,15 +105,9 @@ function CompleteProfile() {
         </div>
 
         {/* Glass card */}
-        <div
-          className="rounded-3xl p-8 border border-white/8 backdrop-blur-md shadow-2xl"
-          style={{
-            background: "linear-gradient(rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.05)), #15151F",
-            boxShadow: "0 25px 60px -25px rgba(0, 0, 0, 0.85), inset 0 0 0 1px rgba(255, 255, 255, 0.02)",
-          }}
-        >
+        <div className="surface-card rounded-3xl p-8 shadow-2xl">
           <div className="text-center mb-6">
-            <h2 className="text-xl font-semibold text-white mb-1">
+            <h2 className="text-xl font-semibold text-foreground mb-1">
               Complete your profile
             </h2>
             <p className="text-sm text-muted-foreground">
@@ -142,15 +136,7 @@ function CompleteProfile() {
                   onChange={(e) => setFullName(e.target.value)}
                   placeholder="John Doe"
                   disabled={loading}
-                  className="w-full pl-10 pr-4 py-3 rounded-xl text-white placeholder:text-muted-foreground/30 outline-none transition-all bg-white/5 border border-white/10"
-                  onFocus={(e) => {
-                    e.currentTarget.style.borderColor = "var(--color-primary)";
-                    e.currentTarget.style.boxShadow = "var(--shadow-glow)";
-                  }}
-                  onBlur={(e) => {
-                    e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.1)";
-                    e.currentTarget.style.boxShadow = "none";
-                  }}
+                  className="w-full pl-10 pr-4 py-3 rounded-xl text-foreground placeholder:text-muted-foreground/30 outline-none transition-all bg-foreground/5 border border-border focus:border-primary focus:ring-1 focus:ring-primary"
                 />
               </div>
             </div>
@@ -168,15 +154,7 @@ function CompleteProfile() {
                   onChange={(e) => setMobile(e.target.value)}
                   placeholder="+91 98765 43210"
                   disabled={loading}
-                  className="w-full pl-10 pr-4 py-3 rounded-xl text-white placeholder:text-muted-foreground/30 outline-none transition-all bg-white/5 border border-white/10"
-                  onFocus={(e) => {
-                    e.currentTarget.style.borderColor = "var(--color-primary)";
-                    e.currentTarget.style.boxShadow = "var(--shadow-glow)";
-                  }}
-                  onBlur={(e) => {
-                    e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.1)";
-                    e.currentTarget.style.boxShadow = "none";
-                  }}
+                  className="w-full pl-10 pr-4 py-3 rounded-xl text-foreground placeholder:text-muted-foreground/30 outline-none transition-all bg-foreground/5 border border-border focus:border-primary focus:ring-1 focus:ring-primary"
                 />
               </div>
             </div>
@@ -194,15 +172,7 @@ function CompleteProfile() {
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@example.com"
                   disabled={loading}
-                  className="w-full pl-10 pr-4 py-3 rounded-xl text-white placeholder:text-muted-foreground/30 outline-none transition-all bg-white/5 border border-white/10"
-                  onFocus={(e) => {
-                    e.currentTarget.style.borderColor = "var(--color-primary)";
-                    e.currentTarget.style.boxShadow = "var(--shadow-glow)";
-                  }}
-                  onBlur={(e) => {
-                    e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.1)";
-                    e.currentTarget.style.boxShadow = "none";
-                  }}
+                  className="w-full pl-10 pr-4 py-3 rounded-xl text-foreground placeholder:text-muted-foreground/30 outline-none transition-all bg-foreground/5 border border-border focus:border-primary focus:ring-1 focus:ring-primary"
                 />
               </div>
             </div>

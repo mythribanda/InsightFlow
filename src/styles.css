@@ -80,6 +80,13 @@
   --shadow-glow: 0 0 25px -2px rgba(124, 58, 237, 0.15);
   --shadow-card: 0 4px 20px 0 rgba(15, 23, 42, 0.05);
   --shadow-glass: 0 4px 20px 0 rgba(15, 23, 42, 0.05), inset 0 1px 0 0 rgba(255, 255, 255, 0.8);
+
+  --border-hover: rgba(15, 23, 42, 0.16);
+  --shadow-card-hover: 0 8px 32px 0 rgba(124, 58, 237, 0.06);
+  --sidebar-bg: rgba(255, 255, 255, 0.75);
+  --sidebar-border: rgba(15, 23, 42, 0.08);
+  --topbar-bg: rgba(255, 255, 255, 0.70);
+  --topbar-border: rgba(15, 23, 42, 0.08);
 }
 
 html.dark, html[data-theme='dark'] {
@@ -120,6 +127,13 @@ html.dark, html[data-theme='dark'] {
   --shadow-glow: 0 0 25px -2px rgba(139, 92, 246, 0.3);
   --shadow-card: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
   --shadow-glass: 0 8px 32px 0 rgba(0, 0, 0, 0.37), inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
+
+  --border-hover: rgba(255, 255, 255, 0.15);
+  --shadow-card-hover: 0 8px 32px 0 rgba(139, 92, 246, 0.12);
+  --sidebar-bg: rgba(13, 13, 20, 0.75);
+  --sidebar-border: rgba(255, 255, 255, 0.08);
+  --topbar-bg: rgba(10, 10, 15, 0.70);
+  --topbar-border: rgba(255, 255, 255, 0.08);
 }
 
 @layer base {
@@ -172,7 +186,7 @@ html.dark, html[data-theme='dark'] {
     color: transparent;
   }
   .surface-card {
-    background: linear-gradient(rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.06)), #15151F;
+    background: var(--card);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
     box-shadow: var(--shadow-glass);
@@ -180,21 +194,24 @@ html.dark, html[data-theme='dark'] {
     border-radius: var(--radius);
     transition: border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
   }
+  html.dark .surface-card, html[data-theme='dark'] .surface-card {
+    background: linear-gradient(rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.06)), var(--card);
+  }
   .surface-card:hover {
-    border-color: rgba(255, 255, 255, 0.15);
-    box-shadow: 0 8px 32px 0 rgba(139, 92, 246, 0.12);
+    border-color: var(--border-hover);
+    box-shadow: var(--shadow-card-hover);
   }
   .glass-sidebar {
-    background: rgba(13, 13, 20, 0.75);
+    background: var(--sidebar-bg);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
-    border-right: 1px solid rgba(255, 255, 255, 0.08);
+    border-right: 1px solid var(--sidebar-border);
   }
   .glass-topbar {
-    background: rgba(10, 10, 15, 0.70);
+    background: var(--topbar-bg);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    border-bottom: 1px solid var(--topbar-border);
   }
   .glow { box-shadow: var(--shadow-glow); }
   .glow-sm { box-shadow: 0 0 20px -4px oklch(0.78 0.17 195 / 0.30); }

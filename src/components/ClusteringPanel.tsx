@@ -155,7 +155,7 @@ export const ClusteringPanel: React.FC<ClusteringPanelProps> = ({ sessionId, pro
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="flex items-center gap-2 text-white">
+              <CardTitle className="flex items-center gap-2 text-foreground">
                 <Target className="h-5 w-5 text-primary" />
                 Unsupervised Clustering
               </CardTitle>
@@ -197,7 +197,7 @@ export const ClusteringPanel: React.FC<ClusteringPanelProps> = ({ sessionId, pro
                   {eligibleCols.map((col) => (
                     <label
                       key={col}
-                      className="flex items-center gap-2.5 text-xs font-mono text-slate-300 hover:text-white cursor-pointer select-none py-1 truncate"
+                      className="flex items-center gap-2.5 text-xs font-mono text-muted-foreground hover:text-foreground cursor-pointer select-none py-1 truncate"
                     >
                       <input
                         type="checkbox"
@@ -209,7 +209,7 @@ export const ClusteringPanel: React.FC<ClusteringPanelProps> = ({ sessionId, pro
                               : [...prev, col]
                           );
                         }}
-                        className="rounded border-slate-700 bg-slate-900 text-primary focus:ring-primary h-4 w-4"
+                        className="rounded border-input bg-background text-primary focus:ring-primary h-4 w-4"
                       />
                       <span className="truncate" title={col}>{col}</span>
                     </label>
@@ -232,7 +232,7 @@ export const ClusteringPanel: React.FC<ClusteringPanelProps> = ({ sessionId, pro
                     className={`px-3 py-1.5 rounded-md text-xs font-semibold font-mono tracking-wide transition-all ${
                       method === "kmeans"
                         ? "bg-primary text-primary-foreground shadow"
-                        : "text-muted-foreground hover:text-white"
+                        : "text-muted-foreground hover:text-foreground"
                     }`}
                   >
                     K-Means
@@ -243,7 +243,7 @@ export const ClusteringPanel: React.FC<ClusteringPanelProps> = ({ sessionId, pro
                     className={`px-3 py-1.5 rounded-md text-xs font-semibold font-mono tracking-wide transition-all ${
                       method === "dbscan"
                         ? "bg-primary text-primary-foreground shadow"
-                        : "text-muted-foreground hover:text-white"
+                        : "text-muted-foreground hover:text-foreground"
                     }`}
                   >
                     DBSCAN
@@ -387,11 +387,11 @@ export const ClusteringPanel: React.FC<ClusteringPanelProps> = ({ sessionId, pro
                       <div className="space-y-2">
                         <div className="flex justify-between text-xs py-1 border-b border-border/30">
                           <span className="text-muted-foreground">Algorithm</span>
-                          <span className="font-mono text-white font-medium uppercase">{method}</span>
+                          <span className="font-mono text-foreground font-medium uppercase">{method}</span>
                         </div>
                         <div className="flex justify-between text-xs py-1 border-b border-border/30">
                           <span className="text-muted-foreground">Clusters Found</span>
-                          <span className="font-mono text-white font-medium">{result.n_clusters_found}</span>
+                          <span className="font-mono text-foreground font-medium">{result.n_clusters_found}</span>
                         </div>
                         {method === "dbscan" && (
                           <div className="flex justify-between text-xs py-1 border-b border-border/30">
@@ -402,7 +402,7 @@ export const ClusteringPanel: React.FC<ClusteringPanelProps> = ({ sessionId, pro
                         {hasMultipleDimensions && (
                           <div className="flex justify-between text-xs py-1">
                             <span className="text-muted-foreground">PCA Variance Explained</span>
-                            <span className="font-mono text-white font-medium">
+                            <span className="font-mono text-foreground font-medium">
                               {(result.variance_explained * 100).toFixed(1)}%
                             </span>
                           </div>
@@ -537,8 +537,8 @@ export const ClusteringPanel: React.FC<ClusteringPanelProps> = ({ sessionId, pro
                                   const devColor = !isSig ? "text-slate-400" : f.z_score >= 0 ? "text-emerald-400" : "text-rose-400";
                                   return (
                                     <tr key={f.column} className="hover:bg-muted/5">
-                                      <td className="py-1 pr-2 text-slate-300 truncate max-w-[80px]" title={f.column}>{f.column}</td>
-                                      <td className="py-1 px-2 text-right text-white font-medium">{f.cluster_val}</td>
+                                      <td className="py-1 pr-2 text-muted-foreground truncate max-w-[80px]" title={f.column}>{f.column}</td>
+                                      <td className="py-1 px-2 text-right text-foreground font-medium">{f.cluster_val}</td>
                                       <td className="py-1 px-2 text-right text-slate-400">{f.global_val}</td>
                                       <td className={`py-1 pl-2 text-right font-semibold ${devColor}`}>
                                         {f.z_score > 0 ? "+" : ""}{f.z_score.toFixed(1)}σ

@@ -464,7 +464,7 @@ function Home() {
 
   if (!profile) {
     return (
-      <div className="min-h-screen bg-background text-slate-100 flex flex-col relative overflow-hidden font-sans">
+      <div className="min-h-screen bg-background text-foreground flex flex-col relative overflow-hidden font-sans">
         {/* Soft background glows */}
         <div className="absolute top-[10%] left-[20%] w-[500px] h-[500px] rounded-full pointer-events-none z-0"
           style={{ background: "radial-gradient(circle, rgba(139,92,246,0.06), transparent 70%)" }} />
@@ -667,10 +667,10 @@ function Home() {
                 </div>
 
                 {/* Secure bottom indicator */}
-                <div className="w-full mt-6 rounded-2xl bg-white/5 border border-white/5 backdrop-blur-md p-4 flex items-center gap-3 select-none">
+                <div className="w-full mt-6 rounded-2xl bg-foreground/5 border border-border backdrop-blur-md p-4 flex items-center gap-3 select-none">
                   <ShieldCheck className="h-6 w-6 text-success shrink-0" />
                   <div className="flex-1">
-                    <h5 className="text-[11px] font-bold text-white">Secure & Private</h5>
+                    <h5 className="text-[11px] font-bold text-foreground">Secure & Private</h5>
                     <p className="text-[10px] text-muted-foreground leading-normal">Your data is processed locally in your browser. We never store or send your files anywhere.</p>
                   </div>
                 </div>
@@ -936,7 +936,7 @@ function Home() {
 
       {showSaveModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="w-full max-w-sm rounded-xl border border-white/10 bg-[#15151F] p-5 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+          <div className="w-full max-w-sm rounded-xl border border-border bg-card p-5 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
             <h3 className="text-sm font-bold text-foreground">Save Project</h3>
             <p className="mt-1 text-xs text-muted-foreground">
               Persist this dataset and analysis results to Supabase.
@@ -949,7 +949,7 @@ function Home() {
                 type="text"
                 value={projectName}
                 onChange={(e) => setProjectName(e.target.value)}
-                className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs text-foreground focus:outline-none focus:border-primary transition-colors font-mono"
+                className="w-full rounded-lg border border-border bg-foreground/5 px-3 py-2 text-xs text-foreground focus:outline-none focus:border-primary transition-colors font-mono"
                 placeholder="My Project"
                 autoFocus
                 onKeyDown={(e) => {
@@ -965,7 +965,7 @@ function Home() {
             <div className="mt-5 flex justify-end gap-2.5">
               <button
                 onClick={() => setShowSaveModal(false)}
-                className="rounded-lg px-3 py-1.5 border border-white/10 hover:bg-white/5 text-[10px] font-mono font-medium text-slate-300 hover:text-white transition-all cursor-pointer"
+                className="rounded-lg px-3 py-1.5 border border-border hover:bg-foreground/5 text-[10px] font-mono font-medium text-muted-foreground hover:text-foreground transition-all cursor-pointer"
               >
                 Cancel
               </button>
@@ -1013,6 +1013,63 @@ function TopBar({
   const { session } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [displayName, setDisplayName] = useState<string | null>(null);
+
+  // Fetch avatar_url and display_name from profiles
+  useEffect(() => {
+    if (!session?.user?.id) {
+      setAvatarUrl(null);
+      setDisplayName(null);
+      return;
+    }
+
+    async function fetchProfile() {
+      try {
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("avatar_url, display_name")
+          .eq("id", session.user.id)
+          .single();
+        if (!error && data) {
+          setAvatarUrl(data.avatar_url || null);
+          setDisplayName(data.display_name || null);
+        }
+      } catch (err) {
+        console.error("Error fetching profile in TopBar:", err);
+      }
+    }
+
+    fetchProfile();
+
+    // Subscribe to changes on profiles table for current user
+    const channel = supabase
+      .channel(`profile-updates-${session.user.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "profiles",
+          filter: `id=eq.${session.user.id}`,
+        },
+        (payload) => {
+          if (payload.new) {
+            if ("avatar_url" in payload.new) {
+              setAvatarUrl(payload.new.avatar_url || null);
+            }
+            if ("display_name" in payload.new) {
+              setDisplayName(payload.new.display_name || null);
+            }
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [session]);
 
   // Sign out helper
   const handleSignOut = async () => {
@@ -1028,7 +1085,7 @@ function TopBar({
 
   // Get user initials
   const email = session?.user?.email || "";
-  const name = session?.user?.user_metadata?.full_name || session?.user?.user_metadata?.name || email;
+  const name = displayName || session?.user?.user_metadata?.full_name || session?.user?.user_metadata?.name || email;
   const initials = name
     ? name.split(" ").map((p: string) => p[0]).join("").substring(0, 2).toUpperCase()
     : "US";
@@ -1056,7 +1113,7 @@ function TopBar({
             <select
               value={persona}
               onChange={(e) => setPersona(e.target.value as Persona)}
-              className="rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 px-2.5 py-1 text-xs transition-colors focus:border-primary focus:outline-none"
+              className="rounded-lg border border-border bg-foreground/5 hover:bg-foreground/10 px-2.5 py-1 text-xs transition-colors focus:border-primary focus:outline-none"
             >
               <option value="business">Business</option>
               <option value="student">Student</option>
@@ -1079,7 +1136,7 @@ function TopBar({
 
           <button
             onClick={toggleTheme}
-            className="flex h-7 w-7 items-center justify-center rounded-full border border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20 transition-all text-muted-foreground hover:text-foreground cursor-pointer shrink-0"
+            className="flex h-7 w-7 items-center justify-center rounded-full border border-border bg-foreground/5 hover:bg-foreground/10 hover:border-border/80 transition-all text-muted-foreground hover:text-foreground cursor-pointer shrink-0"
             title={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
           >
             {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
@@ -1089,10 +1146,14 @@ function TopBar({
           <div className="relative">
             <button
               onClick={() => setDropdownOpen(!dropdownOpen)}
-              className="flex items-center gap-1.5 p-1 rounded-full border border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20 transition-all cursor-pointer select-none"
+              className="flex items-center gap-1.5 p-1 rounded-full border border-border bg-foreground/5 hover:bg-foreground/10 hover:border-border/80 transition-all cursor-pointer select-none"
             >
-              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-[#8B5CF6] to-[#A855F7] text-[10px] font-black text-white uppercase tracking-wider shadow-sm">
-                {initials}
+              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-[#8B5CF6] to-[#A855F7] text-[10px] font-black text-white uppercase tracking-wider shadow-sm overflow-hidden shrink-0">
+                {avatarUrl ? (
+                  <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                ) : (
+                  initials
+                )}
               </div>
               <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
             </button>
@@ -1100,25 +1161,31 @@ function TopBar({
             {dropdownOpen && (
               <>
                 <div className="fixed inset-0 z-30" onClick={() => setDropdownOpen(false)} />
-                <div className="absolute right-0 mt-2 w-48 rounded-xl border border-white/10 bg-[#15151F] p-1.5 backdrop-blur-md shadow-2xl z-40 animate-in fade-in slide-in-from-top-2 duration-150">
-                  <div className="px-3 py-2 border-b border-white/5 text-xs text-muted-foreground">
+                <div className="absolute right-0 mt-2 w-48 rounded-xl border border-border bg-card p-1.5 backdrop-blur-md shadow-2xl z-40 animate-in fade-in slide-in-from-top-2 duration-150">
+                  <div className="px-3 py-2 border-b border-border/50 text-xs text-muted-foreground">
                     Logged in as <span className="font-semibold text-foreground block truncate">{email}</span>
                   </div>
                   <button
                     onClick={() => { setDropdownOpen(false); navigate({ to: "/profile" }); }}
-                    className="w-full text-left px-3 py-2 rounded-lg text-xs hover:bg-white/5 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                    className="w-full text-left px-3 py-2 rounded-lg text-xs hover:bg-foreground/5 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
                   >
                     My Profile
                   </button>
                   <button
+                    onClick={() => { setDropdownOpen(false); navigate({ to: "/settings" }); }}
+                    className="w-full text-left px-3 py-2 rounded-lg text-xs hover:bg-foreground/5 text-muted-foreground hover:text-foreground transition-colors cursor-pointer block"
+                  >
+                    Settings
+                  </button>
+                  <button
                     onClick={() => { setDropdownOpen(false); navigate({ to: "/projects" }); }}
-                    className="w-full text-left px-3 py-2 rounded-lg text-xs hover:bg-white/5 text-muted-foreground hover:text-foreground transition-colors cursor-pointer block"
+                    className="w-full text-left px-3 py-2 rounded-lg text-xs hover:bg-foreground/5 text-muted-foreground hover:text-foreground transition-colors cursor-pointer block"
                   >
                     My Projects
                   </button>
                   <button
                     onClick={() => { setDropdownOpen(false); navigate({ to: "/datasets" }); }}
-                    className="w-full text-left px-3 py-2 rounded-lg text-xs hover:bg-white/5 text-muted-foreground hover:text-foreground transition-colors cursor-pointer block"
+                    className="w-full text-left px-3 py-2 rounded-lg text-xs hover:bg-foreground/5 text-muted-foreground hover:text-foreground transition-colors cursor-pointer block"
                   >
                     Dataset Gallery
                   </button>
@@ -2525,12 +2592,12 @@ function Visualizations({ profile, sessionId, rows }: VisualizationsProps) {
     if (chartType === "scatter") {
       chartElement = (
         <ComposedChart data={sortedData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
           <XAxis
             type="number"
             dataKey={column1}
             name={column1}
-            stroke="rgba(255,255,255,0.4)"
+            stroke="var(--muted-foreground)"
             fontSize={10}
             domain={['auto', 'auto']}
             tickLine={false}
@@ -2539,7 +2606,7 @@ function Visualizations({ profile, sessionId, rows }: VisualizationsProps) {
             type="number"
             dataKey={column2}
             name={column2}
-            stroke="rgba(255,255,255,0.4)"
+            stroke="var(--muted-foreground)"
             fontSize={10}
             domain={['auto', 'auto']}
             tickLine={false}
@@ -2565,9 +2632,9 @@ function Visualizations({ profile, sessionId, rows }: VisualizationsProps) {
     } else if (chartType === "histogram") {
       chartElement = (
         <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-          <XAxis dataKey="bin" stroke="rgba(255,255,255,0.4)" fontSize={10} tickLine={false} />
-          <YAxis stroke="rgba(255,255,255,0.4)" fontSize={10} tickLine={false} />
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+          <XAxis dataKey="bin" stroke="var(--muted-foreground)" fontSize={10} tickLine={false} />
+          <YAxis stroke="var(--muted-foreground)" fontSize={10} tickLine={false} />
           <RechartsTooltip
             contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.95)', borderColor: 'rgba(255, 255, 255, 0.1)', borderRadius: '8px' }}
           />
@@ -2577,15 +2644,15 @@ function Visualizations({ profile, sessionId, rows }: VisualizationsProps) {
     } else if (chartType === "boxplot") {
       chartElement = (
         <BarChart data={boxPlotData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-          <XAxis dataKey="name" stroke="rgba(255,255,255,0.4)" fontSize={10} tickLine={false} />
-          <YAxis stroke="rgba(255,255,255,0.4)" fontSize={10} tickLine={false} />
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+          <XAxis dataKey="name" stroke="var(--muted-foreground)" fontSize={10} tickLine={false} />
+          <YAxis stroke="var(--muted-foreground)" fontSize={10} tickLine={false} />
           <RechartsTooltip
             content={({ active, payload }) => {
               if (active && payload && payload.length) {
                 const data = payload[0].payload;
                 return (
-                  <div className="rounded-lg border border-white/10 bg-[#15151F]/95 p-3 text-xs shadow-md backdrop-blur-md">
+                  <div className="rounded-lg border border-border bg-card/95 p-3 text-xs shadow-md backdrop-blur-md">
                     <p className="font-semibold text-primary mb-1.5">{data.name}</p>
                     <div className="space-y-1 font-mono text-[10px]">
                       <div className="flex justify-between gap-4">
@@ -2631,17 +2698,17 @@ function Visualizations({ profile, sessionId, rows }: VisualizationsProps) {
               <stop offset="95%" stopColor="var(--color-primary)" stopOpacity={0} />
             </linearGradient>
           </defs>
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
           <XAxis
             dataKey="x"
             type="number"
             domain={['auto', 'auto']}
-            stroke="rgba(255,255,255,0.4)"
+            stroke="var(--muted-foreground)"
             fontSize={10}
             tickLine={false}
             tickFormatter={(v) => Number(v).toFixed(2)}
           />
-          <YAxis stroke="rgba(255,255,255,0.4)" fontSize={10} tickLine={false} />
+          <YAxis stroke="var(--muted-foreground)" fontSize={10} tickLine={false} />
           <RechartsTooltip
             contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.95)', borderColor: 'rgba(255, 255, 255, 0.1)', borderRadius: '8px' }}
             labelFormatter={(label) => `Value: ${Number(label).toFixed(2)}`}
@@ -2652,9 +2719,9 @@ function Visualizations({ profile, sessionId, rows }: VisualizationsProps) {
     } else if (chartType === "bar") {
       chartElement = (
         <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-          <XAxis dataKey="category" stroke="rgba(255,255,255,0.4)" fontSize={10} tickLine={false} />
-          <YAxis stroke="rgba(255,255,255,0.4)" fontSize={10} tickLine={false} />
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+          <XAxis dataKey="category" stroke="var(--muted-foreground)" fontSize={10} tickLine={false} />
+          <YAxis stroke="var(--muted-foreground)" fontSize={10} tickLine={false} />
           <RechartsTooltip
             contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.95)', borderColor: 'rgba(255, 255, 255, 0.1)', borderRadius: '8px' }}
           />
@@ -2664,9 +2731,9 @@ function Visualizations({ profile, sessionId, rows }: VisualizationsProps) {
     } else if (chartType === "grouped_bar") {
       chartElement = (
         <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-          <XAxis dataKey="name" stroke="rgba(255,255,255,0.4)" fontSize={10} tickLine={false} />
-          <YAxis stroke="rgba(255,255,255,0.4)" fontSize={10} tickLine={false} />
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+          <XAxis dataKey="name" stroke="var(--muted-foreground)" fontSize={10} tickLine={false} />
+          <YAxis stroke="var(--muted-foreground)" fontSize={10} tickLine={false} />
           <RechartsTooltip
             contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.95)', borderColor: 'rgba(255, 255, 255, 0.1)', borderRadius: '8px' }}
           />
@@ -2748,14 +2815,14 @@ function Visualizations({ profile, sessionId, rows }: VisualizationsProps) {
 
       chartElement = (
         <LineChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
           <XAxis
             dataKey={displayX}
-            stroke="rgba(255,255,255,0.4)"
+            stroke="var(--muted-foreground)"
             fontSize={10}
             tickLine={false}
           />
-          <YAxis stroke="rgba(255,255,255,0.4)" fontSize={10} tickLine={false} />
+          <YAxis stroke="var(--muted-foreground)" fontSize={10} tickLine={false} />
           <RechartsTooltip
             contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.95)', borderColor: 'rgba(255, 255, 255, 0.1)', borderRadius: '8px' }}
           />
@@ -2843,15 +2910,15 @@ function Visualizations({ profile, sessionId, rows }: VisualizationsProps) {
     } else if (chartType === "waterfall") {
       chartElement = (
         <BarChart data={waterfallData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-          <XAxis dataKey="name" stroke="rgba(255,255,255,0.4)" fontSize={10} tickLine={false} />
-          <YAxis stroke="rgba(255,255,255,0.4)" fontSize={10} tickLine={false} />
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+          <XAxis dataKey="name" stroke="var(--muted-foreground)" fontSize={10} tickLine={false} />
+          <YAxis stroke="var(--muted-foreground)" fontSize={10} tickLine={false} />
           <RechartsTooltip
             content={({ active, payload }) => {
               if (active && payload && payload.length) {
                 const data = payload[0].payload;
                 return (
-                  <div className="rounded-lg border border-white/10 bg-[#15151F]/95 p-3 text-xs shadow-md backdrop-blur-md">
+                  <div className="rounded-lg border border-border bg-card/95 p-3 text-xs shadow-md backdrop-blur-md">
                     <p className="font-semibold text-primary mb-1.5">{data.name}</p>
                     <div className="space-y-1 font-mono text-[10px]">
                       <div className="flex justify-between gap-4">

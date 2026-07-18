@@ -1231,9 +1231,9 @@ const WidgetCard: React.FC<WidgetCardProps> = ({
       return (
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={missingData} margin={{ top: 10, right: 10, left: -25, bottom: 5 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-            <XAxis dataKey="column" stroke="rgba(255,255,255,0.4)" fontSize={8} tickLine={false} />
-            <YAxis stroke="rgba(255,255,255,0.4)" fontSize={8} tickLine={false} />
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+            <XAxis dataKey="column" stroke="var(--muted-foreground)" fontSize={8} tickLine={false} />
+            <YAxis stroke="var(--muted-foreground)" fontSize={8} tickLine={false} />
             <RechartsTooltip {...tooltips} formatter={(val) => [`${val}%`, "Missing Rate"]} />
             <Bar dataKey="percentage" fill="var(--color-destructive)" radius={[3, 3, 0, 0]} />
           </BarChart>
@@ -1360,9 +1360,9 @@ const WidgetCard: React.FC<WidgetCardProps> = ({
       return (
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={mockCoeffs} layout="vertical" margin={{ top: 5, right: 10, left: -10, bottom: 5 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-            <XAxis type="number" stroke="rgba(255,255,255,0.4)" fontSize={8} tickLine={false} />
-            <YAxis dataKey="name" type="category" stroke="rgba(255,255,255,0.4)" fontSize={8} tickLine={false} />
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+            <XAxis type="number" stroke="var(--muted-foreground)" fontSize={8} tickLine={false} />
+            <YAxis dataKey="name" type="category" stroke="var(--muted-foreground)" fontSize={8} tickLine={false} />
             <RechartsTooltip {...tooltips} />
             <Bar dataKey="value">
               {mockCoeffs.map((entry, index) => {
@@ -1456,9 +1456,9 @@ const WidgetCard: React.FC<WidgetCardProps> = ({
       return (
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart data={chartData} margin={{ top: 10, right: 10, left: -25, bottom: 5 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-            <XAxis dataKey={apiCol1} type="number" stroke="rgba(255,255,255,0.4)" fontSize={9} tickLine={false} domain={["auto", "auto"]} />
-            <YAxis stroke="rgba(255,255,255,0.4)" fontSize={9} tickLine={false} />
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+            <XAxis dataKey={apiCol1} type="number" stroke="var(--muted-foreground)" fontSize={9} tickLine={false} domain={["auto", "auto"]} />
+            <YAxis stroke="var(--muted-foreground)" fontSize={9} tickLine={false} />
             <RechartsTooltip {...tooltips} cursor={{ strokeDasharray: "3 3" }} />
             <Scatter
               name="Points"
@@ -1484,9 +1484,9 @@ const WidgetCard: React.FC<WidgetCardProps> = ({
       return (
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={chartData} margin={{ top: 10, right: 10, left: -25, bottom: 5 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-            <XAxis dataKey="bin" stroke="rgba(255,255,255,0.4)" fontSize={9} tickLine={false} />
-            <YAxis stroke="rgba(255,255,255,0.4)" fontSize={9} tickLine={false} />
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+            <XAxis dataKey="bin" stroke="var(--muted-foreground)" fontSize={9} tickLine={false} />
+            <YAxis stroke="var(--muted-foreground)" fontSize={9} tickLine={false} />
             <RechartsTooltip {...tooltips} />
             <Bar
               dataKey="count"
@@ -1507,15 +1507,15 @@ const WidgetCard: React.FC<WidgetCardProps> = ({
       return (
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={boxPlotData} margin={{ top: 10, right: 10, left: -25, bottom: 5 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-            <XAxis dataKey="name" stroke="rgba(255,255,255,0.4)" fontSize={9} tickLine={false} />
-            <YAxis stroke="rgba(255,255,255,0.4)" fontSize={9} tickLine={false} />
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+            <XAxis dataKey="name" stroke="var(--muted-foreground)" fontSize={9} tickLine={false} />
+            <YAxis stroke="var(--muted-foreground)" fontSize={9} tickLine={false} />
             <RechartsTooltip
               content={({ active, payload }) => {
                 if (active && payload && payload.length) {
                   const data = payload[0].payload;
                   return (
-                    <div className="rounded-lg border border-white/10 bg-[#15151F]/95 p-2 text-[10px] shadow-md backdrop-blur-md">
+                    <div className="rounded-lg border border-border bg-card/95 p-2 text-[10px] shadow-md backdrop-blur-md">
                       <p className="font-semibold text-primary mb-1">{data.name}</p>
                       <div className="space-y-0.5 font-mono text-[9px]">
                         <div className="flex justify-between gap-4">
@@ -1546,10 +1546,10 @@ const WidgetCard: React.FC<WidgetCardProps> = ({
               }}
             />
             <Bar dataKey="min" stackId="box" fill="transparent" />
-            <Bar dataKey="lowerWhisker" stackId="box" fill="transparent" stroke="rgba(255,255,255,0.3)" strokeDasharray="3 3" />
+            <Bar dataKey="lowerWhisker" stackId="box" fill="transparent" stroke="var(--muted-foreground)" strokeDasharray="3 3" />
             <Bar dataKey="lowerBox" stackId="box" fill="rgba(6, 182, 212, 0.2)" stroke="var(--color-primary)" strokeWidth={1} />
             <Bar dataKey="upperBox" stackId="box" fill="rgba(6, 182, 212, 0.4)" stroke="var(--color-primary)" strokeWidth={1} />
-            <Bar dataKey="upperWhisker" stackId="box" fill="transparent" stroke="rgba(255,255,255,0.3)" strokeDasharray="3 3" />
+            <Bar dataKey="upperWhisker" stackId="box" fill="transparent" stroke="var(--muted-foreground)" strokeDasharray="3 3" />
           </BarChart>
         </ResponsiveContainer>
       );
@@ -1559,9 +1559,9 @@ const WidgetCard: React.FC<WidgetCardProps> = ({
       return (
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -25, bottom: 5 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-            <XAxis dataKey="x" type="number" domain={["auto", "auto"]} stroke="rgba(255,255,255,0.4)" fontSize={9} tickLine={false} tickFormatter={(v) => Number(v).toFixed(1)} />
-            <YAxis stroke="rgba(255,255,255,0.4)" fontSize={9} tickLine={false} />
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+            <XAxis dataKey="x" type="number" domain={["auto", "auto"]} stroke="var(--muted-foreground)" fontSize={9} tickLine={false} tickFormatter={(v) => Number(v).toFixed(1)} />
+            <YAxis stroke="var(--muted-foreground)" fontSize={9} tickLine={false} />
             <RechartsTooltip {...tooltips} labelFormatter={(l) => `Value: ${Number(l).toFixed(2)}`} />
             <Area type="monotone" dataKey="density" fill="rgba(6, 182, 212, 0.15)" stroke="var(--color-primary)" strokeWidth={1.5} />
           </AreaChart>
@@ -1573,9 +1573,9 @@ const WidgetCard: React.FC<WidgetCardProps> = ({
       return (
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={chartData} margin={{ top: 10, right: 10, left: -25, bottom: 5 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-            <XAxis dataKey="category" stroke="rgba(255,255,255,0.4)" fontSize={9} tickLine={false} />
-            <YAxis stroke="rgba(255,255,255,0.4)" fontSize={9} tickLine={false} />
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+            <XAxis dataKey="category" stroke="var(--muted-foreground)" fontSize={9} tickLine={false} />
+            <YAxis stroke="var(--muted-foreground)" fontSize={9} tickLine={false} />
             <RechartsTooltip {...tooltips} />
             <Bar
               dataKey="value"
@@ -1597,9 +1597,9 @@ const WidgetCard: React.FC<WidgetCardProps> = ({
       return (
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={chartData} margin={{ top: 10, right: 10, left: -25, bottom: 5 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-            <XAxis dataKey="name" stroke="rgba(255,255,255,0.4)" fontSize={9} tickLine={false} />
-            <YAxis stroke="rgba(255,255,255,0.4)" fontSize={9} tickLine={false} />
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+            <XAxis dataKey="name" stroke="var(--muted-foreground)" fontSize={9} tickLine={false} />
+            <YAxis stroke="var(--muted-foreground)" fontSize={9} tickLine={false} />
             <RechartsTooltip {...tooltips} />
             <Legend wrapperStyle={{ fontSize: 8 }} />
             {chartKeys.map((key, idx) => (
@@ -1675,9 +1675,9 @@ const WidgetCard: React.FC<WidgetCardProps> = ({
       return (
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={chartData} margin={{ top: 10, right: 10, left: -25, bottom: 5 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-            <XAxis dataKey={apiCol1} stroke="rgba(255,255,255,0.4)" fontSize={9} tickLine={false} />
-            <YAxis stroke="rgba(255,255,255,0.4)" fontSize={9} tickLine={false} />
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+            <XAxis dataKey={apiCol1} stroke="var(--muted-foreground)" fontSize={9} tickLine={false} />
+            <YAxis stroke="var(--muted-foreground)" fontSize={9} tickLine={false} />
             <RechartsTooltip {...tooltips} />
             <Line
               type="monotone"

@@ -151,7 +151,7 @@ function ProjectsPage() {
           <div className="flex items-center gap-3">
             <button
               onClick={toggleTheme}
-              className="flex h-7 w-7 items-center justify-center rounded-full border border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20 transition-all text-muted-foreground hover:text-foreground cursor-pointer shrink-0"
+              className="flex h-7 w-7 items-center justify-center rounded-full border border-border bg-foreground/5 hover:bg-foreground/10 hover:border-border/80 transition-all text-muted-foreground hover:text-foreground cursor-pointer shrink-0"
               title={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
             >
               {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
@@ -182,7 +182,7 @@ function ProjectsPage() {
             <p className="text-xs text-muted-foreground font-mono">Loading projects...</p>
           </div>
         ) : projects.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-24 border border-dashed border-white/5 rounded-2xl bg-secondary/10">
+          <div className="flex flex-col items-center justify-center py-24 border border-dashed border-border rounded-2xl bg-secondary/10">
             <div className="w-12 h-12 rounded-full bg-secondary/30 flex items-center justify-center mb-4">
               <FolderOpen className="w-5 h-5 text-muted-foreground" />
             </div>
@@ -209,7 +209,7 @@ function ProjectsPage() {
               return (
                 <Card
                   key={project.id}
-                  className="bg-[#15151F]/40 border-white/5 hover:border-white/10 transition-all duration-200 shadow-sm flex flex-col group"
+                  className="bg-card border-border hover:border-border/80 transition-all duration-200 shadow-sm flex flex-col group"
                 >
                   <CardHeader className="p-5 pb-3">
                     {editingId === project.id ? (
@@ -217,7 +217,7 @@ function ProjectsPage() {
                         <Input
                           value={editName}
                           onChange={(e) => setEditName(e.target.value)}
-                          className="h-8 text-xs bg-white/5 border-white/10"
+                          className="h-8 text-xs bg-foreground/5 border-border"
                           placeholder="Project name"
                           autoFocus
                           onKeyDown={(e) => {

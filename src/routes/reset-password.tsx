@@ -110,7 +110,7 @@ function ResetPasswordPage() {
           <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-secondary shadow-[0_0_24px_-4px_var(--color-primary)]">
             <Brain className="h-6 w-6 text-white" />
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-white">
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">
             Insight<span className="bg-gradient-to-r from-[#8B5CF6] to-[#A855F7] bg-clip-text text-transparent">Flow</span>
           </h1>
           <p className="text-xs text-muted-foreground font-mono uppercase tracking-wider">
@@ -119,14 +119,9 @@ function ResetPasswordPage() {
         </div>
 
         {/* Card */}
-        <Card className="border border-white/8 bg-[#15151F]/90 backdrop-blur-md shadow-2xl rounded-3xl overflow-hidden"
-          style={{
-            background: "linear-gradient(rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.05)), #15151F",
-            boxShadow: "0 25px 60px -25px rgba(0, 0, 0, 0.85), inset 0 0 0 1px rgba(255, 255, 255, 0.02)",
-          }}
-        >
+        <Card className="surface-card rounded-3xl overflow-hidden shadow-2xl">
           <CardHeader className="space-y-1.5 pb-6">
-            <CardTitle className="text-xl font-bold text-center text-white">
+            <CardTitle className="text-xl font-bold text-center text-foreground">
               {hasSession ? "Choose new password" : "Invalid recovery link"}
             </CardTitle>
             <CardDescription className="text-center text-xs text-muted-foreground">
@@ -167,7 +162,7 @@ function ResetPasswordPage() {
                       onChange={(e) => setPassword(e.target.value)}
                       required
                       disabled={loading || success}
-                      className="pl-10 pr-10 h-11 rounded-xl text-white placeholder:text-muted-foreground/30 border-white/10 bg-white/5 focus:border-primary/50 focus:ring-primary/20 text-sm"
+                      className="pl-10 pr-10 h-11 rounded-xl text-foreground placeholder:text-muted-foreground/30 border-border bg-foreground/5 focus:border-primary/50 focus:ring-primary/20 text-sm"
                     />
                     <button
                       type="button"
@@ -199,7 +194,7 @@ function ResetPasswordPage() {
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       required
                       disabled={loading || success}
-                      className="pl-10 pr-10 h-11 rounded-xl text-white placeholder:text-muted-foreground/30 border-white/10 bg-white/5 focus:border-primary/50 focus:ring-primary/20 text-sm"
+                      className="pl-10 pr-10 h-11 rounded-xl text-foreground placeholder:text-muted-foreground/30 border-border bg-foreground/5 focus:border-primary/50 focus:ring-primary/20 text-sm"
                     />
                     <button
                       type="button"

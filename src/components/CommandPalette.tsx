@@ -66,7 +66,7 @@ export function CommandPalette() {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="relative w-full max-w-lg overflow-hidden rounded-2xl border border-border bg-[#15151F]/90 shadow-2xl backdrop-blur-xl animate-in zoom-in-95 duration-150">
+      <div className="relative w-full max-w-lg overflow-hidden rounded-2xl border border-border bg-card/95 shadow-2xl backdrop-blur-xl animate-in zoom-in-95 duration-150">
         <button
           onClick={() => setOpen(false)}
           className="absolute top-4 right-4 text-muted-foreground hover:text-foreground cursor-pointer z-10"
@@ -93,7 +93,7 @@ export function CommandPalette() {
               <Command.Item
                 value="dashboard"
                 onSelect={() => handleAction(() => switchTab("dashboard"))}
-                className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs hover:bg-primary/10 cursor-pointer text-slate-300 font-medium"
+                className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs hover:bg-primary/10 cursor-pointer text-foreground/80 font-medium"
               >
                 <LayoutDashboard className="h-3.5 w-3.5 text-primary" />
                 <span>Go to Dashboard</span>
@@ -102,7 +102,7 @@ export function CommandPalette() {
               <Command.Item
                 value="sql query console workspace sandbox"
                 onSelect={() => handleAction(() => switchTab("chat"))}
-                className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs hover:bg-primary/10 cursor-pointer text-slate-300 font-medium"
+                className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs hover:bg-primary/10 cursor-pointer text-foreground/80 font-medium"
               >
                 <Terminal className="h-3.5 w-3.5 text-emerald-400" />
                 <span>Go to SQL Console</span>
@@ -111,7 +111,7 @@ export function CommandPalette() {
               <Command.Item
                 value="modeling panel machine learning workspace"
                 onSelect={() => handleAction(() => switchTab("modeling"))}
-                className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs hover:bg-primary/10 cursor-pointer text-slate-300 font-medium"
+                className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs hover:bg-primary/10 cursor-pointer text-foreground/80 font-medium"
               >
                 <Brain className="h-3.5 w-3.5 text-purple-400" />
                 <span>Go to Modeling Panel</span>
@@ -122,7 +122,7 @@ export function CommandPalette() {
               <Command.Item
                 value="run profiling data analysis"
                 onSelect={() => handleAction(() => runAnalysis())}
-                className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs hover:bg-primary/10 cursor-pointer text-slate-300 font-medium"
+                className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs hover:bg-primary/10 cursor-pointer text-foreground/80 font-medium"
               >
                 <Play className="h-3.5 w-3.5 text-blue-400" />
                 <span>Run Dataset Analysis</span>
@@ -131,7 +131,7 @@ export function CommandPalette() {
               <Command.Item
                 value="toggle theme mode dark light"
                 onSelect={() => handleAction(() => toggleTheme())}
-                className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs hover:bg-primary/10 cursor-pointer text-slate-300 font-medium"
+                className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs hover:bg-primary/10 cursor-pointer text-foreground/80 font-medium"
               >
                 <Moon className="h-3.5 w-3.5 text-amber-400 dark:hidden" />
                 <Sun className="h-3.5 w-3.5 text-amber-400 hidden dark:block" />
@@ -150,7 +150,7 @@ export function CommandPalette() {
                         window.location.href = `/app?projectId=${project.id}`;
                       })
                     }
-                    className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs hover:bg-primary/10 cursor-pointer text-slate-300 font-medium"
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs hover:bg-primary/10 cursor-pointer text-foreground/80 font-medium"
                   >
                     <Folder className="h-3.5 w-3.5 text-amber-500" />
                     <span>{project.name}</span>
