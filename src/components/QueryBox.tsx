@@ -25,7 +25,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Terminal, Send, HelpCircle, Code, Play, ShieldAlert, CheckCircle2, AlertTriangle, Database, X } from "lucide-react";
+import { Terminal, Send, HelpCircle, Code, Play, ShieldAlert, CheckCircle2, AlertTriangle, Database, X, Download } from "lucide-react";
 
 interface QueryBoxProps {
   sessionId: string;
@@ -242,6 +242,86 @@ export const QueryBox: React.FC<QueryBoxProps> = ({ sessionId, profile, projectI
       addToHistory(queryToRun);
     } finally {
       setSqlRunning(false);
+    }
+  };
+
+  const handleExportSQLQuery = async (format: "csv" | "xlsx") => {
+    if (!sqlResult || !sqlResult.rows.length) {
+      toast.error("No query results to export.");
+      return;
+    }
+
+    try {
+      const fileName = `insightflow_query_result_${sessionId}.${format}`;
+      if (format === "csv") {
+        const Papa = (await import("papaparse")).default;
+        const csv = Papa.unparse(sqlResult.rows);
+        const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.setAttribute("download", fileName);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+        toast.success("Query results downloaded as CSV successfully!");
+      } else {
+        const { downloadXLSX } = await import("@/lib/exportUtils");
+        downloadXLSX(sqlResult.rows, fileName, "Query Results");
+        toast.success("Query results downloaded as Excel successfully!");
+      }
+    } catch (err: any) {
+      console.error(err);
+      toast.error(`Failed to export query results: ${err.message || "Unknown error"}`);
+    }
+  };
+
+  const handleExportNLQuery = async (format: "csv" | "xlsx") => {
+    if (!queryResponse || !queryResponse.result) {
+      toast.error("No query results to export.");
+      return;
+    }
+
+    const { type, data } = queryResponse.result;
+    if (type !== "dataframe" && type !== "series") {
+      toast.error("Only DataFrame or Series results can be exported.");
+      return;
+    }
+
+    try {
+      const fileName = `insightflow_query_result_${sessionId}.${format}`;
+      let exportRows: any[] = [];
+      if (type === "dataframe") {
+        exportRows = data;
+      } else if (type === "series") {
+        exportRows = Object.entries(data).map(([key, val]) => ({
+          Index: key,
+          Value: val
+        }));
+      }
+
+      if (format === "csv") {
+        const Papa = (await import("papaparse")).default;
+        const csv = Papa.unparse(exportRows);
+        const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.setAttribute("download", fileName);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+        toast.success("Query results downloaded as CSV successfully!");
+      } else {
+        const { downloadXLSX } = await import("@/lib/exportUtils");
+        downloadXLSX(exportRows, fileName, "Query Results");
+        toast.success("Query results downloaded as Excel successfully!");
+      }
+    } catch (err: any) {
+      console.error(err);
+      toast.error(`Failed to export query results: ${err.message || "Unknown error"}`);
     }
   };
 
@@ -485,12 +565,29 @@ export const QueryBox: React.FC<QueryBoxProps> = ({ sessionId, profile, projectI
                   </div>
                 </div>
 
-                {/* Execution Result Section */}
                 <div className="space-y-2">
-                  <h4 className="text-sm font-semibold flex items-center gap-1.5 text-foreground">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-                    Execution Output
-                  </h4>
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-sm font-semibold flex items-center gap-1.5 text-foreground">
+                      <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                      Execution Output
+                    </h4>
+                    {queryResponse.result && (queryResponse.result.type === "dataframe" || queryResponse.result.type === "series") && (
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleExportNLQuery("csv")}
+                          className="flex items-center gap-1 text-[10px] text-primary hover:underline cursor-pointer"
+                        >
+                          <Download className="h-3 w-3" /> CSV
+                        </button>
+                        <button
+                          onClick={() => handleExportNLQuery("xlsx")}
+                          className="flex items-center gap-1 text-[10px] text-emerald-500 hover:underline cursor-pointer"
+                        >
+                          <Download className="h-3 w-3" /> Excel
+                        </button>
+                      </div>
+                    )}
+                  </div>
                   <div className="p-1 rounded-lg border border-border/80 bg-muted/10">
                     {renderResult(queryResponse.result)}
                   </div>
@@ -746,7 +843,25 @@ export const QueryBox: React.FC<QueryBoxProps> = ({ sessionId, profile, projectI
             {sqlResult && (
               <div className="space-y-3 mt-4 pt-4 border-t border-border text-left">
                 <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span className="font-mono">Returned {sqlResult.rows.length} rows</span>
+                  <div className="flex items-center gap-3">
+                    <span className="font-mono">Returned {sqlResult.rows.length} rows</span>
+                    {sqlResult.rows.length > 0 && (
+                      <div className="flex items-center gap-2 border-l border-border pl-3">
+                        <button
+                          onClick={() => handleExportSQLQuery("csv")}
+                          className="flex items-center gap-1 text-[10px] text-primary hover:underline cursor-pointer"
+                        >
+                          <Download className="h-3 w-3" /> CSV
+                        </button>
+                        <button
+                          onClick={() => handleExportSQLQuery("xlsx")}
+                          className="flex items-center gap-1 text-[10px] text-emerald-500 hover:underline cursor-pointer"
+                        >
+                          <Download className="h-3 w-3" /> Excel
+                        </button>
+                      </div>
+                    )}
+                  </div>
                   {sqlResult.execution_time_ms !== undefined && (
                     <span className="font-mono text-emerald-400">Execution: {sqlResult.execution_time_ms.toFixed(1)} ms</span>
                   )}

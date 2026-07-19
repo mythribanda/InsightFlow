@@ -128,3 +128,67 @@ export const exportVisualizationCode = createServerFn({ method: "POST" })
       );
     }
   });
+
+export const generateNLVisualization = createServerFn({ method: "POST" })
+  .inputValidator((v: unknown) => {
+    if (
+      typeof v === "object" &&
+      v !== null &&
+      "session_id" in v &&
+      "query" in v
+    ) {
+      return v as {
+        session_id: string;
+        query: string;
+      };
+    }
+    throw new Error("Invalid NL visualization request");
+  })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ data: request, context }) => {
+    if (!context?.userId) {
+      throw new Response("Unauthorized", { status: 401 });
+    }
+    const BACKEND_URL = process.env.MODELING_API_URL || "http://localhost:8000";
+    try {
+      const response = await fetch(
+        `${BACKEND_URL}/nl-visualize/${request.session_id}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-user-id": context.userId,
+            "x-internal-secret": process.env.INTERNAL_API_SECRET || "",
+          },
+          body: JSON.stringify({
+            query: request.query,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        let errorDetail = "Failed to generate visualization spec from Groq";
+        try {
+          const parsed = JSON.parse(errorText);
+          if (parsed.detail) errorDetail = parsed.detail;
+        } catch {
+          if (errorText) errorDetail = errorText;
+        }
+        throw new Error(errorDetail);
+      }
+
+      return await response.json() as {
+        chart_type: string;
+        x_field: string;
+        y_field: string | null;
+        title: string;
+        filters?: any[];
+      };
+    } catch (error) {
+      console.error("NL visualization error:", error);
+      throw new Error(
+        error instanceof Error ? error.message : "Unknown error occurred"
+      );
+    }
+  });

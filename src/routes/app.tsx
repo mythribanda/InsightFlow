@@ -65,6 +65,7 @@ import { AnomalyPanel } from "@/components/AnomalyPanel";
 import { QueryBox } from "@/components/QueryBox";
 import { CalcColumnPanel } from "@/components/CalcColumnPanel";
 import { ClusteringPanel } from "@/components/ClusteringPanel";
+import { DataGrid } from "@/components/DataGrid";
 import { getTextAnalysis, getSentimentAnalysis } from "@/server/textAnalysis";
 import { Calculator } from "lucide-react";
 import { CountUp } from "@/components/reactbits/CountUp";
@@ -167,6 +168,9 @@ function Home() {
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [projectName, setProjectName] = useState("");
   const [isSavingProject, setIsSavingProject] = useState(false);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [availableSheets, setAvailableSheets] = useState<string[]>([]);
+  const [showSheetModal, setShowSheetModal] = useState(false);
 
   // Load project on mount or when projectId changes
   useEffect(() => {
@@ -247,7 +251,7 @@ function Home() {
     return computeRiskLevel(profile, trust);
   }, [profile, analysis]);
 
-  const handleFile = async (file: File) => {
+  const handleFile = async (file: File, selectedSheet?: string) => {
     const ext = file.name.split(".").pop()?.toLowerCase();
     if (!["csv", "tsv", "txt", "xlsx", "xls"].includes(ext ?? "")) {
       toast.error("Unsupported file. Please upload .csv, .tsv, .xlsx, or .xls.");
@@ -259,8 +263,19 @@ function Home() {
     }
     setBusy(true);
     try {
-      const parsed = await parseFile(file);
-      if (!parsed.rows.length) { toast.error("File has no rows."); return; }
+      const parsed = await parseFile(file, selectedSheet);
+      if (parsed.sheets && parsed.sheets.length > 1) {
+        setPendingFile(file);
+        setAvailableSheets(parsed.sheets);
+        setShowSheetModal(true);
+        setBusy(false);
+        return;
+      }
+      if (!parsed.rows.length) {
+        toast.error("File has no rows.");
+        setBusy(false);
+        return;
+      }
       const p = profileDataset(parsed.rows, parsed.headers);
       setProfile(p); setRows(parsed.rows); setFileName(parsed.fileName); setTab("dashboard");
       setNarrative(""); setStory("");
@@ -822,7 +837,7 @@ function Home() {
                     sessionId={sessionId}
                   />
                 ) : (
-                  <DashboardGrid sessionId={sessionId} profile={profile} projectId={projectId} analysis={analysis} />
+                  <DashboardGrid sessionId={sessionId} profile={profile} projectId={projectId} analysis={analysis} rows={rows} />
                 )}
               </div>
             )}
@@ -835,6 +850,12 @@ function Home() {
                 aiBusy={aiBusy === "narrative"}
                 sessionId={sessionId}
                 analysis={analysis}
+                rows={rows}
+                onRowsChange={(newRows) => {
+                  setRows(newRows);
+                  const p = profileDataset(newRows, profile.headers);
+                  setProfile(p);
+                }}
               />
             )}
             {tab === "insights" && (
@@ -982,6 +1003,48 @@ function Home() {
                 ) : (
                   "Save"
                 )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showSheetModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="w-full max-w-sm rounded-xl border border-border bg-card p-5 shadow-2xl animate-in zoom-in-95 duration-150 text-left">
+            <h3 className="text-sm font-bold text-foreground flex items-center gap-1.5">
+              <Database className="h-4 w-4 text-primary" />
+              Select Excel Sheet
+            </h3>
+            <p className="mt-1 text-xs text-muted-foreground">
+              This spreadsheet contains multiple sheets. Please choose one to load.
+            </p>
+            <div className="mt-4 max-h-48 overflow-y-auto space-y-1">
+              {availableSheets.map((sheetName) => (
+                <button
+                  key={sheetName}
+                  onClick={async () => {
+                    setShowSheetModal(false);
+                    if (pendingFile) {
+                      await handleFile(pendingFile, sheetName);
+                    }
+                  }}
+                  className="w-full text-left rounded-lg px-3 py-2 text-xs font-medium text-foreground hover:bg-primary/10 hover:text-primary border border-transparent hover:border-primary/20 transition-all cursor-pointer truncate"
+                >
+                  {sheetName}
+                </button>
+              ))}
+            </div>
+            <div className="mt-4 pt-3 border-t border-border flex justify-end">
+              <button
+                onClick={() => {
+                  setShowSheetModal(false);
+                  setPendingFile(null);
+                  setAvailableSheets([]);
+                }}
+                className="rounded-lg px-3 py-1.5 border border-border hover:bg-foreground/5 text-[10px] font-mono font-medium text-muted-foreground hover:text-foreground transition-all cursor-pointer"
+              >
+                Cancel
               </button>
             </div>
           </div>
@@ -1463,6 +1526,7 @@ function Dashboard({
 /* ─── Profiling ─── */
 function Profiling({
   profile, forecast, narrative, runNarrative, aiBusy, sessionId, analysis,
+  rows, onRowsChange
 }: {
   profile: DatasetProfile;
   forecast: string | null;
@@ -1471,9 +1535,12 @@ function Profiling({
   aiBusy: boolean;
   sessionId: string;
   analysis: AnalysisResult | null;
+  rows: Record<string, unknown>[];
+  onRowsChange: (newRows: Record<string, unknown>[]) => void;
 }) {
   const runExportCleanCSV = useServerFn(exportCleanCSV);
   const [isExporting, setIsExporting] = useState(false);
+  const [isExportingXLSX, setIsExportingXLSX] = useState(false);
 
   const handleDownloadCleanCSV = async () => {
     if (!sessionId) {
@@ -1504,6 +1571,43 @@ function Profiling({
       toast.error(err instanceof Error ? err.message : "Failed to export CSV");
     } finally {
       setIsExporting(false);
+    }
+  };
+
+  const handleDownloadCleanXLSX = async () => {
+    if (!sessionId) {
+      toast.error("No active session found.");
+      return;
+    }
+    setIsExportingXLSX(true);
+    try {
+      const csvContent = await runExportCleanCSV({
+        data: {
+          session_id: sessionId,
+          excluded_features: [],
+        },
+      });
+
+      const parsed = Papa.parse<Record<string, unknown>>(csvContent, {
+        header: true,
+        dynamicTyping: false,
+        skipEmptyLines: true,
+      });
+
+      if (!parsed.data.length) {
+        toast.error("Clean dataset has no rows.");
+        setIsExportingXLSX(false);
+        return;
+      }
+
+      const { downloadXLSX } = await import("@/lib/exportUtils");
+      downloadXLSX(parsed.data, `insightflow_clean_${sessionId}.xlsx`, "Cleaned Dataset");
+      toast.success("Clean Excel file downloaded successfully!");
+    } catch (err) {
+      console.error(err);
+      toast.error(err instanceof Error ? err.message : "Failed to export Excel file");
+    } finally {
+      setIsExportingXLSX(false);
     }
   };
 
@@ -1564,7 +1668,7 @@ function Profiling({
       </div>
 
       <ColumnTable profile={profile} sessionId={sessionId} />
-      <PreviewTable profile={profile} />
+      <DataGrid rows={rows} profile={profile} onRowsChange={onRowsChange} />
 
       {/* Export Clean Dataset Card */}
       <div className="surface-card relative overflow-hidden p-6">
@@ -1589,20 +1693,37 @@ function Profiling({
               Download the clean dataset. Missing values imputed, outliers marked, and duplicate rows dropped.
             </p>
           </div>
-          <ClickSpark sparkCount={10} sparkColor="#A855F7" sparkRadius={52} duration={550}>
-            <button
-              onClick={handleDownloadCleanCSV}
-              disabled={isExporting || !sessionId}
-              className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-primary to-accent px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-[0_0_30px_-6px_var(--color-primary)] transition-all duration-200 hover:opacity-90 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:scale-100 disabled:pointer-events-none"
-            >
-              {isExporting ? (
-                <span className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
-              ) : (
-                <Download className="h-4 w-4" />
-              )}
-              {isExporting ? "Exporting..." : "Download Preprocessed CSV"}
-            </button>
-          </ClickSpark>
+          <div className="flex flex-col sm:flex-row gap-2.5">
+            <ClickSpark sparkCount={10} sparkColor="#A855F7" sparkRadius={52} duration={550}>
+              <button
+                onClick={handleDownloadCleanCSV}
+                disabled={isExporting || isExportingXLSX || !sessionId}
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-primary to-accent px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-[0_0_30px_-6px_var(--color-primary)] transition-all duration-200 hover:opacity-90 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:scale-100 disabled:pointer-events-none"
+              >
+                {isExporting ? (
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
+                ) : (
+                  <Download className="h-4 w-4" />
+                )}
+                {isExporting ? "Exporting..." : "Download Preprocessed CSV"}
+              </button>
+            </ClickSpark>
+
+            <ClickSpark sparkCount={10} sparkColor="#10B981" sparkRadius={52} duration={550}>
+              <button
+                onClick={handleDownloadCleanXLSX}
+                disabled={isExporting || isExportingXLSX || !sessionId}
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-600 px-5 py-2.5 text-sm font-semibold text-white shadow-[0_0_30px_-6px_var(--color-success)] transition-all duration-200 hover:opacity-90 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:scale-100 disabled:pointer-events-none"
+              >
+                {isExportingXLSX ? (
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                ) : (
+                  <Download className="h-4 w-4" />
+                )}
+                {isExportingXLSX ? "Exporting..." : "Download Preprocessed Excel"}
+              </button>
+            </ClickSpark>
+          </div>
         </div>
       </div>
     </div>

@@ -50,6 +50,7 @@ export const ClusteringPanel: React.FC<ClusteringPanelProps> = ({ sessionId, pro
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [isExportingXLSX, setIsExportingXLSX] = useState(false);
 
   // OPTIMAL K: runs silhouette sweep over K=2..10 whenever features change
   const [optimalK, setOptimalK] = useState<number | null>(null);
@@ -122,6 +123,38 @@ export const ClusteringPanel: React.FC<ClusteringPanelProps> = ({ sessionId, pro
       toast.error("Failed to export clustered dataset.");
     } finally {
       setIsExporting(false);
+    }
+  };
+
+  const handleExportXLSX = async () => {
+    if (!sessionId) return;
+    setIsExportingXLSX(true);
+    try {
+      const csvContent = await runExportClusteredCSV({
+        data: { session_id: sessionId }
+      });
+      
+      const Papa = (await import("papaparse")).default;
+      const parsed = Papa.parse<Record<string, unknown>>(csvContent, {
+        header: true,
+        dynamicTyping: false,
+        skipEmptyLines: true,
+      });
+
+      if (!parsed.data.length) {
+        toast.error("Clustered dataset has no rows.");
+        setIsExportingXLSX(false);
+        return;
+      }
+
+      const { downloadXLSX } = await import("@/lib/exportUtils");
+      downloadXLSX(parsed.data, `insightflow_clustered_${sessionId}.xlsx`, "Clustered Dataset");
+      toast.success("Dataset with cluster labels exported to Excel successfully!");
+    } catch (err: any) {
+      console.error(err);
+      toast.error("Failed to export clustered dataset to Excel.");
+    } finally {
+      setIsExportingXLSX(false);
     }
   };
 
@@ -430,19 +463,34 @@ export const ClusteringPanel: React.FC<ClusteringPanelProps> = ({ sessionId, pro
                   </div>
 
                   {/* Assign labels back to dataset export button */}
-                  <Button
-                    onClick={handleExport}
-                    disabled={isExporting}
-                    variant="outline"
-                    className="w-full border-primary/45 bg-primary/5 text-primary hover:bg-primary/10 cursor-pointer font-semibold py-5.5"
-                  >
-                    {isExporting ? (
-                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent mr-1.5" />
-                    ) : (
-                      <Download className="h-4 w-4 mr-1.5" />
-                    )}
-                    {isExporting ? "Exporting..." : "Export Clustered Dataset (CSV)"}
-                  </Button>
+                  <div className="flex flex-col sm:flex-row gap-2 w-full">
+                    <Button
+                      onClick={handleExport}
+                      disabled={isExporting || isExportingXLSX}
+                      variant="outline"
+                      className="flex-1 border-primary/45 bg-primary/5 text-primary hover:bg-primary/10 cursor-pointer font-semibold py-5.5"
+                    >
+                      {isExporting ? (
+                        <span className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent mr-1.5" />
+                      ) : (
+                        <Download className="h-4 w-4 mr-1.5" />
+                      )}
+                      {isExporting ? "Exporting..." : "Export Clustered CSV"}
+                    </Button>
+                    
+                    <button
+                      onClick={handleExportXLSX}
+                      disabled={isExporting || isExportingXLSX}
+                      className="flex-1 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-600 px-4 py-2 text-xs font-semibold text-white shadow-[0_0_20px_-4px_var(--color-success)] transition-all duration-200 hover:opacity-90 hover:scale-102 active:scale-98 disabled:opacity-50 disabled:scale-100 disabled:pointer-events-none cursor-pointer"
+                    >
+                      {isExportingXLSX ? (
+                        <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent mr-1.5 inline-block align-middle" />
+                      ) : (
+                        <Download className="h-4 w-4 mr-1.5 inline-block align-middle" />
+                      )}
+                      <span className="align-middle">{isExportingXLSX ? "Exporting..." : "Export Excel"}</span>
+                    </button>
+                  </div>
                 </div>
 
                 {/* Plot Area */}

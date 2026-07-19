@@ -6,9 +6,10 @@ export interface ParsedFile {
   headers: string[];
   fileName: string;
   fileSize: number;
+  sheets?: string[];
 }
 
-export async function parseFile(file: File): Promise<ParsedFile> {
+export async function parseFile(file: File, selectedSheet?: string): Promise<ParsedFile> {
   const MAX_FILE_SIZE_BYTES = 25 * 1024 * 1024; // 25 MB
   if (file.size > MAX_FILE_SIZE_BYTES) {
     throw new Error(
@@ -36,7 +37,17 @@ export async function parseFile(file: File): Promise<ParsedFile> {
   }
   const buf = await file.arrayBuffer();
   const wb = XLSX.read(buf, { type: "array" });
-  const sheet = wb.Sheets[wb.SheetNames[0]];
+  
+  if (wb.SheetNames.length > 1 && !selectedSheet) {
+    return { rows: [], headers: [], fileName: file.name, fileSize: file.size, sheets: wb.SheetNames };
+  }
+  
+  const targetSheetName = selectedSheet || wb.SheetNames[0];
+  const sheet = wb.Sheets[targetSheetName];
+  if (!sheet) {
+    throw new Error(`Sheet "${targetSheetName}" not found in workbook.`);
+  }
+  
   const json = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: "" });
   const headers = json.length ? Object.keys(json[0]) : [];
   return { rows: json, headers, fileName: file.name, fileSize: file.size };
