@@ -1023,13 +1023,14 @@ function TopBar({
       setDisplayName(null);
       return;
     }
+    const userId = session.user.id;
 
     async function fetchProfile() {
       try {
         const { data, error } = await supabase
           .from("profiles")
           .select("avatar_url, display_name")
-          .eq("id", session.user.id)
+          .eq("id", userId)
           .single();
         if (!error && data) {
           setAvatarUrl(data.avatar_url || null);
@@ -1044,14 +1045,14 @@ function TopBar({
 
     // Subscribe to changes on profiles table for current user
     const channel = supabase
-      .channel(`profile-updates-${session.user.id}`)
+      .channel(`profile-updates-${userId}`)
       .on(
         "postgres_changes",
         {
           event: "UPDATE",
           schema: "public",
           table: "profiles",
-          filter: `id=eq.${session.user.id}`,
+          filter: `id=eq.${userId}`,
         },
         (payload) => {
           if (payload.new) {
