@@ -82,3 +82,16 @@ testing/test-results/results.json
 feature_vs_target_age.png    
 target_distribution.png      
 reproduce.py                 
+# Generated files
+playwright-report/
+test-results/
+testing/test-results/
+
+# Test fixtures
+tests/automation_scripts/fixtures/test-data/oversized.csv
+
+# Debug files
+feature_vs_target_age.png
+target_distribution.png
+reproduce.py
+skills-lock.json
