@@ -1,0 +1,1636 @@
+{
+  "config": {
+    "argv": [
+      "C:\\Program Files\\nodejs\\node.exe",
+      "C:\\Users\\Mythri Banda\\OneDrive\\Desktop\\github projects\\InsightFlow\\node_modules\\@playwright\\test\\cli.js",
+      "test",
+      "--list",
+      "--config=testing/playwright.config.ts"
+    ],
+    "configFile": "C:\\Users\\Mythri Banda\\OneDrive\\Desktop\\github projects\\InsightFlow\\testing\\playwright.config.ts",
+    "rootDir": "C:/Users/MYTHRI~1/AppData/Local/Temp/insightflow-playwright/QzpcVXNlcnNc",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {},
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "C:/Users/Mythri Banda/OneDrive/Desktop/github projects/InsightFlow/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {},
+        "id": "",
+        "name": "",
+        "testDir": "C:/Users/MYTHRI~1/AppData/Local/Temp/insightflow-playwright/QzpcVXNlcnNc",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 90000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "html",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "test-results/results.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.61.1",
+    "workers": 2,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "specs\\auth.spec.ts",
+      "file": "specs/auth.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Authentication Flows",
+          "file": "specs/auth.spec.ts",
+          "line": 9,
+          "column": 6,
+          "specs": [
+            {
+              "title": "TC_LOGIN_001: Verify login with valid registered email and correct password via local storage bypass",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 90000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "dc83760d852894d7a94b-1888ef79c5a1db4bb3be",
+              "file": "specs/auth.spec.ts",
+              "line": 16,
+              "column": 3
+            },
+            {
+              "title": "TC_LOGIN_002: Verify login fails with incorrect password",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 90000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "dc83760d852894d7a94b-f182dce7d27f240d7e6b",
+              "file": "specs/auth.spec.ts",
+              "line": 25,
+              "column": 3
+            },
+            {
+              "title": "TC_LOGIN_003: Verify login fails with non-existent email",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 90000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "dc83760d852894d7a94b-a763f457bcfa8ca82c23",
+              "file": "specs/auth.spec.ts",
+              "line": 39,
+              "column": 3
+            },
+            {
+              "title": "TC_LOGIN_004: Verify empty email field validation",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 90000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "dc83760d852894d7a94b-4f94c8e101e4216b74c1",
+              "file": "specs/auth.spec.ts",
+              "line": 52,
+              "column": 3
+            },
+            {
+              "title": "TC_LOGIN_005: Verify empty password field validation",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 90000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "dc83760d852894d7a94b-ccc704255df4c7c0a729",
+              "file": "specs/auth.spec.ts",
+              "line": 61,
+              "column": 3
+            },
+            {
+              "title": "TC_LOGIN_006: Verify invalid email format is rejected",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 90000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "dc83760d852894d7a94b-74f43cc48b28f18cc507",
+              "file": "specs/auth.spec.ts",
+              "line": 70,
+              "column": 3
+            },
+            {
+              "title": "TC_LOGIN_007: Verify SQL injection payload in email field is safely handled",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 90000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "dc83760d852894d7a94b-9be07eab879f67bb30a1",
+              "file": "specs/auth.spec.ts",
+              "line": 86,
+              "column": 3
+            },
+            {
+              "title": "TC_LOGIN_008: Verify show/hide password eye icon toggles masked text",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 90000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "dc83760d852894d7a94b-72af476f906ad810f355",
+              "file": "specs/auth.spec.ts",
+              "line": 99,
+              "column": 3
+            },
+            {
+              "title": "TC_LOGIN_009: Verify switching to Email OTP login method changes form",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 90000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "dc83760d852894d7a94b-ba441932d3245079932f",
+              "file": "specs/auth.spec.ts",
+              "line": 118,
+              "column": 3
+            },
+            {
+              "title": "TC_LOGIN_010: Verify 'Forgot password' link navigates to reset-password route",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 90000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "dc83760d852894d7a94b-ea802ae53e1e066dcfa5",
+              "file": "specs/auth.spec.ts",
+              "line": 130,
+              "column": 3
+            },
+            {
+              "title": "TC_LOGIN_011: Verify 'Sign up' link navigates to signup route",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 90000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "dc83760d852894d7a94b-daca4ba79f84fdc22126",
+              "file": "specs/auth.spec.ts",
+              "line": 138,
+              "column": 3
+            },
+            {
+              "title": "TC_LOGIN_012: Verify Google OAuth button initiates Google sign-in",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 90000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "dc83760d852894d7a94b-2905c95c76da765c0c85",
+              "file": "specs/auth.spec.ts",
+              "line": 146,
+              "column": 3
+            },
+            {
+              "title": "TC_LOGIN_013: Verify Google OAuth cancellation/error is handled gracefully",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 90000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "dc83760d852894d7a94b-416713ba5f304f5219a3",
+              "file": "specs/auth.spec.ts",
+              "line": 161,
+              "column": 3
+            },
+            {
+              "title": "TC_LOGIN_014: Verify session persists across page refresh",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 90000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "dc83760d852894d7a94b-28876b8a61d021469227",
+              "file": "specs/auth.spec.ts",
+              "line": 174,
+              "column": 3
+            },
+            {
+              "title": "TC_LOGIN_015: Verify successful login redirects to main dashboard",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 90000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "dc83760d852894d7a94b-f177685d86c43c854e69",
+              "file": "specs/auth.spec.ts",
+              "line": 184,
+              "column": 3
+            },
+            {
+              "title": "TC_LOGIN_016: Verify repeated failed login attempts are rate-limited",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 90000,
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "C:\\Users\\MYTHRI~1\\AppData\\Local\\Temp\\insightflow-playwright\\QzpcVXNlcnNc\\specs\\auth.spec.ts",
+                        "line": 192,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "expectedStatus": "skipped",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "dc83760d852894d7a94b-259130a0d3da77389a34",
+              "file": "specs/auth.spec.ts",
+              "line": 192,
+              "column": 8
+            },
+            {
+              "title": "TC_LOGIN_017: Verify password input is masked by default",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 90000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "dc83760d852894d7a94b-1c2229cd7abc42ad3c3f",
+              "file": "specs/auth.spec.ts",
+              "line": 197,
+              "column": 3
+            },
+            {
+              "title": "TC_OTP_001: Verify OTP step is shown when email submitted in OTP mode",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 90000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "dc83760d852894d7a94b-fad6e5e62c157968686d",
+              "file": "specs/auth.spec.ts",
+              "line": 205,
+              "column": 3
+            },
+            {
+              "title": "TC_OTP_002: Verify correct 6-digit OTP logs user in",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 90000,
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "C:\\Users\\MYTHRI~1\\AppData\\Local\\Temp\\insightflow-playwright\\QzpcVXNlcnNc\\specs\\auth.spec.ts",
+                        "line": 220,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "expectedStatus": "skipped",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "dc83760d852894d7a94b-06acc8db42f596252706",
+              "file": "specs/auth.spec.ts",
+              "line": 220,
+              "column": 8
+            },
+            {
+              "title": "TC_OTP_003: Verify incorrect OTP shows error",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 90000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "dc83760d852894d7a94b-d973fa3d3f63d17efad8",
+              "file": "specs/auth.spec.ts",
+              "line": 225,
+              "column": 3
+            },
+            {
+              "title": "TC_OTP_004: Verify expired OTP is rejected",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 90000,
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "C:\\Users\\MYTHRI~1\\AppData\\Local\\Temp\\insightflow-playwright\\QzpcVXNlcnNc\\specs\\auth.spec.ts",
+                        "line": 253,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "expectedStatus": "skipped",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "dc83760d852894d7a94b-440570f16ce2741cbc3a",
+              "file": "specs/auth.spec.ts",
+              "line": 253,
+              "column": 8
+            },
+            {
+              "title": "TC_OTP_005: Verify OTP field only accepts 6 numeric digits",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 90000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "dc83760d852894d7a94b-929e0eba7437886fda80",
+              "file": "specs/auth.spec.ts",
+              "line": 258,
+              "column": 3
+            },
+            {
+              "title": "TC_OTP_006: Verify resend OTP functionality works and old code invalidated",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 90000,
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "C:\\Users\\MYTHRI~1\\AppData\\Local\\Temp\\insightflow-playwright\\QzpcVXNlcnNc\\specs\\auth.spec.ts",
+                        "line": 284,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "expectedStatus": "skipped",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "dc83760d852894d7a94b-6a0c39bd26362fba1162",
+              "file": "specs/auth.spec.ts",
+              "line": 284,
+              "column": 8
+            },
+            {
+              "title": "TC_OTP_007: Verify Back button returns to credentials/email step",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 90000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "dc83760d852894d7a94b-950eb1d10ef46d89ca0c",
+              "file": "specs/auth.spec.ts",
+              "line": 289,
+              "column": 3
+            },
+            {
+              "title": "TC_OTP_008: Verify dev-mode OTP bypass path is not active in production",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 90000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "dc83760d852894d7a94b-d53893f34bae5bb252fa",
+              "file": "specs/auth.spec.ts",
+              "line": 307,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "specs\\calc-columns.spec.ts",
+      "file": "specs/calc-columns.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Calculated Columns",
+          "file": "specs/calc-columns.spec.ts",
+          "line": 6,
+          "column": 6,
+          "specs": [
+            {
+              "title": "TC_CALC_001: Verify creating a calculated column with a valid arithmetic formula",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 90000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "bcc1380801c5ef9576a6-95b715edeb02ddc8c1fc",
+              "file": "specs/calc-columns.spec.ts",
+              "line": 19,
+              "column": 3
+            },
+            {
+              "title": "TC_CALC_002: Verify formula referencing a non-existent column returns an error",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 90000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "bcc1380801c5ef9576a6-4185db1f364361995a63",
+              "file": "specs/calc-columns.spec.ts",
+              "line": 39,
+              "column": 3
+            },
+            {
+              "title": "TC_CALC_003: Verify formula injection/unsafe code execution attempt is blocked",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 90000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "bcc1380801c5ef9576a6-a6edd0e3466c9f0ed3aa",
+              "file": "specs/calc-columns.spec.ts",
+              "line": 55,
+              "column": 3
+            },
+            {
+              "title": "TC_CALC_004: Verify boolean expression formulas are supported",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 90000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "bcc1380801c5ef9576a6-2b6392fbf3e451964cf8",
+              "file": "specs/calc-columns.spec.ts",
+              "line": 78,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "specs\\modeling.spec.ts",
+      "file": "specs/modeling.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Modeling Studio",
+          "file": "specs/modeling.spec.ts",
+          "line": 50,
+          "column": 6,
+          "specs": [
+            {
+              "title": "TC_MODEL_001: Verify task auto-detection based on target column type",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 90000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "e79397f2e4a6a821d753-8a27d3b618a13c20da44",
+              "file": "specs/modeling.spec.ts",
+              "line": 57,
+              "column": 3
+            },
+            {
+              "title": "TC_MODEL_002: Verify user can manually override auto-detected task",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 90000,
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "C:\\Users\\MYTHRI~1\\AppData\\Local\\Temp\\insightflow-playwright\\QzpcVXNlcnNc\\specs\\modeling.spec.ts",
+                        "line": 81,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "expectedStatus": "skipped",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "e79397f2e4a6a821d753-a48902a459bff43653ff",
+              "file": "specs/modeling.spec.ts",
+              "line": 81,
+              "column": 8
+            },
+            {
+              "title": "TC_MODEL_003: Verify Target Suitability Checker flags missing labels",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 90000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "e79397f2e4a6a821d753-225a04a476683a5f8756",
+              "file": "specs/modeling.spec.ts",
+              "line": 86,
+              "column": 3
+            },
+            {
+              "title": "TC_MODEL_004: Verify Target Suitability Checker flags class imbalance",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 90000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "e79397f2e4a6a821d753-38149e8d17313ee5a697",
+              "file": "specs/modeling.spec.ts",
+              "line": 100,
+              "column": 3
+            },
+            {
+              "title": "TC_MODEL_010: Verify model training runs baseline + HistGradientBoosting models only",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 90000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "e79397f2e4a6a821d753-f9ef535b2c06bcac385e",
+              "file": "specs/modeling.spec.ts",
+              "line": 114,
+              "column": 3
+            },
+            {
+              "title": "TC_MODEL_012: Verify classification task shows only classification metrics",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 90000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "e79397f2e4a6a821d753-987e00ef254cc60cfa21",
+              "file": "specs/modeling.spec.ts",
+              "line": 125,
+              "column": 3
+            },
+            {
+              "title": "TC_MODEL_013: Verify regression task shows only regression metrics",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 90000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "e79397f2e4a6a821d753-ade20fdf08fc1f59adff",
+              "file": "specs/modeling.spec.ts",
+              "line": 137,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "specs\\navigation.spec.ts",
+      "file": "specs/navigation.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Navigation - Tabs",
+          "file": "specs/navigation.spec.ts",
+          "line": 4,
+          "column": 6,
+          "specs": [
+            {
+              "title": "TC_UI_NAV_001: Verify clicking 'ML Models' tab renders ModelingPanel",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 90000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "fe8ab7c4d44c1917e421-6b0d85831fbef6f7954d",
+              "file": "specs/navigation.spec.ts",
+              "line": 13,
+              "column": 3
+            },
+            {
+              "title": "TC_UI_NAV_002: Verify clicking 'Anomalies' tab renders AnomalyPanel",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 90000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "fe8ab7c4d44c1917e421-473d8e9fb67506c512ba",
+              "file": "specs/navigation.spec.ts",
+              "line": 21,
+              "column": 3
+            },
+            {
+              "title": "TC_UI_NAV_003: Verify clicking 'Clustering' tab renders ClusteringPanel",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 90000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "fe8ab7c4d44c1917e421-2b03e6913efd08b3f901",
+              "file": "specs/navigation.spec.ts",
+              "line": 29,
+              "column": 3
+            },
+            {
+              "title": "TC_UI_NAV_004: Verify clicking 'Calculated Cols' tab renders CalcColumnPanel",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 90000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "fe8ab7c4d44c1917e421-2890c070c2f2c4f0abcf",
+              "file": "specs/navigation.spec.ts",
+              "line": 37,
+              "column": 3
+            },
+            {
+              "title": "TC_UI_NAV_005: Verify clicking 'Ask your data' tab renders QueryBox and ChatPanel",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 90000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "fe8ab7c4d44c1917e421-4c6f59b7d23a576658d6",
+              "file": "specs/navigation.spec.ts",
+              "line": 45,
+              "column": 3
+            },
+            {
+              "title": "TC_UI_NAV_006: Verify clicking 'Visualizations' tab renders AutoCharts",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 90000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "fe8ab7c4d44c1917e421-1570683c4006070ceccb",
+              "file": "specs/navigation.spec.ts",
+              "line": 54,
+              "column": 3
+            },
+            {
+              "title": "TC_UI_NAV_007: Verify only one tab's content is visible at a time",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 90000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "fe8ab7c4d44c1917e421-5f39f2325e463902de3f",
+              "file": "specs/navigation.spec.ts",
+              "line": 63,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "specs\\responsive.spec.ts",
+      "file": "specs/responsive.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Responsive Design Viewports",
+          "file": "specs/responsive.spec.ts",
+          "line": 4,
+          "column": 6,
+          "specs": [
+            {
+              "title": "TC_UI_RESP_001: Verify dashboard layout adapts correctly on mobile viewport",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 90000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "8a8113cecc6e58753879-b20d19c63f7e75cdb95f",
+              "file": "specs/responsive.spec.ts",
+              "line": 6,
+              "column": 3
+            },
+            {
+              "title": "TC_UI_RESP_002: Verify dashboard layout adapts correctly on tablet viewport",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 90000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "8a8113cecc6e58753879-972f1d3822ddabb9d634",
+              "file": "specs/responsive.spec.ts",
+              "line": 26,
+              "column": 3
+            },
+            {
+              "title": "TC_UI_RESP_003: Verify login/signup forms are fully usable on mobile viewport",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 90000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "8a8113cecc6e58753879-891105a54d9d0503e26d",
+              "file": "specs/responsive.spec.ts",
+              "line": 38,
+              "column": 3
+            },
+            {
+              "title": "TC_UI_RESP_004: Verify charts and tables do not overflow viewport on small screens",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 90000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "8a8113cecc6e58753879-23510d61d12a47fed308",
+              "file": "specs/responsive.spec.ts",
+              "line": 57,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "specs\\trust-score.spec.ts",
+      "file": "specs/trust-score.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Dataset Trust Score",
+          "file": "specs/trust-score.spec.ts",
+          "line": 8,
+          "column": 6,
+          "specs": [
+            {
+              "title": "TC_TRUST_001: Verify displayed trust score is rendered",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 90000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "c703010b5f9540a63a40-b05fcc6066e7707411a9",
+              "file": "specs/trust-score.spec.ts",
+              "line": 24,
+              "column": 3
+            },
+            {
+              "title": "TC_TRUST_002: Verify trust score breakdown shows all components",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 90000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "c703010b5f9540a63a40-747ce7527704d9c5f0a8",
+              "file": "specs/trust-score.spec.ts",
+              "line": 35,
+              "column": 3
+            },
+            {
+              "title": "TC_TRUST_003: Verify a fully clean dataset scores near 100",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 90000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "c703010b5f9540a63a40-a9a9755ce067ab990e8c",
+              "file": "specs/trust-score.spec.ts",
+              "line": 50,
+              "column": 3
+            },
+            {
+              "title": "TC_TRUST_004: Verify dataset with all duplicate rows scores low on uniqueness",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 90000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "c703010b5f9540a63a40-d7e2ec6dc70f093e54c3",
+              "file": "specs/trust-score.spec.ts",
+              "line": 62,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "specs\\upload.spec.ts",
+      "file": "specs/upload.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Dataset Upload",
+          "file": "specs/upload.spec.ts",
+          "line": 15,
+          "column": 6,
+          "specs": [
+            {
+              "title": "TC_UPLOAD_001: Verify uploading a valid .csv file succeeds",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 90000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "2bc9a2b60b61390e7916-461264d437f4c4f0c600",
+              "file": "specs/upload.spec.ts",
+              "line": 22,
+              "column": 3
+            },
+            {
+              "title": "TC_UPLOAD_002: Verify uploading a valid .xlsx file succeeds",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 90000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "2bc9a2b60b61390e7916-deeeff26e837022e6cfb",
+              "file": "specs/upload.spec.ts",
+              "line": 32,
+              "column": 3
+            },
+            {
+              "title": "TC_UPLOAD_003: Verify uploading a valid .xls file succeeds",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 90000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "2bc9a2b60b61390e7916-e42e7a798296fcc28f61",
+              "file": "specs/upload.spec.ts",
+              "line": 40,
+              "column": 3
+            },
+            {
+              "title": "TC_UPLOAD_004: Verify uploading a valid .tsv file succeeds",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 90000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "2bc9a2b60b61390e7916-d428d1cabb6e59e11a4a",
+              "file": "specs/upload.spec.ts",
+              "line": 48,
+              "column": 3
+            },
+            {
+              "title": "TC_UPLOAD_005: Verify uploading a valid .txt file succeeds",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 90000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "2bc9a2b60b61390e7916-06c5042157bf29fb97e8",
+              "file": "specs/upload.spec.ts",
+              "line": 56,
+              "column": 3
+            },
+            {
+              "title": "TC_UPLOAD_006: Verify unsupported file type is rejected",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 90000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "2bc9a2b60b61390e7916-694ed748a536d3b553ba",
+              "file": "specs/upload.spec.ts",
+              "line": 64,
+              "column": 3
+            },
+            {
+              "title": "TC_UPLOAD_007: Verify empty file is handled gracefully",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 90000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "2bc9a2b60b61390e7916-434ef1ef1bd2e936927c",
+              "file": "specs/upload.spec.ts",
+              "line": 84,
+              "column": 3
+            },
+            {
+              "title": "TC_UPLOAD_008: Verify header-only file is handled",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 90000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "2bc9a2b60b61390e7916-1f7c247afa548daf0aeb",
+              "file": "specs/upload.spec.ts",
+              "line": 102,
+              "column": 3
+            },
+            {
+              "title": "TC_UPLOAD_009: Verify file exceeding max size limit is rejected",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 90000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "2bc9a2b60b61390e7916-026b6dbfb90ee3d6a861",
+              "file": "specs/upload.spec.ts",
+              "line": 112,
+              "column": 3
+            },
+            {
+              "title": "TC_UPLOAD_010: Verify drag-and-drop upload works",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 90000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "2bc9a2b60b61390e7916-3155be82c2e65c4d1667",
+              "file": "specs/upload.spec.ts",
+              "line": 122,
+              "column": 3
+            },
+            {
+              "title": "TC_UPLOAD_011: Verify click-to-browse file picker upload works",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 90000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "2bc9a2b60b61390e7916-56f0aa7d2d3ac8311d3f",
+              "file": "specs/upload.spec.ts",
+              "line": 141,
+              "column": 3
+            },
+            {
+              "title": "TC_UPLOAD_012: Verify malformed CSV is handled without crash",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 90000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "2bc9a2b60b61390e7916-0286605fae1f5615a019",
+              "file": "specs/upload.spec.ts",
+              "line": 149,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "specs\\visualizations.spec.ts",
+      "file": "specs/visualizations.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Visualizations Studio",
+          "file": "specs/visualizations.spec.ts",
+          "line": 6,
+          "column": 6,
+          "specs": [
+            {
+              "title": "TC_VIS_001: Verify auto-generated charts render automatically after upload",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 90000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "391b4e6ba29db1812b04-25093112d9828f1cde90",
+              "file": "specs/visualizations.spec.ts",
+              "line": 19,
+              "column": 3
+            },
+            {
+              "title": "TC_VIS_002: Verify histogram chart renders correctly for a numeric column",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 90000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "391b4e6ba29db1812b04-a97d25452a65a00cf2eb",
+              "file": "specs/visualizations.spec.ts",
+              "line": 32,
+              "column": 3
+            },
+            {
+              "title": "TC_VIS_003: Verify scatter plot renders for two numeric columns",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 90000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "391b4e6ba29db1812b04-c493e9cfd89b2e31be14",
+              "file": "specs/visualizations.spec.ts",
+              "line": 47,
+              "column": 3
+            },
+            {
+              "title": "TC_VIS_004: Verify grouped bar chart renders for two categorical columns",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 90000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "391b4e6ba29db1812b04-b95aea045e49f0040340",
+              "file": "specs/visualizations.spec.ts",
+              "line": 60,
+              "column": 3
+            },
+            {
+              "title": "TC_VIS_005: Verify heatmap chart type renders correctly",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 90000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "391b4e6ba29db1812b04-ec1958bb27ac46634cf1",
+              "file": "specs/visualizations.spec.ts",
+              "line": 73,
+              "column": 3
+            },
+            {
+              "title": "TC_VIS_006: Verify chart type dropdown switches the rendered chart correctly",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 90000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "391b4e6ba29db1812b04-7f1eb23b88bc5767da7c",
+              "file": "specs/visualizations.spec.ts",
+              "line": 93,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-07-07T09:23:18.937Z",
+    "duration": 248.471,
+    "expected": 0,
+    "skipped": 69,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}
