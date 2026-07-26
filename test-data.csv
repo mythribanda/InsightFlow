@@ -1,0 +1,31 @@
+name,age,salary,department,hire_date,rating,city,is_active
+Alice Johnson,28,65000,Engineering,2022-03-15,4.5,New York,true
+Bob Smith,35,82000,Marketing,2020-07-22,3.8,Chicago,true
+Carol Williams,42,95000,Engineering,2018-11-30,4.9,San Francisco,true
+David Brown,31,71000,Sales,2021-06-10,3.2,Boston,false
+Eve Davis,26,58000,HR,2023-01-05,4.1,Austin,true
+Frank Miller,38,88000,Engineering,2019-09-18,4.7,Seattle,true
+Grace Wilson,45,105000,Marketing,2017-04-25,3.5,New York,true
+Henry Moore,29,62000,Sales,2022-08-14,3.9,Chicago,false
+Ivy Taylor,33,77000,HR,2020-12-01,4.3,San Francisco,true
+Jack Anderson,40,92000,Engineering,2018-05-20,4.6,Austin,true
+Kate Thomas,27,60000,Sales,2023-03-10,2.8,Boston,true
+Leo Jackson,36,85000,Marketing,2019-11-15,4.0,Seattle,true
+Mia White,44,98000,Engineering,2017-08-05,4.8,New York,false
+Noah Harris,30,70000,HR,2021-02-28,3.6,Chicago,true
+Olivia Martin,25,55000,Sales,2023-06-20,4.2,Austin,true
+Peter Garcia,39,90000,Engineering,2018-10-12,4.4,San Francisco,true
+Quinn Martinez,34,78000,Marketing,2020-04-08,3.7,Boston,true
+Rachel Robinson,41,96000,Engineering,2017-12-01,4.9,Seattle,true
+Sam Clark,28,64000,Sales,2022-05-15,3.1,New York,false
+Tina Rodriguez,37,86000,HR,2019-07-22,4.0,Chicago,true
+Uma Lewis,43,,Engineering,2017-03-30,4.7,Austin,true
+Victor Lee,32,74000,Marketing,2020-09-10,3.4,San Francisco,true
+Wendy Walker,29,61000,Sales,2022-11-05,,Boston,true
+Xavier Hall,46,110000,Engineering,2016-01-15,4.8,Seattle,true
+Yuri Allen,36,83000,HR,2019-06-18,3.9,New York,true
+Zara Young,31,,Marketing,2021-08-25,4.1,Chicago,false
+Alice King,27,57000,Sales,2023-04-12,3.3,,true
+Bob Wright,350,88000,Engineering,2019-02-28,4.5,Austin,true
+Carol Scott,33,75000,HR,2020-10-15,4.2,San Francisco,true
+David Adams,38,91000,Engineering,2018-07-20,4.6,Seattle,true

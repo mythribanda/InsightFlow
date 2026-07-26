@@ -1,0 +1,401 @@
+employee_id,name,age,experience,department,city,rating,salary
+EMP000,Michael Miller 0,29,7,Marketing,San Francisco,2.6,65964
+EMP001,James Miller 1,23,0,HR,Chicago,3.3,37607
+EMP002,Mary Garcia 2,39,15,Sales,Los Angeles,4.5,107199
+EMP003,Mary Williams 3,37,12,Engineering,Atlanta,4.0,114114
+EMP004,Joseph Smith 4,36,13,HR,Seattle,4.6,77591
+EMP005,James Davis 5,30,6,Marketing,Denver,4.8,66739
+EMP006,Mary Smith 6,28,5,Engineering,Portland,2.7,98993
+EMP007,Michael Smith 7,56,34,Engineering,Austin,4.6,183244
+EMP008,Charles Garcia 8,27,2,Marketing,Dallas,,62364
+EMP009,James Miller 9,59,37,Marketing,Phoenix,4.0,148403
+EMP010,Robert Johnson 10,49,24,Engineering,Phoenix,3.8,129298
+EMP011,James Davis 11,24,1,Finance,Atlanta,3.5,36119
+EMP012,Robert Miller 12,23,0,Engineering,Denver,3.3,85485
+EMP013,Michael Garcia 13,27,2,Sales,Miami,3.3,52485
+EMP014,Robert Davis 14,35,11,Sales,Phoenix,3.3,86509
+EMP015,Robert Williams 15,36,12,Finance,Phoenix,2.9,70836
+EMP016,Mary Williams 16,54,31,HR,Seattle,3.8,147509
+EMP017,David Brown 17,60,37,Engineering,Los Angeles,2.8,160741
+EMP018,Michael Johnson 18,23,1,Sales,Denver,3.8,50272
+EMP019,Christopher Williams 19,57,34,Engineering,Dallas,4.8,151222
+EMP020,Robert Garcia 20,34,9,Finance,San Francisco,,86824
+EMP021,David Jones 21,56,32,Marketing,San Diego,4.3,112014
+EMP022,Joseph Smith 22,48,24,Finance,Portland,4.5,98751
+EMP023,Christopher Garcia 23,36,14,Finance,Miami,4.5,75002
+EMP024,James Brown 24,50,26,Finance,Denver,3.1,98279
+EMP025,Maria Miller 25,59,35,Sales,Boston,2.9,128887
+EMP026,Michael Brown 26,39,13,Finance,New York,3.0,102622
+EMP027,James Jones 27,22,0,Marketing,Phoenix,4.0,48793
+EMP028,Maria Williams 28,32,6,Marketing,Austin,4.4,73844
+EMP029,Joseph Smith 29,49,25,Marketing,Chicago,4.1,90826
+EMP030,Mary Williams 30,43,21,HR,Portland,2.9,91828
+EMP031,Michael Rodriguez 31,39,17,Finance,Portland,4.4,96365
+EMP032,Mary Williams 32,31,7,Marketing,Chicago,3.7,78410
+EMP033,Maria Jones 33,35,12,HR,San Diego,4.4,85647
+EMP034,Michael Johnson 34,43,17,Finance,Austin,4.4,83834
+EMP035,Maria Smith 35,28,4,Finance,San Francisco,3.6,73550
+EMP036,David Davis 36,27,5,Engineering,Dallas,4.8,87358
+EMP037,Mary Miller 37,46,24,Finance,Austin,3.9,98347
+EMP038,Robert Smith 38,28,2,Engineering,Atlanta,,81542
+EMP039,David Garcia 39,44,19,Sales,Los Angeles,4.1,87650
+EMP040,Robert Garcia 40,44,20,Sales,Dallas,4.7,132941
+EMP041,Robert Miller 41,60,36,HR,Austin,,107136
+EMP042,Mary Jones 42,38,13,Engineering,New York,2.9,129750
+EMP043,Mary Williams 43,24,0,Sales,Denver,2.7,66454
+EMP044,Christopher Smith 44,51,25,Sales,Boston,3.6,107759
+EMP045,Mary Johnson 45,56,34,Sales,Chicago,3.3,131825
+EMP046,Robert Hernandez 46,29,4,Finance,San Francisco,3.2,61492
+EMP047,Robert Garcia 47,46,20,Engineering,San Diego,2.6,119479
+EMP048,James Smith 48,27,4,Sales,San Diego,3.8,72369
+EMP049,David Miller 49,57,33,Engineering,Portland,3.3,155013
+EMP050,James Johnson 50,21,0,HR,Austin,3.0,185000
+EMP051,James Smith 51,45,20,Marketing,Dallas,2.6,100940
+EMP052,James Williams 52,58,36,Finance,Chicago,4.6,127913
+EMP053,David Smith 53,34,8,Marketing,Dallas,,57589
+EMP054,David Brown 54,26,0,HR,Dallas,4.7,60691
+EMP055,David Davis 55,24,1,Engineering,Miami,,80399
+EMP056,Robert Smith 56,36,12,Sales,New York,4.0,98545
+EMP057,Thomas Williams 57,40,15,HR,New York,3.8,112466
+EMP058,Robert Jones 58,27,5,HR,San Jose,,54181
+EMP059,David Smith 59,36,12,Marketing,Austin,3.9,97205
+EMP060,Michael Jones 60,28,2,Engineering,Chicago,4.5,72971
+EMP061,Mary Williams 61,46,22,Sales,Seattle,4.7,127097
+EMP062,Mary Williams 62,39,17,HR,San Jose,3.6,77593
+EMP063,James Brown 63,51,27,Finance,Miami,,114480
+EMP064,Robert Miller 64,45,19,Sales,Chicago,,135415
+EMP065,Richard Garcia 65,32,8,Marketing,San Francisco,3.3,86445
+EMP066,James Smith 66,45,20,Engineering,San Diego,,91718
+EMP067,Thomas Miller 67,44,20,Finance,San Jose,2.9,89929
+EMP068,Robert Miller 68,35,10,Sales,Atlanta,2.7,82432
+EMP069,Michael Brown 69,39,15,Sales,Chicago,2.8,102427
+EMP070,Patricia Johnson 70,26,0,HR,Miami,,69323
+EMP071,David Williams 71,60,37,Sales,Chicago,3.4,147279
+EMP072,Richard Williams 72,32,9,Engineering,San Diego,4.3,114723
+EMP073,Michael Smith 73,56,31,Engineering,San Diego,3.8,135916
+EMP074,Michael Miller 74,37,12,Sales,Chicago,2.9,70768
+EMP075,Michael Davis 75,32,9,HR,Austin,3.1,70535
+EMP076,Michael Smith 76,51,25,Finance,San Jose,3.6,112805
+EMP077,Mary Jones 77,46,20,Finance,Seattle,,92961
+EMP078,Michael Davis 78,39,15,HR,San Jose,3.8,98807
+EMP079,Robert Jones 79,57,32,Marketing,Los Angeles,,104372
+EMP080,David Smith 80,36,10,Engineering,Miami,3.4,100496
+EMP081,Michael Williams 81,42,20,Marketing,New York,3.2,97109
+EMP082,William Martinez 82,25,1,HR,Boston,3.5,39549
+EMP083,Michael Jones 83,36,12,Marketing,San Diego,3.3,84520
+EMP084,Michael Johnson 84,24,1,HR,Seattle,4.0,64610
+EMP085,David Davis 85,42,17,Finance,Seattle,4.5,114961
+EMP086,Maria Jones 86,47,21,Finance,Atlanta,4.1,111924
+EMP087,Robert Smith 87,39,13,Marketing,Boston,,80936
+EMP088,Robert Garcia 88,26,2,Marketing,San Jose,2.7,51278
+EMP089,Mary Smith 89,35,10,Engineering,Seattle,4.2,103319
+EMP090,Michael Martinez 90,58,33,Finance,San Francisco,3.2,168582
+EMP091,James Smith 91,42,17,Engineering,Dallas,4.3,118159
+EMP092,David Garcia 92,35,12,Marketing,San Diego,4.1,103336
+EMP093,James Smith 93,53,27,HR,New York,4.8,156836
+EMP094,Mary Jones 94,47,22,Finance,Seattle,4.7,96953
+EMP095,David Williams 95,51,28,HR,New York,3.3,142994
+EMP096,Maria Miller 96,31,9,Engineering,Austin,4.0,85233
+EMP097,James Davis 97,38,14,Engineering,San Jose,2.9,129845
+EMP098,David Jones 98,30,4,Sales,San Jose,3.4,70549
+EMP099,Robert Jones 99,37,11,Finance,Chicago,4.9,73209
+EMP100,Michael Smith 100,55,32,Engineering,Seattle,4.8,32000
+EMP101,David Miller 101,56,34,Engineering,Austin,3.5,151991
+EMP102,Michael Smith 102,38,15,HR,New York,4.0,105792
+EMP103,Michael Jones 103,59,35,Finance,Seattle,4.8,147529
+EMP104,Michael Smith 104,49,26,Engineering,Boston,3.3,127423
+EMP105,David Smith 105,59,36,Sales,New York,3.4,177004
+EMP106,Michael Jones 106,47,24,Marketing,Seattle,4.5,101791
+EMP107,David Davis 107,45,23,Finance,Phoenix,4.5,109974
+EMP108,Robert Johnson 108,36,14,Marketing,Denver,4.2,73652
+EMP109,Mary Smith 109,30,7,HR,Atlanta,4.6,69859
+EMP110,Mary Johnson 110,54,29,Sales,San Francisco,4.3,154583
+EMP111,Joseph Johnson 111,53,27,Finance,Phoenix,4.2,108240
+EMP112,David Jones 112,27,5,Marketing,San Francisco,,96142
+EMP113,Thomas Williams 113,25,0,Marketing,Portland,4.1,51840
+EMP114,Charles Brown 114,29,4,Engineering,Portland,3.6,83992
+EMP115,Maria Williams 115,31,5,Marketing,San Jose,3.4,70851
+EMP116,James Brown 116,32,9,HR,Austin,3.4,76287
+EMP117,Michael Smith 117,49,24,Marketing,Atlanta,3.0,87260
+EMP118,David Smith 118,60,35,HR,Miami,3.0,121903
+EMP119,Christopher Davis 119,26,1,HR,San Francisco,4.9,61208
+EMP120,Maria Davis 120,46,23,Engineering,Portland,3.7,134217
+EMP121,Michael Garcia 121,46,23,Sales,Atlanta,3.1,100065
+EMP122,Robert Rodriguez 122,60,38,HR,Chicago,2.8,114647
+EMP123,James Williams 123,51,29,Marketing,Miami,2.7,80028
+EMP124,David Miller 124,55,30,Marketing,New York,4.6,122953
+EMP125,James Garcia 125,38,15,HR,Phoenix,2.8,68746
+EMP126,James Smith 126,57,34,Marketing,San Jose,,126472
+EMP127,David Smith 127,22,0,Finance,Los Angeles,4.6,37403
+EMP128,Maria Jones 128,29,4,Engineering,San Diego,,106223
+EMP129,Robert Davis 129,56,34,Marketing,Dallas,2.6,122568
+EMP130,Michael Miller 130,39,13,Engineering,Atlanta,3.3,126125
+EMP131,Mary Jones 131,43,20,HR,Boston,4.4,94192
+EMP132,Robert Smith 132,29,7,HR,Portland,2.8,64477
+EMP133,Mary Davis 133,40,15,HR,Dallas,3.4,66958
+EMP134,Michael Jones 134,49,26,Engineering,New York,2.9,152797
+EMP135,Charles Smith 135,32,7,Marketing,New York,4.6,66144
+EMP136,David Davis 136,51,25,Finance,Portland,4.4,117593
+EMP137,Charles Jones 137,22,0,Engineering,San Diego,4.5,97835
+EMP138,Michael Davis 138,38,12,Finance,Denver,,56593
+EMP139,Robert Johnson 139,54,30,Marketing,Denver,3.6,100771
+EMP140,James Smith 140,33,8,Marketing,Dallas,,78462
+EMP141,Mary Miller 141,54,28,Engineering,San Francisco,4.2,191269
+EMP142,James Garcia 142,28,2,Sales,Portland,3.1,93026
+EMP143,James Brown 143,41,16,Finance,Phoenix,3.6,91454
+EMP144,David Smith 144,54,28,HR,Los Angeles,3.2,111909
+EMP145,William Miller 145,60,35,Finance,Portland,4.4,132994
+EMP146,Joseph Miller 146,34,11,Marketing,San Francisco,3.6,89321
+EMP147,David Davis 147,31,6,Marketing,Los Angeles,3.8,71032
+EMP148,David Williams 148,45,20,Engineering,San Francisco,3.3,145745
+EMP149,David Garcia 149,32,8,Sales,Austin,4.5,73118
+EMP150,Robert Martinez 150,35,10,Sales,Chicago,1.0,160000
+EMP151,David Garcia 151,55,31,Finance,Seattle,4.6,108346
+EMP152,Maria Jones 152,22,0,Sales,San Francisco,3.4,89404
+EMP153,Robert Williams 153,60,35,HR,Seattle,,132167
+EMP154,Maria Smith 154,42,19,Marketing,Boston,,105347
+EMP155,Robert Smith 155,53,29,Marketing,Miami,3.7,117295
+EMP156,David Williams 156,23,0,Engineering,Dallas,3.2,79317
+EMP157,Mary Garcia 157,29,7,Engineering,Miami,3.5,103660
+EMP158,David Miller 158,45,21,Finance,Atlanta,3.8,90022
+EMP159,James Garcia 159,41,18,Sales,Phoenix,4.9,96121
+EMP160,James Smith 160,37,13,Sales,Austin,4.5,92715
+EMP161,James Smith 161,25,1,HR,Denver,4.5,64014
+EMP162,Mary Jones 162,37,13,Finance,Miami,2.8,84452
+EMP163,Richard Williams 163,58,32,Engineering,Atlanta,3.1,140638
+EMP164,James Williams 164,27,5,Finance,Boston,4.1,51426
+EMP165,Robert Johnson 165,27,4,Marketing,Portland,4.7,81160
+EMP166,Mary Miller 166,53,30,Engineering,Atlanta,3.9,142870
+EMP167,Robert Williams 167,26,3,Sales,Miami,2.8,48156
+EMP168,Maria Garcia 168,56,31,Engineering,Denver,4.6,145957
+EMP169,David Smith 169,30,7,Marketing,San Francisco,,70564
+EMP170,Joseph Garcia 170,30,7,Engineering,San Jose,3.2,95103
+EMP171,David Rodriguez 171,52,30,Sales,Phoenix,,140941
+EMP172,Charles Johnson 172,57,32,Marketing,San Francisco,3.2,139750
+EMP173,David Garcia 173,32,7,HR,San Diego,4.8,68843
+EMP174,James Johnson 174,38,14,Finance,Dallas,2.9,87739
+EMP175,Robert Williams 175,55,29,HR,Dallas,,112592
+EMP176,James Williams 176,60,35,Marketing,Los Angeles,4.9,132016
+EMP177,Mary Rodriguez 177,49,24,Marketing,San Jose,,108734
+EMP178,James Smith 178,35,13,Marketing,Atlanta,3.6,76176
+EMP179,Mary Williams 179,56,33,Sales,Phoenix,3.4,124037
+EMP180,Mary Smith 180,34,9,Marketing,San Diego,2.6,49039
+EMP181,Mary Martinez 181,41,16,Finance,Chicago,2.6,103439
+EMP182,Maria Johnson 182,47,21,Sales,Denver,3.8,112398
+EMP183,Robert Brown 183,45,23,Marketing,Portland,3.1,89396
+EMP184,James Miller 184,50,24,Sales,Los Angeles,5.0,135298
+EMP185,Robert Brown 185,55,30,Finance,Chicago,3.4,127997
+EMP186,Mary Smith 186,50,25,Finance,Denver,2.6,76051
+EMP187,Maria Williams 187,29,7,Sales,Austin,,106948
+EMP188,James Rodriguez 188,37,13,Engineering,San Diego,4.6,124529
+EMP189,Mary Miller 189,36,12,HR,Portland,4.1,52268
+EMP190,James Williams 190,26,1,Marketing,Denver,4.5,60544
+EMP191,James Smith 191,43,18,HR,Denver,2.8,76738
+EMP192,Michael Williams 192,23,0,Finance,Phoenix,3.2,44052
+EMP193,David Rodriguez 193,59,33,HR,San Francisco,4.6,175961
+EMP194,Michael Miller 194,57,31,Engineering,Austin,4.2,142319
+EMP195,Joseph Miller 195,36,13,HR,Denver,2.8,85763
+EMP196,Mary Smith 196,59,34,HR,Austin,4.3,128246
+EMP197,Mary Williams 197,36,13,Finance,Dallas,,92793
+EMP198,William Martinez 198,22,0,Finance,Boston,2.5,49427
+EMP199,Charles Smith 199,26,1,Marketing,Austin,2.7,62453
+EMP200,Charles Jones 200,25,0,Sales,Seattle,3.1,82606
+EMP201,James Smith 201,36,14,Marketing,Dallas,4.6,78733
+EMP202,William Brown 202,26,1,Finance,Los Angeles,3.9,64995
+EMP203,Charles Brown 203,24,0,Marketing,Portland,4.3,66603
+EMP204,Christopher Jones 204,43,18,HR,San Francisco,,104605
+EMP205,David Williams 205,26,3,HR,San Francisco,2.8,61359
+EMP206,Thomas Smith 206,54,29,Finance,San Diego,,105173
+EMP207,Michael Davis 207,37,14,Finance,San Francisco,3.3,85816
+EMP208,Michael Miller 208,39,13,Marketing,San Francisco,,89950
+EMP209,David Johnson 209,53,27,Marketing,Denver,,106397
+EMP210,David Smith 210,35,13,HR,San Francisco,4.5,85685
+EMP211,Maria Smith 211,56,31,Sales,Phoenix,3.6,140585
+EMP212,James Brown 212,30,4,Sales,Phoenix,2.8,83920
+EMP213,Michael Miller 213,58,32,Finance,Austin,4.8,139063
+EMP214,David Williams 214,58,36,Marketing,San Jose,,146864
+EMP215,Mary Williams 215,52,30,Sales,Seattle,2.5,135793
+EMP216,Robert Davis 216,37,12,Marketing,Atlanta,3.8,88967
+EMP217,Mary Martinez 217,52,29,Engineering,New York,3.1,159139
+EMP218,Christopher Williams 218,48,23,HR,Miami,2.9,120208
+EMP219,Mary Davis 219,34,11,Marketing,Atlanta,3.6,64922
+EMP220,David Jones 220,28,6,Marketing,Atlanta,4.0,57776
+EMP221,James Johnson 221,28,4,Marketing,Austin,3.1,57930
+EMP222,James Williams 222,49,24,Sales,Dallas,3.5,125092
+EMP223,Patricia Garcia 223,44,20,Marketing,San Francisco,4.2,117376
+EMP224,David Davis 224,49,26,Engineering,Denver,,115253
+EMP225,Michael Miller 225,48,23,Sales,Austin,4.9,98800
+EMP226,Joseph Williams 226,51,27,Finance,San Diego,,118666
+EMP227,David Smith 227,25,1,Finance,Dallas,3.8,62055
+EMP228,James Williams 228,28,3,HR,San Jose,3.8,39335
+EMP229,Maria Miller 229,25,1,Engineering,Denver,,83487
+EMP230,David Miller 230,47,22,Marketing,San Diego,3.9,124860
+EMP231,David Johnson 231,43,19,Engineering,Los Angeles,3.5,109519
+EMP232,Mary Garcia 232,28,6,Finance,Phoenix,3.7,75459
+EMP233,James Smith 233,37,12,Marketing,New York,4.1,114371
+EMP234,Michael Brown 234,34,12,Engineering,Boston,5.0,124014
+EMP235,James Johnson 235,34,8,Sales,Miami,,101669
+EMP236,Mary Smith 236,56,34,Marketing,Boston,2.5,131867
+EMP237,David Smith 237,50,26,Sales,Austin,4.5,123986
+EMP238,Michael Davis 238,30,7,Engineering,San Francisco,3.4,86827
+EMP239,Michael Martinez 239,49,27,Marketing,Miami,4.3,114217
+EMP240,James Smith 240,33,11,HR,Atlanta,4.1,103813
+EMP241,Joseph Smith 241,39,17,HR,Chicago,4.4,85446
+EMP242,Robert Johnson 242,51,28,Finance,Seattle,4.3,127430
+EMP243,James Brown 243,37,14,Marketing,Dallas,3.3,78654
+EMP244,David Smith 244,26,4,Engineering,Portland,2.6,77096
+EMP245,Mary Miller 245,50,24,HR,Chicago,3.9,102433
+EMP246,James Miller 246,57,34,Finance,San Diego,4.5,139564
+EMP247,James Jones 247,28,5,Marketing,San Francisco,2.9,70952
+EMP248,Robert Davis 248,25,2,HR,Austin,4.4,73888
+EMP249,Michael Jones 249,56,31,Marketing,San Diego,3.7,118172
+EMP250,Robert Williams 250,22,0,Finance,Atlanta,4.2,30000
+EMP251,David Jones 251,27,1,Engineering,Austin,,84282
+EMP252,Mary Davis 252,37,14,Finance,San Francisco,4.5,112747
+EMP253,Maria Smith 253,32,7,Engineering,San Jose,2.7,78546
+EMP254,David Smith 254,48,24,Sales,Boston,4.4,121363
+EMP255,Robert Davis 255,53,29,HR,Miami,,119792
+EMP256,Robert Smith 256,52,29,Sales,Chicago,3.2,131249
+EMP257,Michael Miller 257,35,9,Engineering,San Jose,2.6,104639
+EMP258,Robert Miller 258,47,21,Marketing,Denver,3.0,93349
+EMP259,Michael Davis 259,25,3,Engineering,San Diego,2.6,87795
+EMP260,Michael Brown 260,32,9,Engineering,Atlanta,4.8,102518
+EMP261,Mary Williams 261,46,22,Marketing,San Jose,3.8,78749
+EMP262,Robert Smith 262,22,0,Sales,San Diego,5.0,51111
+EMP263,James Smith 263,46,20,HR,Miami,3.9,87658
+EMP264,Thomas Smith 264,38,16,Engineering,Miami,3.1,121862
+EMP265,Robert Garcia 265,51,27,Engineering,Dallas,4.4,162988
+EMP266,Mary Miller 266,40,14,HR,Dallas,3.0,96236
+EMP267,Robert Davis 267,49,24,Engineering,Atlanta,3.4,116753
+EMP268,Michael Smith 268,57,32,HR,New York,,141084
+EMP269,Mary Williams 269,53,30,HR,Miami,4.7,121510
+EMP270,James Brown 270,31,9,HR,Los Angeles,3.3,65073
+EMP271,David Davis 271,34,8,Marketing,Dallas,2.8,57395
+EMP272,Robert Davis 272,40,17,Sales,San Diego,3.4,105632
+EMP273,Robert Johnson 273,35,13,Sales,Phoenix,4.7,104802
+EMP274,Robert Smith 274,25,1,Finance,Boston,4.4,56814
+EMP275,James Smith 275,59,33,Marketing,New York,4.7,159095
+EMP276,Patricia Brown 276,56,34,Finance,Seattle,3.5,138605
+EMP277,Maria Hernandez 277,25,0,Sales,Boston,4.9,89007
+EMP278,Michael Johnson 278,42,20,Sales,Phoenix,3.7,116753
+EMP279,Robert Smith 279,25,1,Sales,San Jose,3.7,62303
+EMP280,Michael Brown 280,25,0,Engineering,Boston,,84192
+EMP281,Mary Jones 281,59,34,Finance,Los Angeles,3.8,124506
+EMP282,James Williams 282,52,28,Marketing,Austin,4.5,106112
+EMP283,James Smith 283,54,32,Finance,Austin,4.3,109239
+EMP284,Mary Garcia 284,55,29,Sales,New York,2.7,149110
+EMP285,David Brown 285,32,8,Marketing,Seattle,4.0,78650
+EMP286,James Smith 286,25,3,Finance,San Diego,4.6,57824
+EMP287,Christopher Smith 287,54,29,Sales,Seattle,3.9,151345
+EMP288,James Hernandez 288,27,2,Sales,Miami,3.3,39919
+EMP289,Michael Williams 289,33,11,Marketing,Dallas,2.7,69797
+EMP290,Michael Smith 290,26,1,HR,Denver,4.2,52721
+EMP291,Mary Smith 291,60,36,Marketing,San Francisco,3.3,149330
+EMP292,Robert Smith 292,26,1,HR,Seattle,4.0,79190
+EMP293,Mary Johnson 293,37,14,Engineering,Phoenix,3.6,127270
+EMP294,James Smith 294,47,22,Marketing,Dallas,,97273
+EMP295,Michael Miller 295,29,6,HR,New York,,89088
+EMP296,Robert Brown 296,58,32,Finance,San Francisco,2.6,145988
+EMP297,Richard Brown 297,37,13,Sales,Phoenix,4.7,102905
+EMP298,James Johnson 298,59,33,Engineering,Atlanta,3.4,161481
+EMP299,Robert Davis 299,60,34,Marketing,Chicago,5.0,148643
+EMP300,Robert Brown 300,24,0,HR,Denver,3.2,38704
+EMP301,James Smith 301,27,2,Finance,Denver,5.0,54229
+EMP302,Robert Miller 302,48,23,HR,Portland,4.9,94704
+EMP303,David Brown 303,59,33,Marketing,Austin,2.7,114479
+EMP304,Robert Brown 304,58,34,HR,Seattle,,122544
+EMP305,David Smith 305,55,31,Marketing,Austin,3.4,113561
+EMP306,James Johnson 306,42,19,HR,Boston,4.5,98584
+EMP307,Mary Smith 307,38,16,Sales,Phoenix,4.2,109571
+EMP308,Mary Garcia 308,35,11,Marketing,Austin,4.9,81926
+EMP309,David Miller 309,42,17,Marketing,San Jose,2.9,60026
+EMP310,Mary Jones 310,37,14,Engineering,Miami,4.0,122667
+EMP311,Robert Williams 311,38,13,Sales,Miami,4.5,102024
+EMP312,James Johnson 312,47,21,Marketing,San Francisco,2.6,113114
+EMP313,David Hernandez 313,30,4,Finance,Los Angeles,2.7,50164
+EMP314,Thomas Davis 314,41,16,HR,New York,4.4,100195
+EMP315,Michael Jones 315,51,27,Finance,Seattle,,117659
+EMP316,James Williams 316,42,20,HR,Seattle,3.5,89293
+EMP317,Mary Williams 317,26,1,HR,San Jose,3.9,50000
+EMP318,David Brown 318,22,0,Engineering,Miami,4.0,74364
+EMP319,Robert Hernandez 319,51,28,Marketing,New York,4.2,131273
+EMP320,Robert Williams 320,58,33,HR,Dallas,4.9,122744
+EMP321,David Miller 321,28,5,Engineering,San Francisco,3.4,122328
+EMP322,Robert Davis 322,26,2,Finance,Boston,4.4,64961
+EMP323,James Smith 323,56,32,Engineering,Portland,,155828
+EMP324,David Miller 324,35,11,Finance,Dallas,,71158
+EMP325,Maria Davis 325,54,30,Marketing,Denver,3.5,113386
+EMP326,Maria Williams 326,38,12,HR,Portland,4.1,57621
+EMP327,Maria Smith 327,30,6,Sales,Miami,,71779
+EMP328,Christopher Hernandez 328,44,18,Finance,Portland,2.8,72312
+EMP329,Robert Williams 329,26,4,HR,Denver,4.3,66953
+EMP330,David Johnson 330,37,11,Sales,Boston,3.7,83213
+EMP331,Robert Williams 331,45,22,Sales,Chicago,3.5,111509
+EMP332,Michael Miller 332,40,18,Finance,San Jose,3.9,70442
+EMP333,Maria Miller 333,32,9,HR,Atlanta,3.2,73396
+EMP334,David Brown 334,50,25,Sales,San Francisco,,141487
+EMP335,Robert Jones 335,56,31,Engineering,Austin,3.6,134821
+EMP336,James Jones 336,41,15,Engineering,Denver,5.0,126553
+EMP337,David Davis 337,55,32,HR,San Francisco,,129596
+EMP338,Robert Miller 338,22,0,Marketing,Boston,4.8,53280
+EMP339,William Jones 339,57,32,Engineering,Dallas,3.7,147674
+EMP340,Patricia Martinez 340,41,16,Finance,Dallas,2.8,79262
+EMP341,Robert Williams 341,28,6,HR,Miami,4.6,72308
+EMP342,Mary Miller 342,30,8,Sales,Portland,,108105
+EMP343,Maria Williams 343,38,14,Engineering,Atlanta,4.7,113766
+EMP344,James Jones 344,29,6,HR,Dallas,3.6,89073
+EMP345,Maria Johnson 345,28,3,HR,Boston,2.7,64349
+EMP346,David Miller 346,57,34,Marketing,New York,4.2,161924
+EMP347,Robert Davis 347,31,7,Sales,Chicago,,85336
+EMP348,Michael Brown 348,39,13,Sales,Denver,3.3,92030
+EMP349,Mary Jones 349,40,16,Sales,Miami,3.4,76398
+EMP350,Michael Garcia 350,60,35,Finance,New York,2.7,162091
+EMP351,Mary Jones 351,35,9,HR,New York,3.9,81118
+EMP352,William Rodriguez 352,43,17,Finance,Chicago,4.7,60301
+EMP353,Michael Smith 353,35,11,Finance,Boston,4.6,97797
+EMP354,Mary Smith 354,38,13,HR,Chicago,4.3,64687
+EMP355,Patricia Smith 355,54,28,Sales,San Jose,4.8,146404
+EMP356,Charles Smith 356,53,29,HR,Seattle,4.1,137384
+EMP357,David Smith 357,38,14,Marketing,San Jose,4.5,79361
+EMP358,William Garcia 358,25,0,HR,Boston,3.8,44251
+EMP359,David Miller 359,27,3,HR,Boston,2.8,36985
+EMP360,Robert Garcia 360,49,25,Engineering,Austin,3.0,113558
+EMP361,David Jones 361,39,15,Marketing,San Francisco,2.8,94729
+EMP362,James Jones 362,24,1,Engineering,New York,4.5,94399
+EMP363,Maria Miller 363,22,0,Sales,Portland,2.6,63648
+EMP364,Maria Smith 364,43,20,Sales,Phoenix,3.9,93680
+EMP365,David Jones 365,30,6,Marketing,Denver,,59285
+EMP366,Mary Jones 366,38,16,Finance,Seattle,4.5,97039
+EMP367,Mary Smith 367,32,6,HR,Seattle,3.9,62585
+EMP368,Mary Garcia 368,50,27,Engineering,Denver,4.0,142472
+EMP369,Mary Jones 369,57,34,Marketing,Atlanta,2.7,120856
+EMP370,Mary Brown 370,49,26,Engineering,Phoenix,3.3,128827
+EMP371,Mary Garcia 371,57,32,HR,Chicago,5.0,145031
+EMP372,Michael Garcia 372,22,0,Finance,Atlanta,4.3,39787
+EMP373,Joseph Smith 373,29,3,Engineering,Atlanta,,82024
+EMP374,Robert Brown 374,26,0,Marketing,San Diego,4.4,58525
+EMP375,Thomas Williams 375,31,5,HR,Dallas,4.6,58394
+EMP376,Maria Brown 376,56,32,HR,San Jose,2.7,110926
+EMP377,Maria Garcia 377,24,2,Finance,Austin,4.9,69331
+EMP378,Joseph Johnson 378,45,22,Marketing,San Francisco,4.1,142559
+EMP379,Robert Miller 379,59,35,HR,Denver,3.6,120111
+EMP380,David Williams 380,57,34,Engineering,San Diego,4.2,172885
+EMP381,James Miller 381,31,7,Sales,Phoenix,3.4,91127
+EMP382,James Brown 382,49,26,Marketing,New York,,113720
+EMP383,William Miller 383,30,6,Engineering,Denver,4.5,106139
+EMP384,Maria Johnson 384,24,2,Finance,New York,,67878
+EMP385,Mary Garcia 385,41,15,Finance,Portland,3.0,79079
+EMP386,Michael Williams 386,45,22,HR,Los Angeles,4.9,106907
+EMP387,David Smith 387,24,0,Finance,San Francisco,3.6,67075
+EMP388,Mary Jones 388,44,22,Sales,San Diego,4.8,132736
+EMP389,William Williams 389,35,13,Engineering,Austin,2.6,105491
+EMP390,James Smith 390,37,11,Marketing,Miami,2.8,69603
+EMP391,Patricia Miller 391,28,4,HR,Denver,2.9,52171
+EMP392,Charles Jones 392,44,21,Marketing,Miami,2.9,92476
+EMP393,Mary Smith 393,57,32,Engineering,Denver,3.3,135247
+EMP394,Maria Garcia 394,48,26,Sales,Phoenix,4.3,124025
+EMP395,Michael Garcia 395,31,9,Engineering,Dallas,3.4,105658
+EMP396,Charles Davis 396,37,11,Engineering,Denver,4.9,111880
+EMP397,Maria Davis 397,32,8,HR,Boston,4.7,70511
+EMP398,Maria Smith 398,33,8,Marketing,San Francisco,4.6,78836
+EMP399,James Garcia 399,48,23,Engineering,Denver,3.1,126358
